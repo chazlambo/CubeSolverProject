@@ -26,19 +26,12 @@ AccelStepper upStepper(1, STEP5, DIR5);
 AccelStepper downStepper(1, STEP6, DIR6);
 AccelStepper ringStepper(1, STEP7, DIR7);
 
-// Posiiton Variables
-int frontPos = 0;
-int backPos = 0;
-int leftPos = 0;
-int rightPos = 0;
-int upPos = 0;
-int downPos = 0;
-
 // Cube Stepper Variables
-int cubeStepSpeed = 800;
-int cubeStepAccel = 400;
-int startPos = 0;
-int quarterTurn = 100; // 400 for full rotation
+int cubeStepSpeed = 10000;
+int cubeStepAccel = 5000;
+int quarterTurn = 100;  // Steps
+int halfTurn = 200;     // Steps
+int fullTurn = 400;     // Steps
 
 // Ring Stepper Variables
 int ringStepSpeed = 800;
@@ -47,6 +40,15 @@ int ringRetPos = 0;
 int ringExtPos = 400;
 int ringMovePos = 0;
 bool ringExtended = 0;
+
+// Stepper Position Variables
+int frontPos = 0;
+int backPos = 0;
+int leftPos = 0;
+int rightPos = 0;
+int upPos = 0;
+int downPos = 0;
+int ringPos = 0;
 
 void assignStepper(AccelStepper &newStepper, int stepSpeed, int stepAccel) {
   newStepper.setMaxSpeed(stepSpeed);
@@ -98,4 +100,47 @@ void ringExtend() {
   ringStepper.runToNewPosition(ringExtPos); // Extend Ring
   ringExtended = 1;                         // Set ring state
   digitalWrite(ENPIN, HIGH);                // Disable motors
+}
+
+void stepper90(AccelStepper &myStepper, int &currentPos, bool turnDir) {
+  // Turns a stepper motor 90 degrees in a specified direction
+  // If turnDir = 1, motor will move clockwise
+  digitalWrite(ENPIN, LOW);
+  int newPos = currentPos + quarterTurn*pow(-1,!turnDir);  // Calculates new positon based on old position and direction
+  myStepper.runToNewPosition(newPos);
+  currentPos = newPos;
+  digitalWrite(ENPIN, HIGH);
+}
+
+void ringToggle() {
+  if(ringExtended) {
+    ringRetract();
+  }
+  else {
+    ringExtend();
+  }
+}
+
+void F90(bool dir) {
+  stepper90(frontStepper, frontPos, dir);
+}
+
+void B90(bool dir) {
+  stepper90(backStepper, backPos, dir);
+}
+
+void L90(bool dir) {
+  stepper90(leftStepper, leftPos, dir);
+}
+
+void R90(bool dir) {
+  stepper90(rightStepper, rightPos, dir);
+}
+
+void U90(bool dir) {
+  stepper90(upStepper, upPos, dir);
+}
+
+void D90(bool dir) {
+  stepper90(downStepper, downPos, dir);
 }

@@ -5,10 +5,12 @@ void setupFun() {
 
   
   // Stepper Setup Function
+  Serial.println("Initializing stepper motors...");
   stepperSetup();
   
   // Servo Setup Function
+  Serial.println("Initializing servos...");
   servoSetup();
   
-
+  Serial.println("Setup Complete\n");
 }
