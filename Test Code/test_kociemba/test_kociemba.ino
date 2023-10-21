@@ -17,7 +17,7 @@
 * - solve a cube with kociemba::solve()
 *********************************************************************/
 
-#include <Arduino.h>
+// #include <Arduino.h>
 
 #include <kociemba.h>
 
@@ -38,8 +38,8 @@ DMAMEM char buf479[479*1024];   // 479K in DMAMEM
 char  buf248[248 * 1024];       // 248K on in DTCM 
 
 
-void setup() 
-    {
+void setup() {
+    Serial.begin(115200);
     while (!Serial);
   em=0;
     kociemba::set_memory(buf479, buf248);   // removing this line slows the computation by a factor of 4 (but saves a lot of RAM...)
@@ -61,7 +61,3 @@ void loop()
     }
 
 /* end of file */
-
-
-
-
