@@ -27,8 +27,8 @@ AccelStepper downStepper(1, STEP6, DIR6);
 AccelStepper ringStepper(1, STEP7, DIR7);
 
 // Cube Stepper Variables
-int cubeStepSpeed = 10000;
-int cubeStepAccel = 5000;
+int cubeStepSpeed = 1600;
+int cubeStepAccel = 3200;
 int quarterTurn = 100;  // Steps
 int halfTurn = 200;     // Steps
 int fullTurn = 400;     // Steps

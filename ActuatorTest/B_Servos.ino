@@ -5,11 +5,11 @@ const int TOPSERVO = 37;
 const int BOTSERVO = 36;
 
 // Servo Variables
-unsigned int topExtPos = 244;
+unsigned int topExtPos = 240;
 unsigned int topRetPos = 0;
 boolean topExtBool = 0;
 
-unsigned int botExtPos = 252;
+unsigned int botExtPos = 244;
 unsigned int botRetPos = 0;
 boolean botExtBool = 0;
 
