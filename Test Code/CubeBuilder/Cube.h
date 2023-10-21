@@ -18,7 +18,7 @@ public:
 
     char orientation[6];        //URFDLB
 
-    int cubeColorStatus = 3;    // 1 = Solved, 2 = Scrambled, 3 = Unknown
+    int cubeColorStatus = 3;    // 0 = Unknown, 1 = Solved, 2 = Scrambled
     bool cubeOriented = 0;      // 1 = Oriented, 0 = Unoriented
     bool cubeReady = 0;
 
@@ -30,10 +30,12 @@ public:
     void resetColor();
     void resetCubeArray();
     void setSolved();
-    int setFace(char color, char newFace[9]);
+    int setColorArray(char color, char newFace[9]);
+    int copyColorArray(char color, char copyArray[]);
+    void rotateColorArray(char rotArray[], int turns);
     int setSquare(char color, int squarePos, char newColor);
     int setOrientation(char leftColor, char backColor);
-    bool colorsToCubeArray;
+    int buildCubeArray();
     bool cubeArrayToColors;
     
     
