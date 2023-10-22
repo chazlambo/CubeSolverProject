@@ -54,12 +54,18 @@ public:
     void resetCubeArray();
     void setSolved();
     int setColorArray(char color, char newFace[9], char leftSide);
-    int setLeftSide(char color);
     int setFaceSquare(char color, int squarePos, char newColor);
     int setOrientation(char leftColor, char backColor);
     int buildUnorientedCubeArray();
     int buildCubeArray();
-    int updateFromCubeArray();   // After operations, updates class variables based on new cube array
+    int rebuildFromCubeArray();
+    int rotU(int turns);
+    int rotR(int turns);
+    int rotF(int turns);
+    int rotD(int turns);
+    int rotL(int turns);
+    int rotB(int turns);
+
 
 private:    
     int copyColorArray(char color, char copyArray[]);
@@ -68,6 +74,7 @@ private:
     void rotOrientY(char orientArr[], char cubeArr[]);
     void rotOrientZ(char orientArr[], char cubeArr[]);
     int rotOrientAll(char tempCubeArr[]);
+    
     
 };
 

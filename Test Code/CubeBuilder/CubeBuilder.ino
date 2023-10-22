@@ -11,111 +11,131 @@ void setup() {
   Serial.println("Starting...");
 
 // Testing Cube Array
-  myCube.setSolved(); // Set to solved
-  int errNum =  myCube.buildUnorientedCubeArray();
-  if(errNum){
-    Serial.print("Build Unoriented Cube Array Failed, Error #");
-    Serial.println(errNum);
-  }
-  Serial.println("Unoriented Solved Cube Array:");
-  printUnorientedCubeArray();
+//  myCube.setSolved(); // Set to solved
+//  int errNum =  myCube.buildUnorientedCubeArray();
+//  if(errNum){
+//    Serial.print("Build Unoriented Cube Array Failed, Error #");
+//    Serial.println(errNum);
+//  }
+//  Serial.println("Unoriented Solved Cube Array:");
+//  printUnorientedCubeArray();
+//
+//  // Test with 2 moves (R, B) inputted in default orientation
+//  myCube.resetCube();
+//  myCube.setColorArray('W', "BBBWWRWWR", 'G');
+//  myCube.setColorArray('B', "BBOBBYBBY", 'R');
+//  myCube.setColorArray('R', "RRYRRYRRY", 'G');
+//  myCube.setColorArray('Y', "YYOYYOGGG", 'G');
+//  myCube.setColorArray('G', "RGGWGGWGG", 'O');
+//  myCube.setColorArray('O', "WWWOOOOOO", 'B');
+//  errNum = myCube.buildUnorientedCubeArray();
+//  if(errNum){
+//    Serial.print("Build Unoriented Cube Array Failed, Error #");
+//    Serial.println(errNum);
+//  }
+//  Serial.println("Unoriented (R, B) Cube inputted in correct orientation:");
+//  printUnorientedCubeArray();
+//
+//  // Test with 2 moves (R, B) inputted in random orientation
+//  myCube.resetCube();
+//  myCube.setColorArray('W', "BRRBWWBWW", 'O');
+//  myCube.setColorArray('B', "YBBYBBOBB", 'O');
+//  myCube.setColorArray('R', "RRRRRRYYY", 'Y');
+//  myCube.setColorArray('Y', "GYYGYYGOO", 'O');
+//  myCube.setColorArray('G', "GGGGGGRWW", 'W');
+//  myCube.setColorArray('O', "WOOWOOWOO", 'W');
+//  errNum = myCube.buildUnorientedCubeArray();
+//  if(errNum){
+//    Serial.print("Build Unoriented Cube Array Failed, Error #");
+//    Serial.println(errNum);
+//  }
+//  Serial.println("Unoriented (R, B) Cube inputted in random orientation:");
+//  printUnorientedCubeArray();
+//
+//  // Test Building with Orientation
+//  myCube.resetCube();
+//  myCube.setSolved();
+//  myCube.buildUnorientedCubeArray();
+//  printUnorientedCubeArray();
+//  myCube.setOrientation('G', 'Y');
+//  myCube.buildCubeArray();
+//  Serial.println("Oriented Solved Cube rotated once around X axis:");
+//  printCubeArray();
+//
+//  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
+//  myCube.resetCube();
+//  myCube.setColorArray('W', "BRRBWWBWW", 'O');
+//  myCube.setColorArray('B', "YBBYBBOBB", 'O');
+//  myCube.setColorArray('R', "RRRRRRYYY", 'Y');
+//  myCube.setColorArray('Y', "GYYGYYGOO", 'O');
+//  myCube.setColorArray('G', "GGGGGGRWW", 'W');
+//  myCube.setColorArray('O', "WOOWOOWOO", 'W');
+//  myCube.buildUnorientedCubeArray();
+//  myCube.setOrientation('G', 'Y');
+//  myCube.buildCubeArray();
+//  Serial.println("Oriented (90, 0, 0) (R, B) cube inputted at random orientation:");
+//  printColorCubeArray();
+//
+//  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
+//  myCube.setOrientation('G', 'W');
+//  myCube.buildCubeArray();
+//  Serial.println("Oriented (270, 0, 0) (R, B):");
+//  printColorCubeArray();
+//
+//  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
+//  myCube.setOrientation('W', 'O');
+//  Serial.println(myCube.buildCubeArray());
+//  Serial.println("Oriented (0, 90, 0) (R, B):");
+//  printColorCubeArray();
+//
+//  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
+//  myCube.setOrientation('B', 'Y');
+//  Serial.println(myCube.buildCubeArray());
+//  Serial.println("Oriented (90, 180, 0) (R, B):");
+//  printColorCubeArray();
+//  printCubeArray();
+//
+//  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
+//  myCube.setOrientation('O', 'B');
+//  Serial.println(myCube.buildCubeArray());
+//  Serial.println("Oriented (0, 0, 90) (R, B):");
+//  printColorCubeArray();
+//  printCubeArray();
+//
+//  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
+//  myCube.setOrientation('O', 'B');
+//  Serial.println(myCube.buildCubeArray());
+//  Serial.println("Oriented (0, 0, 90) (R, B):");
+//  printColorCubeArray();
+//  printCubeArray();
+//
+//
+//  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
+//  myCube.setOrientation('W', 'B');
+//  Serial.println(myCube.buildCubeArray());
+//  myCube.rotU(2);
+//  myCube.rebuildFromCubeArray();
+//  Serial.println("Oriented (90, 180, 90) (R, B, U2):");
+//  printColorCubeArray();
+//  printCubeArray();
 
-  // Test with 2 moves (R, B) inputted in default orientation
-  myCube.resetCube();
-  myCube.setColorArray('W', "BBBWWRWWR", 'G');
-  myCube.setColorArray('B', "BBOBBYBBY", 'R');
-  myCube.setColorArray('R', "RRYRRYRRY", 'G');
-  myCube.setColorArray('Y', "YYOYYOGGG", 'G');
-  myCube.setColorArray('G', "RGGWGGWGG", 'O');
-  myCube.setColorArray('O', "WWWOOOOOO", 'B');
-  errNum = myCube.buildUnorientedCubeArray();
-  if(errNum){
-    Serial.print("Build Unoriented Cube Array Failed, Error #");
-    Serial.println(errNum);
-  }
-  Serial.println("Unoriented (R, B) Cube inputted in correct orientation:");
-  printUnorientedCubeArray();
-
-  // Test with 2 moves (R, B) inputted in random orientation
-  myCube.resetCube();
-  myCube.setColorArray('W', "BRRBWWBWW", 'O');
-  myCube.setColorArray('B', "YBBYBBOBB", 'O');
-  myCube.setColorArray('R', "RRRRRRYYY", 'Y');
-  myCube.setColorArray('Y', "GYYGYYGOO", 'O');
-  myCube.setColorArray('G', "GGGGGGRWW", 'W');
-  myCube.setColorArray('O', "WOOWOOWOO", 'W');
-  errNum = myCube.buildUnorientedCubeArray();
-  if(errNum){
-    Serial.print("Build Unoriented Cube Array Failed, Error #");
-    Serial.println(errNum);
-  }
-  Serial.println("Unoriented (R, B) Cube inputted in random orientation:");
-  printUnorientedCubeArray();
-
-  // Test Building with Orientation
+  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
   myCube.resetCube();
   myCube.setSolved();
-  myCube.buildUnorientedCubeArray();
-  printUnorientedCubeArray();
-  myCube.setOrientation('G', 'Y');
-  myCube.buildCubeArray();
-  Serial.println("Oriented Solved Cube rotated once around X axis:");
-  printCubeArray();
-
-  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
-  myCube.resetCube();
-  myCube.setColorArray('W', "BRRBWWBWW", 'O');
-  myCube.setColorArray('B', "YBBYBBOBB", 'O');
-  myCube.setColorArray('R', "RRRRRRYYY", 'Y');
-  myCube.setColorArray('Y', "GYYGYYGOO", 'O');
-  myCube.setColorArray('G', "GGGGGGRWW", 'W');
-  myCube.setColorArray('O', "WOOWOOWOO", 'W');
-  myCube.buildUnorientedCubeArray();
-  myCube.setOrientation('G', 'Y');
-  myCube.buildCubeArray();
-  Serial.println("Oriented (90, 0, 0) (R, B) cube inputted at random orientation:");
-  printColorCubeArray();
-
-  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
-  myCube.setOrientation('G', 'W');
-  myCube.buildCubeArray();
-  Serial.println("Oriented (270, 0, 0) (R, B):");
-  printColorCubeArray();
-
-  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
-  myCube.setOrientation('W', 'O');
-  Serial.println(myCube.buildCubeArray());
-  Serial.println("Oriented (0, 90, 0) (R, B):");
-  printColorCubeArray();
-
-  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
-  myCube.setOrientation('B', 'Y');
-  Serial.println(myCube.buildCubeArray());
-  Serial.println("Oriented (90, 180, 0) (R, B):");
-  printColorCubeArray();
-  printCubeArray();
-
-  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
-  myCube.setOrientation('O', 'B');
-  Serial.println(myCube.buildCubeArray());
-  Serial.println("Oriented (0, 0, 90) (R, B):");
-  printColorCubeArray();
-  printCubeArray();
-
-  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
-  myCube.setOrientation('O', 'B');
-  Serial.println(myCube.buildCubeArray());
-  Serial.println("Oriented (0, 0, 90) (R, B):");
-  printColorCubeArray();
-  printCubeArray();
-
-
-  // Building orientation with 2 moves (in default orientation) (R, B) inputted in random orientation
   myCube.setOrientation('W', 'B');
+  Serial.print("Solved (Oriented: W, B): ");
   Serial.println(myCube.buildCubeArray());
-  Serial.println("Oriented (90, 180, 90) (R, B):");
-  printColorCubeArray();
   printCubeArray();
+  Serial.print("Rotating U:");
+  Serial.println(myCube.rotR(-1));
+  Serial.println("Rotation completed, printing:");
+  printCubeArray();
+  Serial.print("Rebuilding Cube: ");
+  Serial.println(myCube.rebuildFromCubeArray());
+  Serial.println("Rebuild complete");
+  printColorCubeArray();
+  
+  
 }
 
 void loop() {

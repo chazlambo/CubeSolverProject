@@ -60,6 +60,15 @@ void Cube::resetColor()
   setColorArray('G', "QQQQGQQQQ", 'O'); // Left
   setColorArray('O', "QQQQOQQQQ", 'B'); // Back
 
+  // Reset Set Variables.
+  redSet = 0;
+  orangeSet = 0;
+  yellowSet = 0;
+  greenSet = 0;
+  blueSet = 0;
+  whiteSet = 0;
+  setCount = 0;
+
   // Set color status to unknown
   cubeColorStatus = 0;
 
@@ -69,7 +78,7 @@ void Cube::resetColor()
   this->resetCubeArray();
 }
 
-void Cube::setSolved()  
+void Cube::setSolved()
 {
   // Sets the cube's color faces to solved
   setColorArray('W', "WWWWWWWWW", 'G'); // Up
@@ -355,9 +364,9 @@ void Cube::rotateColorArray(char rotArray[], int turns) {
   // Rotates a color array 90 degrees CCW #turns times
   // Inputs:  turns - int for how many times you want it to turn 90deg
   //          rotArray - Array that you want rotated
-  
+
   char tempArr[9];  // Placeholder array
-  
+
   for (int i = 0; i < turns; i++) { // Repeat for however many turns
     // Rotate matrix 90deg CCW
     tempArr[0] = rotArray[2];
@@ -371,7 +380,7 @@ void Cube::rotateColorArray(char rotArray[], int turns) {
     tempArr[8] = rotArray[6];
 
     // Assign placeholder to actual array
-    for(int i = 0; i < 9; i++) {
+    for (int i = 0; i < 9; i++) {
       rotArray[i] = tempArr[i];
     }
   }
@@ -389,7 +398,7 @@ int Cube::setFaceSquare(char color, int squarePos, char newColor)
   //          3 - Error: newColor input is not a valid color (check uppercase)
   //          4 - Error: Cube faces must be set before you can edit individual squares (can start with sovled cube)
 
-  if(setCount!=6) {
+  if (setCount != 6) {
     return 4;
   }
 
@@ -725,23 +734,12 @@ int Cube::buildUnorientedCubeArray() {
 
   // Put color arrays into temporary full cube array in order
   char tempArray[54];
-  for (int i = 0; i < 9; i++) { // Add front array
-    tempArray[i + 18] = fArray[i];
-  }
-  for (int i = 0; i < 9; i++) { // Add up array
+  for (int i = 0; i < 9; i++) { 
     tempArray[i] = uArray[i];
-  }
-  for (int i = 0; i < 9; i++) { // Add right array
     tempArray[i + 9] = rArray[i];
-  }
-
-  for (int i = 0; i < 9; i++) { // Add down array
+    tempArray[i + 18] = fArray[i];
     tempArray[i + 27] = dArray[i];
-  }
-  for (int i = 0; i < 9; i++) { // Add left array
     tempArray[i + 36] = lArray[i];
-  }
-  for (int i = 0; i < 9; i++) { // Add bottom array
     tempArray[i + 45] = bArray[i];
   }
 
@@ -776,8 +774,6 @@ int Cube::buildUnorientedCubeArray() {
     }
   }
 
-
-
   // Write temporary array to actual array
   for (int i = 0; i < 54; i++) {
     unorientedCubeArray[i] = tempArray[i];
@@ -794,27 +790,27 @@ int Cube::buildCubeArray() {
   //          2 - Cube not built
   //          3 - Could not find orientation
 
-  if(!cubeOriented) { // Check if orientation has been set
+  if (!cubeOriented) { // Check if orientation has been set
     return 1;
   }
 
-  if(!cubeBuilt) {  // Check if unoriented cube has been built
+  if (!cubeBuilt) { // Check if unoriented cube has been built
     return 2;
   }
 
   // Build temp array
   char tempCubeArr[54];
-  for (int i = 0; i<54; i++) {
+  for (int i = 0; i < 54; i++) {
     tempCubeArr[i] = unorientedCubeArray[i];
   }
 
   // Rotate temporary cube until it is in correct orientation
-  if(rotOrientAll(tempCubeArr)) {
+  if (rotOrientAll(tempCubeArr)) {
     return 3; // If in error then exit program.
   }
 
   // Write to color cube array
-  for(int i = 0; i<54; i++) {
+  for (int i = 0; i < 54; i++) {
     colorCubeArray[i] = tempCubeArr[i];
     cubeArray[i] = tempCubeArr[i];
   }
@@ -835,27 +831,27 @@ int Cube::buildCubeArray() {
     }
   }
 
- // Swap square values from colors to directional faces
- for (int i = 0; i < 54; i++) {
-   if (cubeArray[i] == tempOrient[0]) {
-     cubeArray[i] = 'U';
-   }
-   else if (cubeArray[i] == tempOrient[1]) {
-     cubeArray[i] = 'R';
-   }
-   else if (cubeArray[i] == tempOrient[2]) {
-     cubeArray[i] = 'F';
-   }
-   else if (cubeArray[i] == tempOrient[3]) {
-     cubeArray[i] = 'D';
-   }
-   else if (cubeArray[i] == tempOrient[4]) {
-     cubeArray[i] = 'L';
-   }
-   else if (cubeArray[i] == tempOrient[5]) {
-     cubeArray[i] = 'B';
-   }
- }
+  // Swap square values from colors to directional faces
+  for (int i = 0; i < 54; i++) {
+    if (cubeArray[i] == tempOrient[0]) {
+      cubeArray[i] = 'U';
+    }
+    else if (cubeArray[i] == tempOrient[1]) {
+      cubeArray[i] = 'R';
+    }
+    else if (cubeArray[i] == tempOrient[2]) {
+      cubeArray[i] = 'F';
+    }
+    else if (cubeArray[i] == tempOrient[3]) {
+      cubeArray[i] = 'D';
+    }
+    else if (cubeArray[i] == tempOrient[4]) {
+      cubeArray[i] = 'L';
+    }
+    else if (cubeArray[i] == tempOrient[5]) {
+      cubeArray[i] = 'B';
+    }
+  }
 
 
   cubeReady = 1;
@@ -869,22 +865,22 @@ int Cube::rotOrientAll(char tempCubeArray[]) {
 
   // Build temporary orientation
   char tempOrientation[6];
-  for (int i = 0; i<6; i++) {
+  for (int i = 0; i < 6; i++) {
     tempOrientation[i] = defaultOrientation[i];
   }
 
   // Rotate unoriented cube until orientation matches
-  for(int xrot = 0; xrot < 4; xrot++) {       // X-axis rotations
+  for (int xrot = 0; xrot < 4; xrot++) {      // X-axis rotations
     for (int yrot = 0; yrot < 4; yrot++) {    // Y-axis rotations
       for (int zrot = 0; zrot < 4; zrot++) {  // Z-axis rotations
         // Check if orientation matches
         int matchCount = 0;
-        for(int i = 0; i < 6; i++) {          
-          if(tempOrientation[i] == orientation[i]) {
+        for (int i = 0; i < 6; i++) {
+          if (tempOrientation[i] == orientation[i]) {
             matchCount++;
           }
         }
-        if(matchCount == 6) {
+        if (matchCount == 6) {
           return 0;
         }
 
@@ -905,12 +901,12 @@ void Cube::rotOrientX(char orientArr[], char cubeArr[]) {
   // New orientation array:
   // U->F, R->R, F->D, D->B, L->L, B->U
   // n=new, o = old
-  // nU=oB, nR=oR, nF=oU, nD=oF, nL=oL, nB=oD 
+  // nU=oB, nR=oR, nF=oU, nD=oF, nL=oL, nB=oD
   //  0=5,   1=1,   2=0,   3=2,   4=4,   5=3
 
   // Initialize character array for old orientation
   char oldOrient[6];  // URFDLB
-  for (int i = 0; i<6; i++) {
+  for (int i = 0; i < 6; i++) {
     oldOrient[i] = orientArr[i];
   }
 
@@ -930,23 +926,13 @@ void Cube::rotOrientX(char orientArr[], char cubeArr[]) {
   char lArrayOld[9];
   char bArrayOld[9];
 
-  for(int i = 0; i<9; i++){
+  for (int i = 0; i < 9; i++) {
     uArrayOld[i] = cubeArr[i];
-  }
-  for(int i = 0; i<9; i++){
-    rArrayOld[i] = cubeArr[i+9];
-  }
-  for(int i = 0; i<9; i++){
-    fArrayOld[i] = cubeArr[i+18];
-  }
-  for(int i = 0; i<9; i++){
-    dArrayOld[i] = cubeArr[i+27];
-  }
-  for(int i = 0; i<9; i++){
-    lArrayOld[i] = cubeArr[i+36];
-  }
-  for(int i = 0; i<9; i++){
-    bArrayOld[i] = cubeArr[i+45];
+    rArrayOld[i] = cubeArr[i + 9];
+    fArrayOld[i] = cubeArr[i + 18];
+    dArrayOld[i] = cubeArr[i + 27];
+    lArrayOld[i] = cubeArr[i + 36];
+    bArrayOld[i] = cubeArr[i + 45];
   }
 
   // Make temporary arrays for new Orientation
@@ -958,50 +944,30 @@ void Cube::rotOrientX(char orientArr[], char cubeArr[]) {
   char bArray[9];
 
   // Assign new swapped array positions
-  for(int i = 0; i<9; i++){
+  for (int i = 0; i < 9; i++) {
     uArray[i] = bArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     rArray[i] = rArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     fArray[i] = uArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     dArray[i] = fArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     lArray[i] = lArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     bArray[i] = dArrayOld[i];
   }
 
   // Rotate Arrays as necessary
   // U->180, R->90, F->0, D->0, L->270, B->180
-  rotateColorArray(uArray,2);
-  rotateColorArray(rArray,1);
-  rotateColorArray(lArray,3);
-  rotateColorArray(bArray,2);
+  rotateColorArray(uArray, 2);
+  rotateColorArray(rArray, 1);
+  rotateColorArray(lArray, 3);
+  rotateColorArray(bArray, 2);
 
   // Update cube array
-  for(int i = 0; i<9; i++) {  // Update U
+  for (int i = 0; i < 9; i++) { // Update U
     cubeArr[i] = uArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update R
-    cubeArr[i+9] = rArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update F
-    cubeArr[i+18] = fArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update D
-    cubeArr[i+27] = dArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update L
-    cubeArr[i+36] = lArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update B
-    cubeArr[i+45] = bArray[i];
+    cubeArr[i + 9] = rArray[i];
+    cubeArr[i + 18] = fArray[i];
+    cubeArr[i + 27] = dArray[i];
+    cubeArr[i + 36] = lArray[i];
+    cubeArr[i + 45] = bArray[i];
   }
 
 }
@@ -1016,7 +982,7 @@ void Cube::rotOrientY(char orientArr[], char cubeArr[]) {
 
   // Initialize character array for old orientation
   char oldOrient[6];  // URFDLB
-  for (int i = 0; i<6; i++) {
+  for (int i = 0; i < 6; i++) {
     oldOrient[i] = orientArr[i];
   }
 
@@ -1036,23 +1002,13 @@ void Cube::rotOrientY(char orientArr[], char cubeArr[]) {
   char lArrayOld[9];
   char bArrayOld[9];
 
-  for(int i = 0; i<9; i++){
+  for (int i = 0; i < 9; i++) {
     uArrayOld[i] = cubeArr[i];
-  }
-  for(int i = 0; i<9; i++){
-    rArrayOld[i] = cubeArr[i+9];
-  }
-  for(int i = 0; i<9; i++){
-    fArrayOld[i] = cubeArr[i+18];
-  }
-  for(int i = 0; i<9; i++){
-    dArrayOld[i] = cubeArr[i+27];
-  }
-  for(int i = 0; i<9; i++){
-    lArrayOld[i] = cubeArr[i+36];
-  }
-  for(int i = 0; i<9; i++){
-    bArrayOld[i] = cubeArr[i+45];
+    rArrayOld[i] = cubeArr[i + 9];
+    fArrayOld[i] = cubeArr[i + 18];
+    dArrayOld[i] = cubeArr[i + 27];
+    lArrayOld[i] = cubeArr[i + 36];
+    bArrayOld[i] = cubeArr[i + 45];
   }
 
   // Make temporary arrays for new Orientation
@@ -1064,52 +1020,32 @@ void Cube::rotOrientY(char orientArr[], char cubeArr[]) {
   char bArray[9];
 
   // Assign new swapped array positions
-  for(int i = 0; i<9; i++){
+  for (int i = 0; i < 9; i++) {
     uArray[i] = rArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     rArray[i] = dArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     fArray[i] = fArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     dArray[i] = lArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     lArray[i] = uArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     bArray[i] = bArrayOld[i];
   }
 
   // Rotate Arrays as necessary
   // U->90, R->90, F->90, D->90, L->90, B->270
-  rotateColorArray(uArray,1);
-  rotateColorArray(rArray,1);
-  rotateColorArray(fArray,1);
-  rotateColorArray(dArray,1);
-  rotateColorArray(lArray,1);
-  rotateColorArray(bArray,3);
+  rotateColorArray(uArray, 1);
+  rotateColorArray(rArray, 1);
+  rotateColorArray(fArray, 1);
+  rotateColorArray(dArray, 1);
+  rotateColorArray(lArray, 1);
+  rotateColorArray(bArray, 3);
 
   // Update cube array
-  for(int i = 0; i<9; i++) {  // Update U
+  for (int i = 0; i < 9; i++) { // Update U
     cubeArr[i] = uArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update R
-    cubeArr[i+9] = rArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update F
-    cubeArr[i+18] = fArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update D
-    cubeArr[i+27] = dArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update L
-    cubeArr[i+36] = lArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update B
-    cubeArr[i+45] = bArray[i];
+    cubeArr[i + 9] = rArray[i];
+    cubeArr[i + 18] = fArray[i];
+    cubeArr[i + 27] = dArray[i];
+    cubeArr[i + 36] = lArray[i];
+    cubeArr[i + 45] = bArray[i];
   }
 
 }
@@ -1123,7 +1059,7 @@ void Cube::rotOrientZ(char orientArr[], char cubeArr[]) {
 
   // Initialize character array for old orientation
   char oldOrient[6];  // URFDLB
-  for (int i = 0; i<6; i++) {
+  for (int i = 0; i < 6; i++) {
     oldOrient[i] = orientArr[i];
   }
 
@@ -1143,23 +1079,13 @@ void Cube::rotOrientZ(char orientArr[], char cubeArr[]) {
   char lArrayOld[9];
   char bArrayOld[9];
 
-  for(int i = 0; i<9; i++){
+  for (int i = 0; i < 9; i++) {
     uArrayOld[i] = cubeArr[i];
-  }
-  for(int i = 0; i<9; i++){
-    rArrayOld[i] = cubeArr[i+9];
-  }
-  for(int i = 0; i<9; i++){
-    fArrayOld[i] = cubeArr[i+18];
-  }
-  for(int i = 0; i<9; i++){
-    dArrayOld[i] = cubeArr[i+27];
-  }
-  for(int i = 0; i<9; i++){
-    lArrayOld[i] = cubeArr[i+36];
-  }
-  for(int i = 0; i<9; i++){
-    bArrayOld[i] = cubeArr[i+45];
+    rArrayOld[i] = cubeArr[i + 9];
+    fArrayOld[i] = cubeArr[i + 18];
+    dArrayOld[i] = cubeArr[i + 27];
+    lArrayOld[i] = cubeArr[i + 36];
+    bArrayOld[i] = cubeArr[i + 45];
   }
 
   // Make temporary arrays for new Orientation
@@ -1172,48 +1098,224 @@ void Cube::rotOrientZ(char orientArr[], char cubeArr[]) {
 
   // Assign new swapped array positions
   // nU=oU, nR=oF, nF=oL, nD=oD, nL=oB, nB=oR
-  for(int i = 0; i<9; i++){
+  for (int i = 0; i < 9; i++) {
     uArray[i] = uArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     rArray[i] = fArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     fArray[i] = lArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     dArray[i] = dArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     lArray[i] = bArrayOld[i];
-  }
-  for(int i = 0; i<9; i++){
     bArray[i] = rArrayOld[i];
   }
 
   // Rotate Arrays as necessary
   // U->90, R->0, F->0, D->270, L->0, B->0
-  rotateColorArray(uArray,1);
-  rotateColorArray(dArray,3);
+  rotateColorArray(uArray, 1);
+  rotateColorArray(dArray, 3);
 
   // Update cube array
-  for(int i = 0; i<9; i++) {  // Update U
+  for (int i = 0; i < 9; i++) { // Update U
     cubeArr[i] = uArray[i];
+    cubeArr[i + 9] = rArray[i];
+    cubeArr[i + 18] = fArray[i];
+    cubeArr[i + 27] = dArray[i];
+    cubeArr[i + 36] = lArray[i];
+    cubeArr[i + 45] = bArray[i];
   }
-  for(int i = 0; i<9; i++) {  // Update R
-    cubeArr[i+9] = rArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update F
-    cubeArr[i+18] = fArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update D
-    cubeArr[i+27] = dArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update L
-    cubeArr[i+36] = lArray[i];
-  }
-  for(int i = 0; i<9; i++) {  // Update B
-    cubeArr[i+45] = bArray[i];
+}
+
+int Cube::rebuildFromCubeArray() {
+  // Takes a cube array and updates the other class variables
+  // Outputs: 0 - Ran successfully
+  //          1 - Cube array isn't available (not built?)
+  
+  if (!cubeReady) { // Check if cube is in ready state
+    return 1;
   }
 
+  // Make temporary arrays
+  char uArray[9];
+  char rArray[9];
+  char fArray[9];
+  char dArray[9];
+  char lArray[9];
+  char bArray[9];
+
+  // Make temporary orientation
+  char tempOrient[6];
+  for (int i = 0; i< 6; i++) {
+    tempOrient[i] = orientation[i];
+  }
+
+  // Convert cube array back to color cube array
+  char tempColorArray[54];
+  for(int i = 0; i<54; i++) {
+    tempColorArray[i] = cubeArray[i];
+    if(cubeArray[i] == 'B') {
+      tempColorArray[i] = tempOrient[5];
+    }
+    else if(cubeArray[i] == 'U') {
+      tempColorArray[i] = tempOrient[0];
+    }
+    else if(cubeArray[i] == 'R') {
+      tempColorArray[i] = tempOrient[1];
+    }
+    else if(cubeArray[i] == 'F') {
+      tempColorArray[i] = tempOrient[2];
+    }
+    else if(cubeArray[i] == 'D') {
+      tempColorArray[i] = tempOrient[3];
+    }
+    else if(cubeArray[i] == 'L') {
+      tempColorArray[i] = tempOrient[4];
+    }
+    else {
+      tempColorArray[i] = 'Q';
+    }
+  }
+
+  // Assign the temporary color cube array to the individual faces
+  for (int i = 0; i < 9; i++) {
+    uArray[i] = tempColorArray[i];
+    rArray[i] = tempColorArray[i + 9];
+    fArray[i] = tempColorArray[i + 18];
+    dArray[i] = tempColorArray[i + 27];
+    lArray[i] = tempColorArray[i + 36];
+    bArray[i] = tempColorArray[i + 45];
+  }
+
+  return 2;
+
+  resetCube();
+  setColorArray(tempOrient[0], uArray, tempOrient[4]);
+  setColorArray(tempOrient[1], rArray, tempOrient[2]);
+  setColorArray(tempOrient[2], fArray, tempOrient[4]);
+  setColorArray(tempOrient[3], dArray, tempOrient[4]);
+  setColorArray(tempOrient[4], lArray, tempOrient[5]);
+  setColorArray(tempOrient[5], bArray, tempOrient[1]);
+  buildUnorientedCubeArray();
+  setOrientation(tempOrient[4], tempOrient[5]);
+  buildCubeArray();
+
+}
+
+int Cube::rotR(int turns) {
+  // Uses the set colors to build a cube in the default orientation
+  // Outputs: 0 - Ran successfully
+  //          1 - Cube is not in a ready state
+
+  if (!cubeReady) { // Check if cube is in ready state
+    return 1;
+  }
+
+  if (turns == 0) { // exit program if not no turns
+    return 0;
+  }
+
+  // Make temporary arrays of old orientation
+  char uArrayOld[9];
+  char rArrayOld[9];
+  char fArrayOld[9];
+  char dArrayOld[9];
+  char lArrayOld[9];
+  char bArrayOld[9];
+
+  for (int i = 0; i < 9; i++) {
+    uArrayOld[i] = cubeArray[i];
+    rArrayOld[i] = cubeArray[i + 9];
+    fArrayOld[i] = cubeArray[i + 18];
+    dArrayOld[i] = cubeArray[i + 27];
+    lArrayOld[i] = cubeArray[i + 36];
+    bArrayOld[i] = cubeArray[i + 45];
+  }
+
+  // Make temporary arrays
+  char uArray[9];
+  char rArray[9];
+  char fArray[9];
+  char dArray[9];
+  char lArray[9];
+  char bArray[9];
+
+  // Fill new temporary arrays
+  for (int i = 0; i < 9; i++) {
+    uArray[i] = uArrayOld[i];
+    rArray[i] = rArrayOld[i];
+    fArray[i] = fArrayOld[i];
+    dArray[i] = dArrayOld[i];
+    lArray[i] = lArrayOld[i];
+    bArray[i] = bArrayOld[i];
+  }
+
+  int dir = turns / abs(turns);
+  for (int turnsLeft = turns; turnsLeft != 0; turnsLeft -= dir) { // Starts at the # of turns and either counts up or counts down to 0 based on direction
+    if (dir > 0) { // Counter Clockwise
+      // Update Top Face
+      uArray[2] = fArrayOld[2];
+      uArray[5] = fArrayOld[5];
+      uArray[8] = fArrayOld[8];
+
+      //Update Right Face
+      rotateColorArray(rArray, 3); // Rotate 3 turns ccw (1 turn cw)
+
+      // Update Front Face
+      fArray[2] = dArrayOld[2];
+      fArray[5] = dArrayOld[5];
+      fArray[8] = dArrayOld[8];
+
+      // Update Back Face
+      bArray[0] = uArrayOld[8];
+      bArray[3] = uArrayOld[5];
+      bArray[6] = uArrayOld[2];
+
+      // Update Down Face
+      dArray[2] = bArrayOld[6];
+      dArray[5] = bArrayOld[3];
+      dArray[8] = bArrayOld[0];
+    }
+    else if (dir < 0) { // Clockwise
+      // Update Top Face
+      uArray[2] = bArrayOld[6];
+      uArray[5] = bArrayOld[3];
+      uArray[8] = bArrayOld[0];
+
+      // Update Right Face
+      rotateColorArray(rArray, 1);  // Rotates one turn ccw
+
+      // Update Front Face
+      fArray[2] = uArrayOld[2];
+      fArray[5] = uArrayOld[5];
+      fArray[8] = uArrayOld[8];
+
+      // Update Down Face
+      dArray[2] = fArrayOld[2];
+      dArray[5] = fArrayOld[5];
+      dArray[8] = fArrayOld[8];
+
+      // Update Back Face
+      bArray[0] = dArray[8];
+      bArray[3] = dArray[5];
+      bArray[6] = dArray[2];
+    }
+
+    // Update old arrays
+    for (int i = 0; i < 9; i++) {
+      uArrayOld[i] = uArray[i];
+      rArrayOld[i] = rArray[i];
+      fArrayOld[i] = fArray[i];
+      dArrayOld[i] = dArray[i];
+      lArrayOld[i] = lArray[i];
+      bArrayOld[i] = bArray[i];
+    }
+  }
+  // Update cube array
+  for (int i = 0; i < 9; i++) { // Update U
+    cubeArray[i] = uArray[i];
+    cubeArray[i + 9] = rArray[i];
+    cubeArray[i + 18] = fArray[i];
+    cubeArray[i + 27] = dArray[i];
+    cubeArray[i + 36] = lArray[i];
+    cubeArray[i + 45] = bArray[i];
+  }
+
+  return 0;
 }
