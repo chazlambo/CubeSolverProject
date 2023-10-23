@@ -58,7 +58,7 @@ public:
     int setOrientation(char leftColor, char backColor);
     int buildUnorientedCubeArray();
     int buildCubeArray();
-    int rebuildFromCubeArray();
+    int rebuildFromCubeArray(); // UNFINISHED NEEDS DEBUGGING
     int rotU(int turns);
     int rotR(int turns);
     int rotF(int turns);
