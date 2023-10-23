@@ -41,7 +41,7 @@ char  buf248[248 * 1024];       // 248K on in DTCM
 void setup() {
     Serial.begin(115200);
     while (!Serial);
-  em=0;
+    em=0;
     kociemba::set_memory(buf479, buf248);   // removing this line slows the computation by a factor of 4 (but saves a lot of RAM...)
     Serial.printf("RAM buffer created in %d ms.\n", (int)em);
     }
