@@ -1,5 +1,5 @@
-#include "Cube.h"
 #include <Arduino.h>
+#include "Cube.h"
 #include <kociemba.h>
 
 Cube myCube;
