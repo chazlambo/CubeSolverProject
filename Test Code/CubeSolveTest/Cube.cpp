@@ -1813,9 +1813,9 @@ int Cube::rotB(int turns) {
       dArray[8] = lArrayOld[6];
 
       // Update Left Face
-      lArray[0] = uArrayOld[0];
+      lArray[0] = uArrayOld[2];
       lArray[3] = uArrayOld[1];
-      lArray[6] = uArrayOld[2];
+      lArray[6] = uArrayOld[0];
 
       // Update Back Face
       rotateColorArray(bArray, 3);

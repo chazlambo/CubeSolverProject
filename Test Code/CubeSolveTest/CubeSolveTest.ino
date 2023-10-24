@@ -89,7 +89,7 @@ void setup() {
   }
   else {
     Serial.print("Solution found: [");
-    for(int i = 0; i<strlen(res2);i++){
+    for (int i = 0; i < strlen(res2); i++) {
       Serial.print(res2[i]);
     }
     Serial.printf("Solution [%s] found in %d ms.\n", res2, (int)em);
@@ -97,38 +97,61 @@ void setup() {
   // Code was run prior to get this solution:
   // Solution [R L F B R L' F2 R2 B2 U D F2 L2 B2 R2] found in 77 ms.
   Serial.println("Rotating Cube: ");
+  Serial.println("ROTATING R:");
   myCube.rotR(1);
+  printRebuild();
+  Serial.println("ROTATING L:");
   myCube.rotL(1);
+  printRebuild();
+  Serial.println("ROTATING F:");
   myCube.rotF(1);
+  printRebuild();
+  Serial.println("ROTATING B:");
   myCube.rotB(1);
+  printRebuild();
+  Serial.println("ROTATING R:");
   myCube.rotR(1);
+  printRebuild();
+  Serial.println("ROTATING L':");
   myCube.rotL(-1);
+  printRebuild();
+  Serial.println("ROTATING F2:");
   myCube.rotF(2);
+  printRebuild();
+  Serial.println("ROTATING R2:");
   myCube.rotR(2);
+  printRebuild();
+  Serial.println("ROTATING B2:");
   myCube.rotB(2);
+  printRebuild();
+  Serial.println("ROTATING U:");
   myCube.rotU(1);
+  printRebuild();
+  Serial.println("ROTATING D:");
   myCube.rotD(1);
+  printRebuild();
+  Serial.println("ROTATING F2:");
   myCube.rotF(2);
+  printRebuild();
+  Serial.println("ROTATING L2:");
   myCube.rotL(2);
+  printRebuild();
+  Serial.println("ROTATING B2:");
   myCube.rotB(2);
+  printRebuild();
+  Serial.println("ROTATING R2:");
   myCube.rotR(2);
-  
-  Serial.println("Rotation completed:");
-  printCubeArray();
-  Serial.print("Rebuilding Cube...");
-  Serial.println(myCube.rebuildFromCubeArray());
-  Serial.println("Rebuild complete, printing...");
-  Serial.println("\nColor Cube Array:");
-  printOrientation();
-  printColorCubeArray();
+  printRebuild();
+
+
 }
 
 void loop() {
   Serial.println("Code finished, restart program.");
-  while(Serial.available()) {
+  while (Serial.available()) {
     Serial.read();
   }
-  while(!Serial.available());
+  while (!Serial.available());
 
 }
 
@@ -190,7 +213,7 @@ void printColorCubeArray() {
 }
 
 void printCubeArray() {
-  Serial.print("Final Cube Array: \n");
+  //Serial.print("Final Cube Array: \n");
   for (int i = 0; i < 54; i++) {
     Serial.print(myCube.cubeArray[i]);
     if (((i + 1) % 9) == 0) {
@@ -198,4 +221,12 @@ void printCubeArray() {
     }
   }
   Serial.println("\n");
+}
+
+void printRebuild(){
+  Serial.print(myCube.rebuildFromCubeArray());
+  Serial.println(": Rebuild complete, printing...");
+  //Serial.println("\nColor Cube Array:");
+  // printOrientation();
+  printColorCubeArray();
 }
