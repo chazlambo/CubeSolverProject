@@ -143,6 +143,28 @@ void setup() {
   myCube.rotR(2);
   printRebuild();
 
+  Serial.println("MOM SCRAMBLE!");
+  myCube.resetCube();
+  myCube.setColorArray('G', "YBRRGOYYW", 'W');
+  myCube.setColorArray('Y', "RWYWYWWYW", 'O');
+  myCube.setColorArray('R', "BOGGRRGGG", 'Y');
+  myCube.setColorArray('W', "OWOBWGRYW", 'R');
+  myCube.setColorArray('B', "YRRYBGOOO", 'R');
+  myCube.setColorArray('O', "BOBROBBBG", 'B');
+  myCube.setOrientation('G', 'W');
+  
+  Serial.print("Random Scramble (Oriented: RBYOGW): ");
+  Serial.println(myCube.buildCubeArray());
+  printCubeArray();
+
+  Serial.println("Solving:");
+  const char* res3 = kociemba::solve(myCube.cubeArray);
+  if (res1 == nullptr) {
+    Serial.println("no solution found");
+  }
+  else {
+    Serial.printf("Solution [%s] found in %d ms.\n", res3, (int)em);
+  }
 
 }
 
