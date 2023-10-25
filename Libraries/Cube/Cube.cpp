@@ -715,11 +715,13 @@ int Cube::buildUnorientedCubeArray() {
   //          5 - Error: Invalid number of green squares
   //          6 - Error: Invalid number of blue squares
   //          7 - Error: Invalid number of white squares
-  //          8 - Error: Invalid orientation (make sure to orient first)
 
+  // DEBUG: Throws error for no reason?
   if (!cubeColorStatus) { // If the color status is unknown
     return 1;           // Give error and end
   }
+
+
   //URFDLB
   // Make temporary arrays for easier ordering
   char uArray[9];
