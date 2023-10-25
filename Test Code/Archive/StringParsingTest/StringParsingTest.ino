@@ -94,22 +94,6 @@ int setOrientation() {
 }
 
 int buildCubeFun() {
-  // Array Variables;
-  char whiteFace[10];
-  char blueFace[10];
-  char redFace[10];
-  char yellowFace[10];
-  char greenFace[10];
-  char orangeFace[10];
-
-  // Left Variables
-  char whiteLeft;
-  char blueLeft;
-  char redLeft;
-  char yellowLeft;
-  char greenLeft;
-  char orangeLeft;
-
   // Input color arrays
   // bool cubeBuilt = 0;
   //  while (!cubeBuilt) {
@@ -189,13 +173,18 @@ int buildCubeFun() {
 int setSide(char color, char side[10], char &left) {
   bool faceSet = 0;
   while (!faceSet) {
-    Serial.println("Enter Face in XXXXXXXXX form:");
-    while (!Serial.available());
-    Serial.readStringUntil('\n').toCharArray(side, 10);
+    Serial.println("Enter Face (9 characters):");
+    while (Serial.available() < 9) {}
+    for (int i = 0; i < 9; i++) {
+      colorArray[i] = Serial.read();
+    }
+    while (Serial.available() > 0) {
+      Serial.read();
+    }
     Serial.print("Face Entered: ");
     Serial.println(side);
 
-    Serial.println("Enter left in X form:");
+    Serial.println("Enter left char:");
     while (!Serial.available()) {}              // Wait for input
     left = Serial.read();                  // Read Character
     while (Serial.available()) {
@@ -242,14 +231,8 @@ int setSide(char color, char side[10], char &left) {
     }
     else {
       faceSet = 1;
-      Serial.println("Face set successfully");
-      Serial.print("Faces Set: ");
-      Serial.print(myCube.setCount);
-      Serial.print("\t\tColor Status: ");
-      Serial.println(myCube.cubeColorStatus);
     }
   }
-  return 0;
 }
 
 
