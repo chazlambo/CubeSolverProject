@@ -34,7 +34,11 @@ int pos[6] = {0, 0, 0, 0, 0, 0};
 int turnStep = 100; // Quarter Turn
 
 // Initialize Stepper Speed Variable
-int stepSpeed = 1000;
+int stepSpeed = 1000; // Set to 1000?
+
+// Iterator variable
+int i = 0;
+int j = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -51,17 +55,116 @@ void setup() {
   initStepper(multiStep, leftStepper);
   initStepper(multiStep, backStepper);
 
+  Serial.println("Enter anything to begin");
+  while (!Serial.available());
+
 }
 
+bool firstLoop = 1;
 void loop() {
-  // put your main code here, to run repeatedly:
+  i = i % 12; //Loops through 0-11
+  delay(20);
 
+  if (i == 0) {
+    if (firstLoop) {
+      firstLoop = 0;
+      j++;
+    }
+    else {
+      j++;
+      j = j % 20;
+      if (j == 0) {
+        delay(5000);
+      }
+    }
+
+  }
+
+  if (Serial.available()) {
+    while (Serial.available()) {
+      Serial.read();
+    }
+    while (!Serial.available()) {
+      delay(10);
+    }
+    while (Serial.available()) {
+      Serial.read();
+    }
+  }
+
+  switch (i) {
+    case 0: // Up
+      Serial.println("U");
+      pos[0] += turnStep;
+      break;
+
+    case 1: // Right
+      Serial.println("R");
+      pos[1] += turnStep;
+      break;
+
+    case 2: // Front
+      Serial.println("F");
+      pos[2] += turnStep;
+      break;
+
+    case 3: // Down
+      Serial.println("D");
+      pos[3] += turnStep;
+      break;
+
+    case 4: // Left
+      Serial.println("L");
+      pos[4] += turnStep;
+      break;
+
+    case 5: // Back
+      Serial.println("B");
+      pos[5] += turnStep;
+      break;
+
+    case 6: // Up
+      Serial.println("U'");
+      pos[0] -= turnStep;
+      break;
+
+    case 7: // Right
+      Serial.println("R'");
+      pos[1] -= turnStep;
+      break;
+
+    case 8: // Front
+      Serial.println("F'");
+      pos[2] -= turnStep;
+      break;
+
+    case 9: // Down
+      Serial.println("D'");
+      pos[3] -= turnStep;
+      break;
+
+    case 10: // Left
+      Serial.println("L'");
+      pos[4] -= turnStep;
+      break;
+
+    case 11: // Back
+      Serial.println("B'");
+      pos[5] -= turnStep;
+      break;
+  }
+
+  digitalWrite(ENPIN, LOW);
+  multiStep.moveTo(pos);
+  multiStep.runSpeedToPosition();
+  digitalWrite(ENPIN, HIGH);
+
+
+  //delay(1000);
+  i++;
 }
 
-void initStepper(MultiStepper &multiStepper,AccelStepper &newStepper) {
+void initStepper(MultiStepper &multiStepper, AccelStepper &newStepper) {
   newStepper.setMaxSpeed(stepSpeed);
   multiStepper.addStepper(newStepper);
-}
-
-void turnStepper(String moveString) {
 }

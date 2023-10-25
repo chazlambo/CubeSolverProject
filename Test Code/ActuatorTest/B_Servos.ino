@@ -9,7 +9,7 @@ unsigned int topExtPos = 240;
 unsigned int topRetPos = 0;
 boolean topExtBool = 0;
 
-unsigned int botExtPos = 244;
+unsigned int botExtPos = 250;
 unsigned int botRetPos = 0;
 boolean botExtBool = 0;
 
