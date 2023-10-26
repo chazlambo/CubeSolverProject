@@ -41,48 +41,47 @@ void loop() {
     randMove = random(0, 12);
     switch (randMove) {
       case 0:
-        //executeMove("U");
+        executeMove("U");
         break;
       case 1:
         executeMove("U'");
         break;
       case 2:
-        //executeMove("R");
+        executeMove("R");
         break;
       case 3:
-        //executeMove("R'");
+        executeMove("R'");
         break;
       case 4:
-        //executeMove("F");
+        executeMove("F");
         break;
       case 5:
-        //executeMove("F'");
+        executeMove("F'");
         break;
       case 6:
-        //executeMove("D");
+        executeMove("D");
         break;
       case 7:
-        //executeMove("D'");
+        executeMove("D'");
         break;
       case 8:
-        //executeMove("L");
+        executeMove("L");
         break;
       case 9:
-        //executeMove("L'");
+        executeMove("L'");
         break;
       case 10:
-        //executeMove("B");
+        executeMove("B");
         break;
       case 11:
-        //executeMove("B'");
+        executeMove("B'");
+        break;
+      default:
         break;
     }
-    delay(20);
   }
 
-  while (Serial.available()) {
-    Serial.read();
-  }
+  while (Serial.available()) {Serial.read();}
   Serial.println("Enter anything to solve cube");
   while (!Serial.available()) {}
   while (Serial.available()) {
@@ -95,15 +94,16 @@ void loop() {
     int moveCount = splitString(sol, ' ', moves);
 
     // Process each move
+    em = 0;
     for (int i = 0; i < moveCount; i++) {
       executeMove(moves[i]);
     }
-
+    Serial.print("Solved in: ");
+    Serial.print(em);
+    Serial.println("ms");
   }
   retractHolders();
-  while (Serial.available()) {
-    Serial.read();
-  }
+  while (Serial.available()) {Serial.read();}
   Serial.println("Enter anything to restart scramble solver");
   while (!Serial.available()) {}
   while (Serial.available()) {

@@ -1428,9 +1428,9 @@ int Cube::rotF(int turns) {
   for (int turnsLeft = turns; turnsLeft != 0; turnsLeft -= dir) { // Starts at the # of turns and either counts up or counts down to 0 based on direction
     if (dir > 0) { // Clockwise
       // Update Top Face
-      uArray[6] = lArrayOld[2];
+      uArray[6] = lArrayOld[8];
       uArray[7] = lArrayOld[5];
-      uArray[8] = lArrayOld[8];
+      uArray[8] = lArrayOld[2];
 
       //Update Right Face
       rArray[0] = uArrayOld[6];
@@ -1441,9 +1441,9 @@ int Cube::rotF(int turns) {
       rotateColorArray(fArray, 3);
 
       // Update Down Face
-      dArray[0] = rArrayOld[0];
+      dArray[0] = rArrayOld[6];
       dArray[1] = rArrayOld[3];
-      dArray[2] = rArrayOld[6];
+      dArray[2] = rArrayOld[0];
 
       // Update Left Face
       lArray[2] = dArrayOld[0];
@@ -1472,9 +1472,9 @@ int Cube::rotF(int turns) {
       dArray[2] = lArrayOld[8];
 
       // Update Left Face
-      lArray[2] = uArrayOld[6];
+      lArray[2] = uArrayOld[8];
       lArray[5] = uArrayOld[7];
-      lArray[8] = uArrayOld[8];
+      lArray[8] = uArrayOld[6];
     }
 
     // Update old arrays
@@ -1677,9 +1677,9 @@ int Cube::rotL(int turns) {
   for (int turnsLeft = turns; turnsLeft != 0; turnsLeft -= dir) { // Starts at the # of turns and either counts up or counts down to 0 based on direction
     if (dir > 0) { // Clockwise
       // Update Up Face
-      uArray[0] = bArrayOld[2];
+      uArray[0] = bArrayOld[8];
       uArray[3] = bArrayOld[5];
-      uArray[6] = bArrayOld[8];
+      uArray[6] = bArrayOld[2];
 
       // Update Front Face
       fArray[0] = uArrayOld[0];
@@ -1834,9 +1834,9 @@ int Cube::rotB(int turns) {
       rArray[8] = uArrayOld[2];
 
       // Update Down Face
-      dArray[6] = rArrayOld[2];
+      dArray[6] = rArrayOld[8];
       dArray[7] = rArrayOld[5];
-      dArray[8] = rArrayOld[8];
+      dArray[8] = rArrayOld[2];
 
       // Update Left Face
       lArray[0] = dArrayOld[6];
