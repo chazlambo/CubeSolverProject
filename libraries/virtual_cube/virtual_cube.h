@@ -1,6 +1,6 @@
 // Cube.h
-#ifndef Cube_h
-#define Cube_h
+#ifndef virtual_cube_h
+#define virtual_cube_h
 
 #include <Arduino.h>
 #include "string.h"
@@ -78,4 +78,4 @@ private:
     
 };
 
-#endif // CUBE_H
+#endif // virtual_cube_h

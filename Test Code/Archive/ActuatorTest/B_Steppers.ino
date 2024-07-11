@@ -34,10 +34,10 @@ int halfTurn = 200;     // Steps
 int fullTurn = 400;     // Steps
 
 // Ring Stepper Variables
-int ringStepSpeed = 800;
+int ringStepSpeed = 400;
 int ringStepAccel = 400;
 int ringRetPos = 0;
-int ringExtPos = 400;
+int ringExtPos = 800;
 int ringMovePos = 0;
 bool ringExtended = 0;
 

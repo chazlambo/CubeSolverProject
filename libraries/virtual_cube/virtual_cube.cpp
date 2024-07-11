@@ -1,4 +1,4 @@
-#include "cube.h"
+#include "virtual_cube.h"
 
 Cube::Cube()
 {
