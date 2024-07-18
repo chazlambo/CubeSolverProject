@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <PWMServo.h>
 
-// Servo Variables
+// Servo Pins
 const int TOPSERVO = 22;
 const int BOTSERVO = 14;
 
