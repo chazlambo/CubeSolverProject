@@ -1,12 +1,14 @@
 #include "cube_sensors.h"
 
-void setupRGB(){
-    for(int i=0; i<3; i++){             // Iterate through RGB pins
-        pinMode(COLOR1[i], OUTPUT);     // Initialize color sensor 1 pin mode
-        digitalWrite(COLOR1[i], LOW);   // Turn off color sensor 1 LED's
+void setupRGB()
+{
+    for (int i = 0; i < 3; i++)
+    {                                 // Iterate through RGB pins
+        pinMode(COLOR1[i], OUTPUT);   // Initialize color sensor 1 pin mode
+        digitalWrite(COLOR1[i], LOW); // Turn off color sensor 1 LED's
 
-        pinMode(COLOR2[i], OUTPUT);     // Initialize color sensor 2 pin mode
-        digitalWrite(COLOR2[i], LOW);   // Turn off color sensor 2 LED's
+        pinMode(COLOR2[i], OUTPUT);   // Initialize color sensor 2 pin mode
+        digitalWrite(COLOR2[i], LOW); // Turn off color sensor 2 LED's
     }
 }
 
@@ -24,7 +26,8 @@ void setupI2C()
     ADC6.begin(ADC_ADDRESS[5]);
 }
 
-void setupANO(){
+void setupANO()
+{
     // Initialize ANO pins
     ANO.pinMode(ANO_SWITCH_UP, INPUT_PULLUP);
     ANO.pinMode(ANO_SWITCH_DOWN, INPUT_PULLUP);

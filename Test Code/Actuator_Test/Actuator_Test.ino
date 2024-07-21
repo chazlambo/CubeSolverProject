@@ -1,7 +1,4 @@
-
-#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\cube_basic\cube_basic.cpp"
-#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\cube_servo\cube_servo.cpp"
-#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\cube_motor\cube_motor.cpp"
+#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\cube_library.h"
 
 void setup() {
   basicSetup();

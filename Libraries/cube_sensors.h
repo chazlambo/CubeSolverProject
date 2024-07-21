@@ -6,6 +6,8 @@
 #include <Arduino.h>
 #include <Adafruit_PCF8591.h>   // ADC Library
 #include <Adafruit_seesaw.h>    // ANO Library
+#include <EEPROM.h>             // Storing calibrated values
+#include "colorPot.h"
 
 // RGB Pins
 const int COLOR1[3] = {34, 33, 35}  // R, G, B
@@ -37,6 +39,35 @@ Adafruit_PCF8591 ADC6 = Adafruit_PCF8591();
 // | 0x4D | ADC6 | M-D  | M-L  | M-B  | C2-5 |
 // +------+------+------+------+------+------+
 
+//Color Sensor Pins
+// Color Sensor 1
+colorPot C1_1(0x48, 2);
+colorPot C1_2(0x48, 1);
+colorPot C1_3(0x48, 0);
+colorPot C1_4(0x49, 1);
+colorPot C1_5(0X49, 0);
+colorPot C1_6(0x48, 3);
+colorPot C1_7(0x4A, 0);
+colorPot C1_8(0x49, 3);
+colorPot C1_9(0x49, 2);
+colorPot* ColorSensor1[] = {&C1_1, &C1_2, &C1_3, &C1_4, &C1_5, &C1_6, &C1_7, &C1_8, &C1_9};
+
+// Color Sensor 1
+colorPot C2_1(0x48, 2);
+colorPot C2_2(0x48, 1);
+colorPot C2_3(0x48, 0);
+colorPot C2_4(0x49, 1);
+colorPot C2_5(0X49, 0);
+colorPot C2_6(0x48, 3);
+colorPot C2_7(0x4A, 0);
+colorPot C2_8(0x49, 3);
+colorPot C2_9(0x49, 2);
+colorPot* ColorSensor2[] = {&C2_1, &C2_2, &C2_3, &C2_4, &C2_5, &C2_6, &C2_7, &C2_8, &C2_9};
+
+// Motro Sensor Pins
+const int MOT_ADDRESS[6] =  {0x4A,  0x4A,   0X4A,   0X4D,   0X4D,   0X4D};  // URFDLB
+const int MOT_ADCPIN[6]  =  {   3,     2,      1,      0,      1,      2};  // URFDLB
+
 // ANO Rotary Encoder 
 const int ANO_ADDRESS = 0x4E;
 #define ANO_SWITCH_SELECT 1
@@ -52,5 +83,10 @@ int32_t encoder_position;
 void setupRGB();    // Sets up RGB LED's on color sensors
 void setupI2C();    // Sets up I2C devices
 void setupANO();    // Sets up ANO rotary encoder
+
+// EEPROM Setup
+// EEPROM Variables
+int eeAddress = 0; //EEPROM address of first calibration value
+
 
 #endif // cube_sensors_h
