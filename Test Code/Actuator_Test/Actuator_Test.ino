@@ -1,12 +1,12 @@
-#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\cube_library.h"
+#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\cube_main.cpp"
 
 void setup() {
-  basicSetup();
-  servoSetup();
-  stepperSetup();
+  mainSetup();
 
   Serial.println("Starting Program...");
   printMenu();
+
+  while(true);
 }
 
 void loop() {
