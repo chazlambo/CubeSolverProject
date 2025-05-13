@@ -1,4 +1,4 @@
-#include "cube_main.h"
+#include "CubeSolver.h"
 
 void mainSetup()
 {

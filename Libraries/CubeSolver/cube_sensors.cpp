@@ -1,4 +1,5 @@
 #include "cube_sensors.h"
+#include "adcPot.h"
 
 void setupRGB()
 {

@@ -1,4 +1,4 @@
-#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\cube_main.cpp"
+#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\CubeSolver\CubeSolver.cpp"
 
 void setup() {
   mainSetup();
@@ -6,7 +6,7 @@ void setup() {
   Serial.println("Starting Program...");
   printMenu();
 
-  while(true);
+  // while(true);
 }
 
 void loop() {

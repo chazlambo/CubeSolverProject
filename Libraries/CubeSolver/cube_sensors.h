@@ -8,7 +8,7 @@
 #include <Adafruit_PCF8591.h>   // ADC Library
 #include <Adafruit_seesaw.h>    // ANO Library
 #include <EEPROM.h>             // Storing calibrated values
-#include "adcPot.h"
+#include "adcPot.h"             // adcPot Class
 
 // ANO Rotary Encoder 
 const int ANO_ADDRESS = 0x4E;
@@ -86,7 +86,13 @@ adcPot MOT_B(0x4D, 2);
 
 // EEPROM Setup
 // EEPROM Variables
-int eeAddress = 0; //EEPROM address of first calibration value
+const int calFlagAddress = 0;
+const int motorCalStartAddress = 1;
+const int motorCalFlag = 177;
+const int numMotors = 6;
+
+// Motor Potentiometer Variables
+int motorVals[numMotors]; // Stores current readings of potentiometers
 
 // Color Sensor Scan Variables
 char faceScanArray[9];       // Array to store characters for most recent color scan
@@ -100,7 +106,7 @@ void setupI2C();    // Sets up I2C devices
 void setupANO();    // Sets up ANO rotary encoder
 
 // ADC Scan Functions
-int scanADC(adcPot &pot);   // Returns the read value of the specified pot
+int scanADC(adcPot* pot);   // Returns the read value of the specified pot
 
 // Color Sensor Scan Functions
 void setLED(char color);

@@ -28,7 +28,7 @@ int motorCal;
 
 public:
     adcPot(int board, int pin);
-    void setColorCal(char color);
+    void setColorCal(char color, int rgbw[4]);
     void setMotorCal(int cal);
     char colorParse(int rgbw[4], int tolerance);
 };
