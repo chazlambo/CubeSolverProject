@@ -5,6 +5,14 @@ void stepperSetup() {
   pinMode(ENPIN, OUTPUT);
   digitalWrite(ENPIN, HIGH);
 
+  // Initialize stepper position:
+  upStepper.setCurrentPosition(0);
+  rightStepper.setCurrentPosition(0);
+  frontStepper.setCurrentPosition(0);
+  downStepper.setCurrentPosition(0);
+  leftStepper.setCurrentPosition(0);
+  backStepper.setCurrentPosition(0);
+
   // Initialize Cube Steppers and Multi Stepper
   initStepper(multiStep, upStepper);
   initStepper(multiStep, rightStepper);
@@ -21,6 +29,36 @@ void initRingStepper(AccelStepper &ringStep){
   // Initialize Ring Position
   ringStep.setMaxSpeed(ringStepSpeed);
   ringStep.setAcceleration(ringStepAccel);
+
+  // Read saved state from EEPROM
+  ringState = EEPROM.read(ringStateEEPROMAddress);
+
+  // Assign position based on state, or rehome if unknown.
+  switch(ringState){  // Determine which state we are moving to
+    case 0:     // Retracted
+      ringPos = ringRetPos;
+      ringStep.setCurrentPosition(ringPos);
+      break;
+    case 1:     // Halfway
+      ringPos = ringHalfPos;
+      ringStep.setCurrentPosition(ringPos);
+      ringMove(0);
+      break;
+    case 2:     // Extended
+      ringPos = ringExtPos;
+      ringStep.setCurrentPosition(ringPos);
+      ringMove(0);
+      break;
+
+    default:
+        ringState = -1;
+        homeRingStepper(ringStep);
+        return;
+}
+
+}
+
+void homeRingStepper(AccelStepper &ringStep){
   digitalWrite(ENPIN, LOW);
   ringStep.runToNewPosition(ringExtPos);
   ringStep.runToNewPosition(ringRetPos);
@@ -34,6 +72,7 @@ void initStepper(MultiStepper &multiStepper, AccelStepper &newStepper) {
 }
 
 void ringMove(int state) {
+
     if(ringState == state) {
         return;
     }
@@ -52,14 +91,16 @@ void ringMove(int state) {
         default:
             return;
     }
-
+    
+    ringState = -1;                         // Set state to unknown so it will rehome if turned off midway
     digitalWrite(ENPIN, LOW);               // Enable motors
     ringStepper.runToNewPosition(newPos);   // Move ring to 
     ringPos = newPos;                       // Update position variable
-    ringState = state;                      // Update state variable
     digitalWrite(ENPIN, HIGH);              // Disable motors
     delay(20);                              // Short delay for timing
 
+    ringState = state;                      // Update state variable
+    EEPROM.update(ringStateEEPROMAddress, state); // Update state in EEPROM
 }
 
 void ringToggle() {

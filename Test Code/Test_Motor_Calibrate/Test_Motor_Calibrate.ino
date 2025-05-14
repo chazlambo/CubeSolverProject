@@ -8,7 +8,7 @@ int state = 0;
 bool startPrintBool = 0;
 bool endPrintBool = 0;
 
-int useMotors = 0;
+int useMotors = 1;
 
 void setup() {
   skipMotorInt = !useMotors;
@@ -106,7 +106,7 @@ void loop() {
         if(useMotors) {
           topServoRetract();
           botServoRetract();
-          ringMove(2);  // Extend ring motors
+          ringMove(0);  // Extend ring motors
         }
 
         endPrintBool = 1;

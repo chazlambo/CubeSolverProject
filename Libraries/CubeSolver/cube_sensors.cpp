@@ -44,11 +44,6 @@ void setupANO()
     ANO.setGPIOInterrupts((uint32_t)1 << ANO_SWITCH_UP, 1);
 }
 
-void setupPots(){
-    
-}
-
-
 int scanADC(adcPot* pot)
 {
     if (pot == nullptr) {
@@ -92,6 +87,10 @@ bool getMotorCalibration(){
         // Iterate through each motor and retrieve its calibrated value from EEPROM
         for (int i = 0; i < numMotors; i++) {
             EEPROM.get(motorCalStartAddress + i * sizeof(int), motorCals[i]);
+
+            if (motorCals[i] < motCalMin || motorCals[i] > motCalMax){
+                motorCals[i] = motCalDefault;
+            } 
         }
 
         return true;

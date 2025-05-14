@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <AccelStepper.h>
 #include <MultiStepper.h>
+#include <EEPROM.h>
 
 // Pin Definitions
 const int ENPIN = 0;
@@ -50,14 +51,18 @@ int ringRetPos = 0;
 int ringHalfPos = 400;
 int ringExtPos = 800;
 int ringState = 0;
-int ringMovePos = 0;
 
-void stepperSetup();                                                    // Setup function to run
+// Ring State EEPROM Variables
+//motorCalStartAddress + 6 * sizeof(int) = 1 + 12 = 13 --> Use 15 for space
+const int ringStateEEPROMAddress = 15;
+
+void stepperSetup();                                     // Setup function to run
 
 void initRingStepper(AccelStepper &ringStep);                           // Function to initialize ring stepper motor with presets
 void initStepper(MultiStepper &multiStepper, AccelStepper &newStepper); // Function to initialize cube stepper motors with presets
 
-void ringMove(int state); // 0 = Retracted, 1 = Halfway, 2 = Extended
+void homeRingStepper(AccelStepper &ringStep);
+void ringMove(int state);                       // 0 = Retracted, 1 = Halfway, 2 = Extended
 void ringToggle();
 
 void executeMove(String move); // E.G. "U", "U'", "U2"

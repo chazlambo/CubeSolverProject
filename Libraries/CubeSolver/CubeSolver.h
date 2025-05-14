@@ -8,7 +8,6 @@
 #include "adcPot.cpp"
 
 // TODO: Change to .h when converting to actual library!
-#include "cube_basic.cpp"
 //#include "virtual_cube.h"
 #include "cube_motor.cpp"
 #include "cube_servo.cpp"
@@ -30,6 +29,7 @@ void mainSetup();
 bool powerCheck();
 
 // Motor Initialization
-int motorHome();
+int motorHomeState = -1;
+int homeMotors();
 
 #endif // CubeSolver_h  

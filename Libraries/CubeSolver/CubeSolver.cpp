@@ -5,14 +5,18 @@ void mainSetup()
     Serial.begin(baudRate);
     pinMode(POWPIN, INPUT);
 
+    // TODO: Remove this
     if(!skipMotorInt){
         servoSetup();
         stepperSetup();
     }
 
+    setupRGB();    // Sets up color sensors
     setupI2C();    // Sets up I2C devices
     //setupANO();    // Sets up ANO rotary encoder
-    setupPots();   // Set up Motor Potentiometers
+
+    // Home motors
+    motorHomeState = homeMotors();
 }
 
 bool powerCheck(){
@@ -20,7 +24,7 @@ bool powerCheck(){
     return status;
 }
 
-int motorHome()
+int homeMotors()
 {
     // Homes motors
     //
@@ -30,33 +34,49 @@ int motorHome()
     //      2 - Did not reach threshold in time
 
     int threshold = 1;
-    int stepSize = 5;
-    int timeout = 5000; // Timeout after 5 seconds
+    int stepSize = 1;
+    unsigned long timeout = 5000; // Timeout after 5 seconds
 
     // Initialize variables
     bool aligned = false;
-    int t_home_start = millis();
+    unsigned long t_home_start = millis();
+    unsigned long t_home = millis();
 
     // Retrieve calibrated values and check if calibrated
-    if (!getMotorCalibrated()) {
+    if (!getMotorCalibration()) {
         return 1;
     }
 
     // Start loop
+    digitalWrite(ENPIN, LOW);
     while (!aligned) {
-        allAligned = true;
+        aligned = true;
 
+        // Check each motor
         for (int i = 0; i < numMotors; i++) {
             int currentVal = scanADC(MotorPots[i]);
             int targetVal = motorCals[i];
 
             if (abs(currentVal - targetVal) > threshold) {
-                allAligned = false;
+                aligned = false;
 
-                if (currentVal < targetVal) {
-                    pos[i] += stepSize;
-                } else {
-                    pos[i] -= stepSize;
+                // If Upper Motor
+                if (i == 0) { // Reverse direction for upper motor
+                    if(currentVal > targetVal) {
+                        pos[i] -= stepSize;
+                    }
+                    else {
+                        pos[i] += stepSize;
+                    }
+                }
+                // If any other motor
+                else {
+                    if(currentVal > targetVal) {
+                        pos[i] += stepSize;
+                    }
+                    else {
+                        pos[i] -= stepSize;
+                    }
                 }
             }
         }
@@ -64,7 +84,24 @@ int motorHome()
         // Apply new positions
         multiStep.moveTo(pos);
         multiStep.runSpeedToPosition();  // Blocking run
+
+
+        // Add function timeout
+        t_home = millis();
+        if(t_home - t_home_start > timeout) {
+            return 2;
+        }
     }
+    digitalWrite(ENPIN, HIGH);
+
+    // Manually reset stepper position
+    upStepper.setCurrentPosition(0);
+    rightStepper.setCurrentPosition(0);
+    frontStepper.setCurrentPosition(0);
+    downStepper.setCurrentPosition(0);
+    leftStepper.setCurrentPosition(0);
+    backStepper.setCurrentPosition(0);
+
     
-    return false;
+    return 0;   // Return successful alignment
 }

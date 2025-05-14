@@ -94,8 +94,9 @@ const int numMotors = 6;
 bool motorsCalibrated = 0;
 
 // Motor Potentiometer Variables
-int motCalMin = 50;
-int motCalMax = 900;
+int motCalMin = 60;
+int motCalMax = 120;
+int motCalDefault = 90;
 int motorCals[numMotors]; // Stores EEPROM saved calibration values for potentiometers
 int motorVals[numMotors]; // Stores current readings of potentiometers
 
@@ -109,7 +110,6 @@ int colorScanTolerance = 20;
 void setupRGB();    // Sets up RGB LED's on color sensors
 void setupI2C();    // Sets up I2C devices
 void setupANO();    // Sets up ANO rotary encoder
-void setupPots();   // Set up Motor Potentiometers
 
 // ADC Scan Functions
 int scanADC(adcPot* pot);   // Returns the read value of the specified pot
