@@ -29,4 +29,7 @@ void mainSetup();
 // General Functions
 bool powerCheck();
 
+// Motor Initialization
+int motorHome();
+
 #endif // CubeSolver_h  
