@@ -83,15 +83,20 @@ adcPot MOT_F(0x4A, 1);
 adcPot MOT_D(0x4D, 0);
 adcPot MOT_L(0x4D, 1);
 adcPot MOT_B(0x4D, 2);
+adcPot* MotorPots[] = {&MOT_U, &MOT_R, &MOT_F, &MOT_D, &MOT_L, &MOT_B};
 
 // EEPROM Setup
 // EEPROM Variables
-const int calFlagAddress = 0;
+const int motorCalFlagAddress = 0;
 const int motorCalStartAddress = 1;
-const int motorCalFlag = 177;
+const int motorCalFlag = 177;       // Arbitrary unique integer
 const int numMotors = 6;
+bool motorsCalibrated = 0;
 
 // Motor Potentiometer Variables
+int motCalMin = 50;
+int motCalMax = 900;
+int motorCals[numMotors]; // Stores EEPROM saved calibration values for potentiometers
 int motorVals[numMotors]; // Stores current readings of potentiometers
 
 // Color Sensor Scan Variables
@@ -104,9 +109,16 @@ int colorScanTolerance = 20;
 void setupRGB();    // Sets up RGB LED's on color sensors
 void setupI2C();    // Sets up I2C devices
 void setupANO();    // Sets up ANO rotary encoder
+void setupPots();   // Set up Motor Potentiometers
 
 // ADC Scan Functions
 int scanADC(adcPot* pot);   // Returns the read value of the specified pot
+void updateMotorVals();
+
+// Potentiometer Calibration Function
+bool isMotorCalibrated();
+bool getMotorCalibration();
+bool setMotorCalibration();
 
 // Color Sensor Scan Functions
 void setLED(char color);

@@ -44,6 +44,11 @@ void setupANO()
     ANO.setGPIOInterrupts((uint32_t)1 << ANO_SWITCH_UP, 1);
 }
 
+void setupPots(){
+    
+}
+
+
 int scanADC(adcPot* pot)
 {
     if (pot == nullptr) {
@@ -66,6 +71,52 @@ int scanADC(adcPot* pot)
         default:
             return 0;
     }
+}
+
+void updateMotorVals(){
+    for (int i=0; i<numMotors; i++) {
+        motorVals[i] = scanADC(MotorPots[i]);
+    }
+}
+
+bool isMotorCalibrated(){
+    bool calibration_status = EEPROM.read(motorCalFlagAddress) == motorCalFlag;  // Check if flag matches
+
+    return calibration_status;
+}
+
+bool getMotorCalibration(){
+    // Check if valid calibration values exist
+    if(isMotorCalibrated()){
+
+        // Iterate through each motor and retrieve its calibrated value from EEPROM
+        for (int i = 0; i < numMotors; i++) {
+            EEPROM.get(motorCalStartAddress + i * sizeof(int), motorCals[i]);
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+bool setMotorCalibration(){
+    // Verify all potentiometers within valid range
+    for (int i = 0; i < numMotors; i++) {    
+        if (motorVals[i] < motCalMin || motorVals[i] > motCalMax) {
+            return false;
+        }
+    }
+
+    // Updates saved calibration values to curent motor position
+    EEPROM.update(motorCalFlagAddress, motorCalFlag);    // Update Flag 
+
+    // Update each value
+    for (int i = 0; i < numMotors; i++) {
+        EEPROM.put(motorCalStartAddress + i * sizeof(int), motorVals[i]);
+    }
+
+    return true;
 }
 
 void setLED(char color){
