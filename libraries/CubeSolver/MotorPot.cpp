@@ -1,41 +1,64 @@
-#include "MotorPot.h"
+    #include "MotorPot.h"
 
-MotorPot::MotorPot(int board, int pin, int eepromAddr, Adafruit_PCF8591* adc)
-    : board(board), pin(pin), eepromAddr(eepromAddr), adc(adc), value(0), calibration(defaultVal) {}
+    MotorPot::MotorPot(int board, int pin, int eepromFlagAddr, int eepromAddr, Adafruit_PCF8591* adc)
+        : board(board), pin(pin), eepromFlagAddr(eepromFlagAddr), eepromAddr(eepromAddr), adc(adc), value(0), calibration(defaultVal) {}
 
-void MotorPot::begin() {
-    pinMode(pin, INPUT);
-    
-    EEPROM.get(eepromAddr, calibration);
-    if (calibration < minValid || calibration > maxValid) {
-        calibration = defaultVal;
+    void MotorPot::begin() {
+        pinMode(pin, INPUT);
+        
+        if (isCalibrated()){
+            EEPROM.get(eepromAddr, calibration);
+        }
+        else {
+            calibration = defaultVal;
+        }
+        
+        if (calibration < minValid || calibration > maxValid) {
+            calibration = defaultVal;
+        }
     }
-}
 
-int MotorPot::scan() {
-    value = adc->analogRead(pin);
-    return value;
-}
+    int MotorPot::scan() {
+        value = adc->analogRead(pin);
+        return value;
+    }
 
-bool MotorPot::isCalibrated() {
-    return EEPROM.read(0) == flagValue;
-}
+    bool MotorPot::isCalibrated() {
+        return EEPROM.read(eepromFlagAddr) == flagValue;
+    }
 
-bool MotorPot::loadCalibration() {
-    if (!isCalibrated()) return false;
-    EEPROM.get(eepromAddr, calibration);
-    return calibration >= minValid && calibration <= maxValid;
-}
+    int MotorPot::loadCalibration() {
+        // Returns:
+        // 0 - Calibrated Correctly
+        // 1 - Not Calibrated (Flag not correct) 
+        // 2 - Invalid calibration value - Using default
 
-bool MotorPot::saveCalibration() {
-    value = scan();
-    if (value < minValid || value > maxValid) return false;
+        if (!isCalibrated()) return 1;
+        EEPROM.get(eepromAddr, calibration);
+        
+        // Ensure calibration is valid
+        if (calibration < minValid || calibration > maxValid) {
+            calibration = defaultVal;
+            EEPROM.update(eepromFlagAddr, 0);   // Flag for recalibration
+            return 2;             
+        }
 
-    EEPROM.update(0, flagValue);
-    EEPROM.put(eepromAddr, value);
-    calibration = value;
-    return true;
-}
+        return 0;
+    }
 
-int MotorPot::getValue() const { return value; }
-int MotorPot::getCalibration() const { return calibration; }
+    bool MotorPot::saveCalibration() {
+        value = scan();
+        if (value < minValid || value > maxValid) return false;
+
+        EEPROM.update(eepromFlagAddr, flagValue);
+        EEPROM.put(eepromAddr, value);
+        calibration = value;
+        return true;
+    }
+
+    int MotorPot::getCalibration() {
+        if (isCalibrated()) {
+            EEPROM.get(eepromAddr, calibration);
+        }
+
+        return calibration; }

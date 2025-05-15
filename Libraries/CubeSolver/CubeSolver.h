@@ -13,9 +13,6 @@
 #include "ColorSensor.cpp"
 #include "RotaryEncoder.cpp"
 
-// TODO: Remove later
-bool skipMotorInt = 0;  // Boolean to skip motor initialization
-
 // Pin Definitions
 const int POWPIN = 23;       
 

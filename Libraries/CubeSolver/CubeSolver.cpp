@@ -1,28 +1,30 @@
 #include "CubeSolver.h"
 
 // ================ ADC Module Setup ================
-constexpr int ADC_ADDRESS[6] = {0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D};
+const int ADC_ADDRESS[6] = {0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D};
 Adafruit_PCF8591 ADC1 = Adafruit_PCF8591();
 Adafruit_PCF8591 ADC2 = Adafruit_PCF8591();
 Adafruit_PCF8591 ADC3 = Adafruit_PCF8591();
 Adafruit_PCF8591 ADC4 = Adafruit_PCF8591();
 Adafruit_PCF8591 ADC5 = Adafruit_PCF8591();
 Adafruit_PCF8591 ADC6 = Adafruit_PCF8591();
+Adafruit_PCF8591* ADC[] = {&ADC1, &ADC2, &ADC3, &ADC4, &ADC5, &ADC6};
 
 // ================ Motor Potentiometer Setup ================
 int numMotors = 6;
+int potADCPin[6] = {3, 2, 1, 0, 1, 2};
 
 // Initialize EEPROM Addresses
 const int motorCalFlagAddress = 0;
 const int motorCalStartAddress = motorCalFlagAddress + 1;
 
 // Create MotorPot Objects
-MotorPot motU(0x4A, 3, motorCalStartAddress + 0 * sizeof(int), &ADC3);
-MotorPot motR(0x4A, 2, motorCalStartAddress + 1 * sizeof(int), &ADC3);
-MotorPot motF(0x4A, 1, motorCalStartAddress + 2 * sizeof(int), &ADC3);
-MotorPot motD(0x4D, 0, motorCalStartAddress + 3 * sizeof(int), &ADC6);
-MotorPot motL(0x4D, 1, motorCalStartAddress + 4 * sizeof(int), &ADC6);
-MotorPot motB(0x4D, 2, motorCalStartAddress + 5 * sizeof(int), &ADC6);
+MotorPot motU(ADC_ADDRESS[2], potADCPin[0], motorCalFlagAddress, motorCalStartAddress + 0 * sizeof(int), ADC[2]);
+MotorPot motR(ADC_ADDRESS[2], potADCPin[1], motorCalFlagAddress, motorCalStartAddress + 1 * sizeof(int), ADC[2]);
+MotorPot motF(ADC_ADDRESS[2], potADCPin[2], motorCalFlagAddress, motorCalStartAddress + 2 * sizeof(int), ADC[2]);
+MotorPot motD(ADC_ADDRESS[5], potADCPin[3], motorCalFlagAddress, motorCalStartAddress + 3 * sizeof(int), ADC[5]);
+MotorPot motL(ADC_ADDRESS[5], potADCPin[4], motorCalFlagAddress, motorCalStartAddress + 4 * sizeof(int), ADC[5]);
+MotorPot motB(ADC_ADDRESS[5], potADCPin[5], motorCalFlagAddress, motorCalStartAddress + 5 * sizeof(int), ADC[5]);
 
 MotorPot* MotorPots[] = {&motU, &motR, &motF, &motD, &motL, &motB};
 
@@ -47,7 +49,7 @@ const int botServoEEPROMAddress = topServoEEPROMAddress + sizeof(int);
 
 // Create Servo Objects
 CubeServo topServo(TOPSERVO, topServoEEPROMAddress, topRetPos, topExtPos, topSweepDelay);               
-CubeServo botServo(BOTSERVO, botServoEEPROMAddress, botRetPos, botExtPos); 
+CubeServo botServo(BOTSERVO, botServoEEPROMAddress, botRetPos, botExtPos, botSweepDelay); 
 
 // ================ Color Sensor Setup ================
 
@@ -70,15 +72,15 @@ CubeServo botServo(BOTSERVO, botServoEEPROMAddress, botRetPos, botExtPos);
 
 // Initialize array of ADC pointers for each Color Sensor
 Adafruit_PCF8591* adcPtrs1[9] = { 
-    &ADC1, &ADC1, &ADC1, 
-    &ADC2, &ADC2, &ADC1, 
-    &ADC3, &ADC2, &ADC2 
+    ADC[0], ADC[0], ADC[0], 
+    ADC[1], ADC[1], ADC[0], 
+    ADC[2], ADC[1], ADC[1]
 };
 
 Adafruit_PCF8591* adcPtrs2[9] = { 
-    &ADC4, &ADC4, &ADC4, 
-    &ADC4, &ADC6, &ADC5, 
-    &ADC5, &ADC5, &ADC5 
+    ADC[3], ADC[3], ADC[3], 
+    ADC[3], ADC[5], ADC[4], 
+    ADC[4], ADC[4], ADC[4]
 };
 
 // Initialize LED Pins for each Color Sensor
@@ -137,11 +139,12 @@ void mainSetup()
     colorSensor1.begin();
     colorSensor2.begin();
 
+    // Begin Motor Pots
     for (int i = 0; i < numMotors; i++) {
         MotorPots[i]->begin();
     }
 
-    // Begin Encoder
+    // Begin Rotary Encoder
     // menuEncoder.begin();
 
 
@@ -156,7 +159,7 @@ bool powerCheck(){
 
 bool getMotorCalibration() {
     for (int i = 0; i < numMotors; i++) {
-        if (!MotorPots[i]->loadCalibration()) {
+        if (MotorPots[i]->loadCalibration()) {
             return false;
         }
     }

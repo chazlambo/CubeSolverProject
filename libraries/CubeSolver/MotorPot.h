@@ -7,19 +7,19 @@
 
 class MotorPot{
 public:
-    MotorPot(int board, int pin, int eepromAddr, Adafruit_PCF8591* adc);
+    MotorPot(int board, int pin, int eepromFlagAddr, int eepromAddr, Adafruit_PCF8591* adc);
 
     void begin();
     int scan();
     bool isCalibrated();
-    bool loadCalibration();
+    int loadCalibration();
     bool saveCalibration();
-    int getValue() const;
-    int getCalibration() const;
+    int getCalibration();
 
 private:
     int board;
     int pin;
+    int eepromFlagAddr;
     int eepromAddr;
     Adafruit_PCF8591* adc;
     int value;
