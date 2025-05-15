@@ -15,8 +15,8 @@ void setup() {
   mainSetup();
 
   if(extendMotors) {
-    topServoExtend();
-    botServoExtend();
+    topServo.extend();
+    botServo.extend();
     ringMove(2);  // Extend ring motors
   }
 
@@ -26,7 +26,7 @@ void setup() {
   Serial.println("Checking if calibrated...");
   delay(100);
 
-  if(isMotorCalibrated()) {
+  if(getMotorCalibration()) {
     getMotorCalibration();
     Serial.println("Motors are calibrated to values:");
     
@@ -103,8 +103,8 @@ void loop() {
         Serial.println("\n Calibration Complete.");
 
         if(extendMotors) {
-          topServoRetract();
-          botServoRetract();
+          topServo.retract();
+          botServo.retract();
           ringMove(0);  // Extend ring motors
         }
 

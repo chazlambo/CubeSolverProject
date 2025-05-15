@@ -12,6 +12,7 @@ void setup() {
 void loop() {
   while (!Serial.available()) { delay(50); }  // Wait for Serial
   int input = Serial.parseInt();              // Parse input as integer
+  while(Serial.available()) {Serial.read();}  // Flush serial buffer
 
   if ((input <= 0) || (input > 17)) {  // Check for valid input
     Serial.println("Invalid input...");
@@ -27,12 +28,12 @@ void loop() {
 
     case 2:
       Serial.println("Toggling Bottom Servo");
-      botServoToggle();
+      botServo.toggle();
       break;
 
     case 3:
       Serial.println("Toggling Top Servo");
-      topServoToggle();
+      topServo.toggle();
       break;
 
     case 4:

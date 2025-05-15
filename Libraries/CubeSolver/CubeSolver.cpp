@@ -1,19 +1,149 @@
 #include "CubeSolver.h"
 
+// ================ ADC Module Setup ================
+constexpr int ADC_ADDRESS[6] = {0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D};
+Adafruit_PCF8591 ADC1 = Adafruit_PCF8591();
+Adafruit_PCF8591 ADC2 = Adafruit_PCF8591();
+Adafruit_PCF8591 ADC3 = Adafruit_PCF8591();
+Adafruit_PCF8591 ADC4 = Adafruit_PCF8591();
+Adafruit_PCF8591 ADC5 = Adafruit_PCF8591();
+Adafruit_PCF8591 ADC6 = Adafruit_PCF8591();
+
+// ================ Motor Potentiometer Setup ================
+int numMotors = 6;
+
+// Initialize EEPROM Addresses
+const int motorCalFlagAddress = 0;
+const int motorCalStartAddress = motorCalFlagAddress + 1;
+
+// Create MotorPot Objects
+MotorPot motU(0x4A, 3, motorCalStartAddress + 0 * sizeof(int), &ADC3);
+MotorPot motR(0x4A, 2, motorCalStartAddress + 1 * sizeof(int), &ADC3);
+MotorPot motF(0x4A, 1, motorCalStartAddress + 2 * sizeof(int), &ADC3);
+MotorPot motD(0x4D, 0, motorCalStartAddress + 3 * sizeof(int), &ADC6);
+MotorPot motL(0x4D, 1, motorCalStartAddress + 4 * sizeof(int), &ADC6);
+MotorPot motB(0x4D, 2, motorCalStartAddress + 5 * sizeof(int), &ADC6);
+
+MotorPot* MotorPots[] = {&motU, &motR, &motF, &motD, &motL, &motB};
+
+// ================ Servo Setup ================
+// Servo Pins
+const int TOPSERVO = 22;
+const int BOTSERVO = 14;
+
+// Top Servo Variables
+unsigned int topExtPos = 235;
+unsigned int topRetPos = 0;
+int topSweepDelay = 20;
+
+// Bottom Servo Variables
+unsigned int botExtPos = 270;
+unsigned int botRetPos = 0;
+int botSweepDelay = 20;
+
+// EEPROM Variables
+const int topServoEEPROMAddress = motorCalStartAddress + 7 * sizeof(int);
+const int botServoEEPROMAddress = topServoEEPROMAddress + sizeof(int);
+
+// Create Servo Objects
+CubeServo topServo(TOPSERVO, topServoEEPROMAddress, topRetPos, topExtPos, topSweepDelay);               
+CubeServo botServo(BOTSERVO, botServoEEPROMAddress, botRetPos, botExtPos); 
+
+// ================ Color Sensor Setup ================
+
+// Color Sensor Pin Table
+// +======+======+======+======+======+======+
+// |      |      |  A0  |  A1  |  A2  |  A3  |
+// +======+======+======+======+======+======+
+// | 0x48 | ADC1 | C1-3 | C1-2 | C1-1 | C1-6 |
+// +------+------+------+------+------+------+
+// | 0x49 | ADC2 | C1-5 | C1-4 | C1-9 | C1-8 |
+// +------+------+------+------+------+------+
+// | 0x4A | ADC3 | C1-7 | M-F  | M-R  | M-U  |
+// +------+------+------+------+------+------+
+// | 0x4B | ADC4 | C2-1 | C2-2 | C2-3 | C2-4 |
+// +------+------+------+------+------+------+
+// | 0x4C | ADC5 | C2-6 | C2-7 | C2-8 | C2-9 |
+// +------+------+------+------+------+------+
+// | 0x4D | ADC6 | M-D  | M-L  | M-B  | C2-5 |
+// +------+------+------+------+------+------+
+
+// Initialize array of ADC pointers for each Color Sensor
+Adafruit_PCF8591* adcPtrs1[9] = { 
+    &ADC1, &ADC1, &ADC1, 
+    &ADC2, &ADC2, &ADC1, 
+    &ADC3, &ADC2, &ADC2 
+};
+
+Adafruit_PCF8591* adcPtrs2[9] = { 
+    &ADC4, &ADC4, &ADC4, 
+    &ADC4, &ADC6, &ADC5, 
+    &ADC5, &ADC5, &ADC5 
+};
+
+// Initialize LED Pins for each Color Sensor
+int ledPins1[3] = { 34, 33, 35 };  // R, G, B for Color Sensor 1
+int ledPins2[3] = { 37, 36, 38 };  // R, G, B for Color Sensor 2
+
+// Initialize Sensor Pins for each Color Sensor
+int sensorPins1[9] = { 
+    2, 1, 0,  // C1-1, C1-2, C1-3
+    1, 0, 3,  // C1-4, C1-5, C1-6
+    0, 3, 2   // C1-7, C1-8, C1-9
+};
+
+int sensorPins2[9] = { 
+    0, 1, 2,  // C2-1, C2-2, C2-3
+    3, 3, 0,  // C2-4, C2-5, C2-6
+    1, 2, 3   // C2-7, C2-8, C2-9
+};
+
+// Initialize EEPROM
+const int colorSensor1EEPROMAddress = botServoEEPROMAddress + sizeof(int) * 2;
+const int colorSensor2EEPROMAddress = colorSensor1EEPROMAddress + sizeof(int);
+
+// Create ColorSensor Objects
+ColorSensor colorSensor1(adcPtrs1, sensorPins1, ledPins1, colorSensor1EEPROMAddress);
+ColorSensor colorSensor2(adcPtrs2, sensorPins2, ledPins2, colorSensor2EEPROMAddress);
+
+// ================ Rotary Encoder Setup ================
+RotaryEncoder menuEncoder;
+
+
 void mainSetup()
 {
     Serial.begin(baudRate);
     pinMode(POWPIN, INPUT);
 
-    // TODO: Remove this
-    if(!skipMotorInt){
-        servoSetup();
-        stepperSetup();
+    // Initialize I2C Bus
+    Wire.begin();
+
+    // Initialize ADC modules
+    ADC1.begin(ADC_ADDRESS[0]);
+    ADC2.begin(ADC_ADDRESS[1]);
+    ADC3.begin(ADC_ADDRESS[2]);
+    ADC4.begin(ADC_ADDRESS[3]);
+    ADC5.begin(ADC_ADDRESS[4]);
+    ADC6.begin(ADC_ADDRESS[5]);
+
+    // Initialize Steppers
+    stepperSetup();
+
+    // Begin Servos
+    topServo.begin();
+    botServo.begin();
+
+    // Begin Color Sensors
+    colorSensor1.begin();
+    colorSensor2.begin();
+
+    for (int i = 0; i < numMotors; i++) {
+        MotorPots[i]->begin();
     }
 
-    setupRGB();    // Sets up color sensors
-    setupI2C();    // Sets up I2C devices
-    //setupANO();    // Sets up ANO rotary encoder
+    // Begin Encoder
+    // menuEncoder.begin();
+
 
     // Home motors
     motorHomeState = homeMotors();
@@ -22,6 +152,15 @@ void mainSetup()
 bool powerCheck(){
     bool status = digitalRead(POWPIN);
     return status;
+}
+
+bool getMotorCalibration() {
+    for (int i = 0; i < numMotors; i++) {
+        if (!MotorPots[i]->loadCalibration()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 int homeMotors()
@@ -54,8 +193,8 @@ int homeMotors()
 
         // Check each motor
         for (int i = 0; i < numMotors; i++) {
-            int currentVal = scanADC(MotorPots[i]);
-            int targetVal = motorCals[i];
+            int currentVal = MotorPots[i]->scan();
+            int targetVal = MotorPots[i]->getCalibration();
 
             if (abs(currentVal - targetVal) > threshold) {
                 aligned = false;

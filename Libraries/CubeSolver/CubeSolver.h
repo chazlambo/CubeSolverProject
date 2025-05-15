@@ -4,20 +4,20 @@
 
 #include <Arduino.h>
 
-// TODO: Remove when converting to real library
-#include "adcPot.cpp"
 
 // TODO: Change to .h when converting to actual library!
 //#include "virtual_cube.h"
 #include "cube_motor.cpp"
-#include "cube_servo.cpp"
-#include "cube_sensors.cpp"
+#include "CubeServo.cpp"
+#include "MotorPot.cpp"
+#include "ColorSensor.cpp"
+#include "RotaryEncoder.cpp"
 
 // TODO: Remove later
 bool skipMotorInt = 0;  // Boolean to skip motor initialization
 
 // Pin Definitions
-const int POWPIN = 23;
+const int POWPIN = 23;       
 
 // Serial Variables
 const int baudRate = 11520;
