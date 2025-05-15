@@ -5,16 +5,15 @@ unsigned int t_buffer = 50;
 unsigned int t_old = 0;
 
 int state = 0;
-bool startPrintBool = 0;
-bool endPrintBool = 0;
+bool startPrintBool = false;
+bool endPrintBool = false;
 
 int extendMotors = 0;
 
 void setup() {
-
   mainSetup();
 
-  if(extendMotors) {
+  if (extendMotors) {
     topServo.extend();
     botServo.extend();
     ringMove(2);  // Extend ring motors
@@ -26,17 +25,14 @@ void setup() {
   Serial.println("Checking if calibrated...");
   delay(100);
 
-  if(getMotorCalibration()) {
-    getMotorCalibration();
+  if (getMotorCalibration()) {
     Serial.println("Motors are calibrated to values:");
-    
-    for(int i=0; i < numMotors; i++){
-      Serial.print(motorCals[i]);
+    for (int i = 0; i < numMotors; i++) {
+      Serial.print(MotorPots[i]->getCalibration());
       Serial.print("\t");
     }
     Serial.println();
-  }
-  else{
+  } else {
     Serial.println("Motors are not calibrated");
   }
 
@@ -46,77 +42,78 @@ void setup() {
 
 void loop() {
   t = millis();
-  
-  switch(state) {
+
+  switch (state) {
     case 1: // Waiting to begin
-      // Only print statement once
-      if(!startPrintBool) {
-        Serial.println("\n Please enter anything to begin calibration:");
-        startPrintBool = 1;
+      if (!startPrintBool) {
+        Serial.println("\nPlease enter anything to begin calibration:");
+        startPrintBool = true;
       }
-      
-      // If serial is available, move on.
-      if(Serial.available()>0) {
-        while(Serial.available()){Serial.read();} // Flush buffer
 
-        startPrintBool = 0;
+      if (Serial.available() > 0) {
+        while (Serial.available()) Serial.read(); // Clear buffer
+        startPrintBool = false;
         state = 2;
-
-        Serial.println("\n Beginning calibration shortly, enter anything to set values...");
+        Serial.println("\nBeginning calibration shortly. Press any key to save current values...");
       }
-
       break;
 
     case 2: // Printing calibration values
       if (t - t_old > t_buffer) {
-        updateMotorVals();
-        
-        for(int i=0; i < numMotors; i++) {
-          Serial.print(motorVals[i]);
+        for (int i = 0; i < numMotors; i++) {
+          Serial.print(MotorPots[i]->scan());
           Serial.print("\t");
         }
         Serial.println();
-
         t_old = t;
       }
 
-      if (Serial.available()>0) {
-        while(Serial.available()){Serial.read();} // Flush buffer
+      if (Serial.available() > 0) {
+        while (Serial.available()) Serial.read(); // Clear buffer
+        Serial.println("Saving current motor positions as calibration values...");
 
-        Serial.println("Setting current position to calibrated values...");
-        if(setMotorCalibration()) {
-          getMotorCalibration();
-          Serial.println("Values set successfully.");
-          state = 3;
+        bool allValid = true;
+        for (int i = 0; i < numMotors; i++) {
+          if (!MotorPots[i]->saveCalibration()) {
+            allValid = false;
+            Serial.print("Motor ");
+            Serial.print(i);
+            Serial.println(" calibration out of valid range.");
+          }
         }
-        else {
-          Serial.println("Failed to set calibrated values, potentially invalid range.");
-          delay(1000);
+
+        if (allValid) {
+          Serial.println("Calibration successful. Saved values:");
+          for (int i = 0; i < numMotors; i++) {
+            Serial.print(MotorPots[i]->getCalibration());
+            Serial.print("\t");
+          }
+          Serial.println();
+          state = 3;
+        } else {
+          Serial.println("Calibration failed. Try again.");
         }
       }
-
       break;
 
     case 3: // Calibration complete
-      // Only print statement once
-      if(!endPrintBool) {
-        Serial.println("\n Calibration Complete.");
+      if (!endPrintBool) {
+        Serial.println("\nCalibration Complete.");
 
-        if(extendMotors) {
+        if (extendMotors) {
           topServo.retract();
           botServo.retract();
-          ringMove(0);  // Extend ring motors
+          ringMove(0);  // Retract ring motors
         }
 
-        endPrintBool = 1;
+        endPrintBool = true;
       }
       break;
 
     default:
-      Serial.print("Invalid State???");
-      delay(2000);
+      Serial.println("Invalid state. Resetting...");
+      delay(1000);
       state = 1;
       break;
   }
-
 }
