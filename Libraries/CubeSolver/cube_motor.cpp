@@ -3,7 +3,7 @@
 void stepperSetup() {
   // Initialize Enable Pin
   pinMode(ENPIN, OUTPUT);
-  digitalWrite(ENPIN, HIGH);
+  disableMotors();
 
   // Initialize stepper position:
   upStepper.setCurrentPosition(0);
@@ -58,11 +58,23 @@ void initRingStepper(AccelStepper &ringStep){
 
 }
 
+void enableMotors(){
+  Serial.println("Enabling Motors");
+  motEnableState = 0;
+  digitalWrite(ENPIN, motEnableState);
+}
+
+void disableMotors(){
+  Serial.println("Disabling Motors");
+  motEnableState = 1;
+  digitalWrite(ENPIN, motEnableState);
+}
+
 void homeRingStepper(AccelStepper &ringStep){
-  digitalWrite(ENPIN, LOW);
+  enableMotors();
   ringStep.runToNewPosition(ringExtPos);
   ringStep.runToNewPosition(ringRetPos);
-  digitalWrite(ENPIN, HIGH);
+  disableMotors();
   ringState = 0;
 }
 
@@ -92,10 +104,10 @@ void ringMove(int state) {
     }
     
     ringState = -1;                         // Set state to unknown so it will rehome if turned off midway
-    digitalWrite(ENPIN, LOW);               // Enable motors
+    enableMotors();                         // Enable motors
     ringStepper.runToNewPosition(newPos);   // Move ring to 
     ringPos = newPos;                       // Update position variable
-    digitalWrite(ENPIN, HIGH);              // Disable motors
+    disableMotors();                        // Disable motors
     delay(20);                              // Short delay for timing
 
     ringState = state;                      // Update state variable
@@ -225,12 +237,12 @@ void executeMove(String move) {
   
 
   // Move Steppers to position
-  digitalWrite(0, LOW);
+  enableMotors();
   multiStep.moveTo(pos);
   multiStep.runSpeedToPosition();
   delay(stepDelay);               // Delay to keep motors holding position to negate rotational inertia
 
-  digitalWrite(0, HIGH);
+  disableMotors();
   
 }
 

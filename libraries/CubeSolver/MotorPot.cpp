@@ -4,7 +4,6 @@
         : board(board), pin(pin), eepromFlagAddr(eepromFlagAddr), eepromAddr(eepromAddr), adc(adc), value(0), calibration(defaultVal) {}
 
     void MotorPot::begin() {
-        pinMode(pin, INPUT);
         
         if (isCalibrated()){
             EEPROM.get(eepromAddr, calibration);

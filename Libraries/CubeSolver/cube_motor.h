@@ -43,6 +43,9 @@ int stepSpeed = 1000;       // Set to 1000?
 int defaultStepDelay = 100; // Delay to keep motor powered after moving
 int rotStepDelay = 500;     // Delay to keep motor powered after rotating cube
 
+// Motor Enable
+bool motEnableState = 0;
+
 // Initialize Ring Stepper Variables
 int ringPos = 0;
 int ringStepSpeed = 800;
@@ -59,6 +62,8 @@ const int ringStateEEPROMAddress = 15;
 void stepperSetup();                                     // Setup function to run
 
 void initRingStepper(AccelStepper &ringStep);                           // Function to initialize ring stepper motor with presets
+void enableMotors();
+void disableMotors();
 void initStepper(MultiStepper &multiStepper, AccelStepper &newStepper); // Function to initialize cube stepper motors with presets
 
 void homeRingStepper(AccelStepper &ringStep);

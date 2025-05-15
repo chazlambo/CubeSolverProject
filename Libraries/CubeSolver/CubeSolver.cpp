@@ -129,9 +129,11 @@ void mainSetup()
     ADC6.begin(ADC_ADDRESS[5]);
 
     // Initialize Steppers
+
+    // TODO: REMOVE LATER
     stepperSetup();
 
-    // Begin Servos
+    // // Begin Servos
     topServo.begin();
     botServo.begin();
 
@@ -146,7 +148,6 @@ void mainSetup()
 
     // Begin Rotary Encoder
     // menuEncoder.begin();
-
 
     // Home motors
     motorHomeState = homeMotors();
@@ -173,7 +174,8 @@ int homeMotors()
     // Outputs:
     //      0 - Success
     //      1 - Motors not calibrated
-    //      2 - Did not reach threshold in time
+    //      2 - Motors not enabled
+    //      3 - Did not reach threshold in time
 
     int threshold = 1;
     int stepSize = 1;

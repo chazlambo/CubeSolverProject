@@ -6,33 +6,10 @@ void setup() {
   Serial.println("Starting Program...");
   //printMenu();
 
-  Serial.print("ENPIN: ");
-  Serial.println(ENPIN);
-
-  for(int i = 0; i < 5; i++){
-    digitalWrite(ENPIN, LOW);
-    Serial.print("Motors On");
-    delay(500);
-    digitalWrite(ENPIN, HIGH);
-    Serial.print("Motors Off");
-  }
-  
-
-  for (int i = 0; i < numMotors; i++) {
-      Serial.print(MotorPots[i]->loadCalibration());
-      Serial.print("\t");
-    }
-
-    Serial.println();
-    for (int i = 0; i < numMotors; i++) {
-      Serial.print(MotorPots[i]->getCalibration());
-      Serial.print("\t");
-    }
   Serial.print("\nMotors Calibrated: ");
   Serial.println(getMotorCalibration());
   Serial.print("Home Motors: ");
   Serial.println(homeMotors());
-  while(true);
 }
 
 void loop() {
