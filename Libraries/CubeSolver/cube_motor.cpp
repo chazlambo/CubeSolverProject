@@ -72,7 +72,6 @@ void initStepper(MultiStepper &multiStepper, AccelStepper &newStepper) {
 }
 
 void ringMove(int state) {
-
     if(ringState == state) {
         return;
     }

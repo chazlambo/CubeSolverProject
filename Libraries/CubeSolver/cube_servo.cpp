@@ -3,12 +3,49 @@
 void servoSetup() {
   // Servo Attachments
   topServo.attach(TOPSERVO);
-  topServo.write(topRetPos);
-  topServoPos = topRetPos;
-  
   botServo.attach(BOTSERVO);
-  botServo.write(botRetPos);
-  botServoPos = botRetPos;
+
+  // Read saved state from EEPROM
+  topExtState = EEPROM.read(topServoEEPROMAddress);
+  botExtState = EEPROM.read(botServoEEPROMAddress);
+
+  // Pull out servo location only if needed
+  switch(topExtState){  // Determine which state we are moving to
+    case 0:     // Retracted
+      topServoPos = topRetPos;
+      break;    // Do nothing
+
+    case 1:     // Extended - Retract to start
+      topServoPos = topExtPos;
+      topServoRetract();
+      break;
+
+    default:    // Unknown position
+        topExtState = -1;
+        topServoPos = (topExtPos - topRetPos)/2;  // Assume it's somewhere in the middle
+        topServoRetract();
+        topExtState = 0;
+        return;
+  }
+
+  // Pull out servo location only if needed
+  switch(botExtState){  // Determine which state we are moving to
+    case 0:     // Retracted
+      botServoPos = botRetPos;
+      break;    // Do nothing
+
+    case 1:     // Extended - Retract to start
+      botServoPos = botExtPos;
+      botServoRetract();
+      break;
+
+    default:    // Unknown position
+        botExtState = -1;
+        botServoPos = (botExtPos - botRetPos)/2; // Assume it's somewhere in the middle
+        botServoRetract();
+        botExtState = 0;
+        return;
+  }
 }
 
 void servoSweep(PWMServo &servo, unsigned int &currentPos, unsigned int newPos) {
@@ -31,31 +68,64 @@ void servoSweep(PWMServo &servo, unsigned int &currentPos, unsigned int newPos) 
 }
 
 void topServoExtend(){
+  // Set to unknown state temporarily
+  topExtState = -1;
+  EEPROM.update(topServoEEPROMAddress, topExtState); // Update state in EEPROM
+
+  // Sweep servo to desired position
   servoSweep(topServo, topServoPos, topExtPos);
   topServoPos = topExtPos;
-  topExtBool = 1;
+
+  // Update state
+  topExtState = 1;
+  EEPROM.update(topServoEEPROMAddress, topExtState); // Update state in EEPROM
 }
 
 void topServoRetract(){
+  // Set to unknown state temporarily
+  topExtState = -1;
+  EEPROM.update(topServoEEPROMAddress, topExtState);
+
+  // Sweep servo to desired position
   servoSweep(topServo, topServoPos, topRetPos);
   topServoPos = topRetPos;
-  topExtBool = 0;
+  topExtState = 0;
+
+  // Update state
+  topExtState = 0;
+  EEPROM.update(topServoEEPROMAddress, topExtState);
 }
 
 void botServoExtend(){
+  // Set to unknown state temporarily
+  botExtState = -1;
+  EEPROM.update(botServoEEPROMAddress, botExtState);
+
+  // Sweep servo to desired position
   servoSweep(botServo, botServoPos, botExtPos);
   botServoPos = botExtPos;
-  botExtBool = 1;
+
+  // Update state
+  botExtState = 1;
+  EEPROM.update(botServoEEPROMAddress, botExtState);
 }
 
 void botServoRetract() {
+  // Set to unknown state temporarily
+  botExtState = -1;
+  EEPROM.update(botServoEEPROMAddress, botExtState);
+
+  // Sweep servo to desired position
   servoSweep(botServo, botServoPos, botRetPos);
   botServoPos = botRetPos;
-  botExtBool = 0;
+
+  // Update state
+  botExtState = 0;
+  EEPROM.update(botServoEEPROMAddress, botExtState);
 }
 
 void topServoToggle() { // Toggles the top servo between position states
-  if(topExtBool) {      // If Extended
+  if(topExtState==1) {  // If Extended
     topServoRetract();  // Retract
   }
   else {                // If not extended
@@ -64,7 +134,7 @@ void topServoToggle() { // Toggles the top servo between position states
 }
 
 void botServoToggle() { // Toggles the bottom servo between position states
-  if(botExtBool) {      // If extended
+  if(botExtState==1) {      // If extended
     botServoRetract();  // Retract
   }
   else {                // If not extended

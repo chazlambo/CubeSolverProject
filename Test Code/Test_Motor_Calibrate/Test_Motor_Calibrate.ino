@@ -8,14 +8,13 @@ int state = 0;
 bool startPrintBool = 0;
 bool endPrintBool = 0;
 
-int useMotors = 1;
+int extendMotors = 0;
 
 void setup() {
-  skipMotorInt = !useMotors;
 
   mainSetup();
 
-  if(useMotors) {
+  if(extendMotors) {
     topServoExtend();
     botServoExtend();
     ringMove(2);  // Extend ring motors
@@ -103,7 +102,7 @@ void loop() {
       if(!endPrintBool) {
         Serial.println("\n Calibration Complete.");
 
-        if(useMotors) {
+        if(extendMotors) {
           topServoRetract();
           botServoRetract();
           ringMove(0);  // Extend ring motors
