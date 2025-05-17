@@ -28,6 +28,33 @@ MotorPot motB(ADC_ADDRESS[5], potADCPin[5], motorCalFlagAddress, motorCalStartAd
 
 MotorPot* MotorPots[] = {&motU, &motR, &motF, &motD, &motL, &motB};
 
+// ================ Motor Setup ================
+
+// Pin Definitions
+const int ENPIN = 0;
+const int DIR1 = 1;
+const int STEP1 = 2;
+const int DIR2 = 3;
+const int STEP2 = 4;
+const int DIR3 = 5;
+const int STEP3 = 6;
+const int DIR4 = 25;
+const int STEP4 = 26;
+const int DIR5 = 27;
+const int STEP5 = 28;
+const int DIR6 = 29;
+const int STEP6 = 30;
+const int DIR7 = 31;
+const int STEP7 = 32;
+int STEPPINS[] = {STEP1, STEP2, STEP3, STEP4, STEP5, STEP6, STEP7};
+int DIRPINS[] = {DIR1, DIR2, DIR3, DIR4, DIR5, DIR6, DIR7};
+
+// Ring State EEPROM Variables
+int ringStateEEPROMAddress = motorCalStartAddress + 6 * sizeof(int);
+
+// Create motor object
+CubeMotors cubeMotors(ENPIN, STEPPINS, DIRPINS, ringStateEEPROMAddress);
+
 // ================ Servo Setup ================
 // Servo Pins
 const int TOPSERVO = 22;
@@ -128,12 +155,10 @@ void mainSetup()
     ADC5.begin(ADC_ADDRESS[4]);
     ADC6.begin(ADC_ADDRESS[5]);
 
-    // Initialize Steppers
+    // Begin Stepper Motors
+    cubeMotors.begin();
 
-    // TODO: REMOVE LATER
-    stepperSetup();
-
-    // // Begin Servos
+    // Begin Servos
     topServo.begin();
     botServo.begin();
 
@@ -167,15 +192,13 @@ bool getMotorCalibration() {
     return true;
 }
 
-int homeMotors()
-{
+int homeMotors(){
     // Homes motors
     //
     // Outputs:
     //      0 - Success
     //      1 - Motors not calibrated
-    //      2 - Motors not enabled
-    //      3 - Did not reach threshold in time
+    //      2 - Did not reach threshold in time
 
     int threshold = 1;
     int stepSize = 1;
@@ -185,6 +208,7 @@ int homeMotors()
     bool aligned = false;
     unsigned long t_home_start = millis();
     unsigned long t_home = millis();
+    long pos[6];    // Temporary position vector
 
     // Retrieve calibrated values and check if calibrated
     if (!getMotorCalibration()) {
@@ -192,14 +216,19 @@ int homeMotors()
     }
 
     // Start loop
-    digitalWrite(ENPIN, LOW);
+    cubeMotors.enableMotors();
     while (!aligned) {
         aligned = true;
 
         // Check each motor
         for (int i = 0; i < numMotors; i++) {
+
+            // Update potentiometer values
             int currentVal = MotorPots[i]->scan();
             int targetVal = MotorPots[i]->getCalibration();
+
+            // Get position values
+            pos[i] = cubeMotors.getPos(i);
 
             if (abs(currentVal - targetVal) > threshold) {
                 aligned = false;
@@ -213,6 +242,7 @@ int homeMotors()
                         pos[i] += stepSize;
                     }
                 }
+
                 // If any other motor
                 else {
                     if(currentVal > targetVal) {
@@ -226,9 +256,7 @@ int homeMotors()
         }
 
         // Apply new positions
-        multiStep.moveTo(pos);
-        multiStep.runSpeedToPosition();  // Blocking run
-
+        cubeMotors.moveTo(pos);
 
         // Add function timeout
         t_home = millis();
@@ -236,16 +264,10 @@ int homeMotors()
             return 2;
         }
     }
-    digitalWrite(ENPIN, HIGH);
+    cubeMotors.disableMotors();
 
     // Manually reset stepper position
-    upStepper.setCurrentPosition(0);
-    rightStepper.setCurrentPosition(0);
-    frontStepper.setCurrentPosition(0);
-    downStepper.setCurrentPosition(0);
-    leftStepper.setCurrentPosition(0);
-    backStepper.setCurrentPosition(0);
-
+    cubeMotors.resetMotorPos();
     
     return 0;   // Return successful alignment
 }

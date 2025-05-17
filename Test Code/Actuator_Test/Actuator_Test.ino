@@ -26,7 +26,7 @@ void loop() {
   switch (input) {
     case 1:
       Serial.println("Toggling Ring");
-      ringToggle();
+      cubeMotors.ringToggle();
       break;
 
     case 2:
@@ -41,78 +41,80 @@ void loop() {
 
     case 4:
       Serial.println("Moving: F");
-      executeMove("F");
+      cubeMotors.executeMove("F");
       break;
 
     case 5:
       Serial.println("Moving F'");
-      executeMove("F'");
+      cubeMotors.executeMove("F'");
       break;
 
     case 6:
       Serial.println("Moving: B");
-      executeMove("B");
+      cubeMotors.executeMove("B");
       break;
 
     case 7:
       Serial.println("Moving: B'");
-      executeMove("B'");
+      cubeMotors.executeMove("B'");
       break;
 
     case 8:
       Serial.println("Moving: L");
-      executeMove("L");
+      cubeMotors.executeMove("L");
       break;
 
     case 9:
       Serial.println("Moving: L'");
-      executeMove("L'");
+      cubeMotors.executeMove("L'");
       break;
 
     case 10:
       Serial.println("Moving: R");
-      executeMove("R");
+      cubeMotors.executeMove("R");
       break;
 
     case 11:
       Serial.println("Moving: R'");
-      executeMove("R'");
+      cubeMotors.executeMove("R'");
       break;
 
     case 12:
       Serial.println("Moving: U");
-      executeMove("U");
+      cubeMotors.executeMove("U");
       break;
 
     case 13:
       Serial.println("Moving: U'");
-      executeMove("U'");
+      cubeMotors.executeMove("U'");
       break;
 
     case 14:
       Serial.println("Moving: D");
-      executeMove("D");
+      cubeMotors.executeMove("D");
       break;
 
     case 15:
       Serial.println("Moving: D'");
-      executeMove("D'");
+      cubeMotors.executeMove("D'");
       break;
 
     case 16:
       Serial.println("Moving: ROT1");
-      executeMove("ROT1");
+      cubeMotors.executeMove("ROT1");
       break;
 
     case 17:
       Serial.println("Moving: ROT2");
-      executeMove("ROT2");
+      cubeMotors.executeMove("ROT2");
       break;
 
     default:
       Serial.println("Unknown Error");
       return;
   }
+
+  printMenu();
 }
 
 

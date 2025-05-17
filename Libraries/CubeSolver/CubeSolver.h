@@ -7,7 +7,7 @@
 
 // TODO: Change to .h when converting to actual library!
 //#include "virtual_cube.h"
-#include "cube_motor.cpp"
+#include "CubeMotors.cpp"
 #include "CubeServo.cpp"
 #include "MotorPot.cpp"
 #include "ColorSensor.cpp"

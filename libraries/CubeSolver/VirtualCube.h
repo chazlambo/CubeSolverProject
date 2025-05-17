@@ -1,11 +1,11 @@
-// Cube.h
-#ifndef virtual_cube_h
-#define virtual_cube_h
+// VirtualCube.h
+#ifndef VirtualCube_h
+#define VirtualCube_h
 
 #include <Arduino.h>
 #include "string.h"
 
-class Cube
+class VirtualCube
 {
 public:
     // Cube Sides Character Arrays
@@ -46,7 +46,7 @@ public:
     char cubeArray[54];
     char colorCubeArray[54];
 public:
-    Cube();
+    VirtualCube();
     void resetCube();
     void resetOrientation();
     void resetColor();
@@ -75,7 +75,6 @@ private:
     void rotOrientZ(char orientArr[], char cubeArr[]);
     int rotOrientAll(char tempCubeArr[]);
     
-    
 };
 
-#endif // virtual_cube_h
+#endif // VirtualCube_h

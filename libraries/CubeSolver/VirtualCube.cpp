@@ -1,11 +1,11 @@
-#include "virtual_cube.h"
+#include "VirtualCube.h"
 
-Cube::Cube()
+VirtualCube::VirtualCube()
 {
   this->resetCube();
 }
 
-void Cube::resetCube()
+void VirtualCube::resetCube()
 {
   this->resetOrientation();
   this->resetColor();
@@ -13,7 +13,7 @@ void Cube::resetCube()
   this->resetUnorientedCubeArray();
 }
 
-void Cube::resetCubeArray()
+void VirtualCube::resetCubeArray()
 {
   // Sets each character in the cube array to garbage char X
   char resetArray[] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
@@ -25,7 +25,7 @@ void Cube::resetCubeArray()
   cubeReady = 0;  // Sets the ready toggle to false
 }
 
-void Cube::resetUnorientedCubeArray()
+void VirtualCube::resetUnorientedCubeArray()
 {
   // Sets each character in the cube array to garbage char X
   char resetArray[] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
@@ -37,7 +37,7 @@ void Cube::resetUnorientedCubeArray()
   cubeBuilt = 0;
 }
 
-void Cube::resetOrientation()
+void VirtualCube::resetOrientation()
 {
   // Sets each character in orientation array to default orientation
   char resetArray[] = "WBRYGO"; //URFDLB
@@ -50,7 +50,7 @@ void Cube::resetOrientation()
   this->resetCubeArray();
 }
 
-void Cube::resetColor()
+void VirtualCube::resetColor()
 {
   // Undefine faces
   setColorArray('W', "QQQQWQQQQ", 'G'); // Up
@@ -78,7 +78,7 @@ void Cube::resetColor()
   this->resetCubeArray();
 }
 
-void Cube::setSolved()
+void VirtualCube::setSolved()
 {
   // Sets the cube's color faces to solved
   setColorArray('W', "WWWWWWWWW", 'G'); // Up
@@ -92,7 +92,7 @@ void Cube::setSolved()
   cubeColorStatus = 1;
 }
 
-int Cube::setColorArray(char color, char newFace[], char left)
+int VirtualCube::setColorArray(char color, char newFace[], char left)
 {
   // Function to set an entire face of the cube
   // Inputs:  color - must be a capitalized valid color e.g. 'R'
@@ -313,7 +313,7 @@ int Cube::setColorArray(char color, char newFace[], char left)
   return 0;
 }
 
-int Cube::copyColorArray(char color, char copyArray[]) {
+int VirtualCube::copyColorArray(char color, char copyArray[]) {
   // Copies current face from specified color to new input array
   // Inputs:  color - must be a capitalized valid color e.g. 'R'
   //          copyArray - Array that the colorArray will be copied to
@@ -366,7 +366,7 @@ int Cube::copyColorArray(char color, char copyArray[]) {
   return 0;
 }
 
-void Cube::rotateColorArray(char rotArray[], int turns) {
+void VirtualCube::rotateColorArray(char rotArray[], int turns) {
   // Rotates a color array 90 degrees CCW #turns times
   // Inputs:  turns - int for how many times you want it to turn 90deg
   //          rotArray - Array that you want rotated
@@ -392,7 +392,7 @@ void Cube::rotateColorArray(char rotArray[], int turns) {
   }
 }
 
-int Cube::setFaceSquare(char color, int squarePos, char newColor)
+int VirtualCube::setFaceSquare(char color, int squarePos, char newColor)
 {
   // Function to set the color of an individual square on a specified face
   // Inputs:  color - must be a capitalized valid color e.g. 'R'
@@ -460,7 +460,7 @@ int Cube::setFaceSquare(char color, int squarePos, char newColor)
   return 0;
 }
 
-int Cube::setOrientation(char leftColor, char backColor)
+int VirtualCube::setOrientation(char leftColor, char backColor)
 {
   // Function to set the orientation of the cube based on the left and back sides.
   // Inputs:  leftColor - must be a capitalized valid color e.g. 'R'
@@ -705,7 +705,7 @@ int Cube::setOrientation(char leftColor, char backColor)
   return 0;
 }
 
-int Cube::buildUnorientedCubeArray() {
+int VirtualCube::buildUnorientedCubeArray() {
   // Uses the set colors to build a cube in the default orientation
   // Outputs: 0 - Ran successfully
   //          1 - Error: Color status is unknown
@@ -791,7 +791,7 @@ int Cube::buildUnorientedCubeArray() {
   return 0;
 }
 
-int Cube::buildCubeArray() {
+int VirtualCube::buildCubeArray() {
   // Uses the built unoriented cube and the set orientation to construct a string that can be fed to the kociemba solver
   // Outputs: 0 - Ran successfully
   //          1 - Error: Orientation not set
@@ -866,7 +866,7 @@ int Cube::buildCubeArray() {
   return 0;
 }
 
-int Cube::rotOrientAll(char tempCubeArray[]) {
+int VirtualCube::rotOrientAll(char tempCubeArray[]) {
   // Takes an unoriented and rotates it until it matches the correct orientation
   // Outputs: 0 - Found Solution
   //          1 - Failed to find solution
@@ -905,7 +905,7 @@ int Cube::rotOrientAll(char tempCubeArray[]) {
   return 1;
 }
 
-void Cube::rotOrientX(char orientArr[], char cubeArr[]) {
+void VirtualCube::rotOrientX(char orientArr[], char cubeArr[]) {
   // New orientation array:
   // U->F, R->R, F->D, D->B, L->L, B->U
   // n=new, o = old
@@ -980,8 +980,7 @@ void Cube::rotOrientX(char orientArr[], char cubeArr[]) {
 
 }
 
-
-void Cube::rotOrientY(char orientArr[], char cubeArr[]) {
+void VirtualCube::rotOrientY(char orientArr[], char cubeArr[]) {
   // New orientation array:
   // U->L, R->U, F->F, D->R, L->D, B->B
   // n=new, o = old
@@ -1058,7 +1057,7 @@ void Cube::rotOrientY(char orientArr[], char cubeArr[]) {
 
 }
 
-void Cube::rotOrientZ(char orientArr[], char cubeArr[]) {
+void VirtualCube::rotOrientZ(char orientArr[], char cubeArr[]) {
   // New orientation array:
   // U->U, R->B, F->R, D->D, L->F, B->L
   // n=new, o = old
@@ -1131,7 +1130,7 @@ void Cube::rotOrientZ(char orientArr[], char cubeArr[]) {
   }
 }
 
-int Cube::rotU(int turns) {
+int VirtualCube::rotU(int turns) {
   // Rotates Cube U or U' based on sign of turns input
   // Outputs: 0 - Ran successfully
   //          1 - Cube is not in a ready state
@@ -1254,7 +1253,7 @@ int Cube::rotU(int turns) {
   return 0;
 }
 
-int Cube::rotR(int turns) {
+int VirtualCube::rotR(int turns) {
   // Rotates Cube R or R' based on sign of turns input
   // Outputs: 0 - Ran successfully
   //          1 - Cube is not in a ready state
@@ -1376,7 +1375,7 @@ int Cube::rotR(int turns) {
   return 0;
 }
 
-int Cube::rotF(int turns) {
+int VirtualCube::rotF(int turns) {
   // Rotates Cube F or F' based on sign of turns input
   // Outputs: 0 - Ran successfully
   //          1 - Cube is not in a ready state
@@ -1500,7 +1499,7 @@ int Cube::rotF(int turns) {
   return 0;
 }
 
-int Cube::rotD(int turns) {
+int VirtualCube::rotD(int turns) {
   // Rotates Cube D or D' based on sign of turns input
   // Outputs: 0 - Ran successfully
   //          1 - Cube is not in a ready state
@@ -1625,7 +1624,7 @@ int Cube::rotD(int turns) {
   return 0;
 }
 
-int Cube::rotL(int turns) {
+int VirtualCube::rotL(int turns) {
   // Rotates Cube L or L' based on sign of turns input
   // Outputs: 0 - Ran successfully
   //          1 - Cube is not in a ready state
@@ -1748,7 +1747,7 @@ int Cube::rotL(int turns) {
   return 0;
 }
 
-int Cube::rotB(int turns) {
+int VirtualCube::rotB(int turns) {
   // Rotates Cube B or B' based on sign of turns input
   // Outputs: 0 - Ran successfully
   //          1 - Cube is not in a ready state
@@ -1870,7 +1869,7 @@ int Cube::rotB(int turns) {
   return 0;
 }
 
-int Cube::rebuildFromCubeArray() {
+int VirtualCube::rebuildFromCubeArray() {
   // Takes a cube array and updates the other class variables
   // Outputs: 0 - Ran successfully
   //          1 - Cube array isn't available (not built?)
