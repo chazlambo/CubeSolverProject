@@ -1,4 +1,10 @@
-#include "CubeSolver.h"
+#include "CubeHardwareConfig.h"
+
+// ================ Serial Communication Setup ================
+ const int baudRate = 11520;
+
+ // ================ Power Setup ================
+ const int POWPIN = 23;  
 
 // ================ ADC Module Setup ================
 const int ADC_ADDRESS[6] = {0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D};
@@ -11,8 +17,8 @@ Adafruit_PCF8591 ADC6 = Adafruit_PCF8591();
 Adafruit_PCF8591* ADC[] = {&ADC1, &ADC2, &ADC3, &ADC4, &ADC5, &ADC6};
 
 // ================ Motor Potentiometer Setup ================
-int numMotors = 6;
-int potADCPin[6] = {3, 2, 1, 0, 1, 2};
+const int numMotors = 6;
+const int potADCPin[6] = {3, 2, 1, 0, 1, 2};
 
 // Initialize EEPROM Addresses
 const int motorCalFlagAddress = 0;
@@ -25,7 +31,6 @@ MotorPot motF(ADC_ADDRESS[2], potADCPin[2], motorCalFlagAddress, motorCalStartAd
 MotorPot motD(ADC_ADDRESS[5], potADCPin[3], motorCalFlagAddress, motorCalStartAddress + 3 * sizeof(int), ADC[5]);
 MotorPot motL(ADC_ADDRESS[5], potADCPin[4], motorCalFlagAddress, motorCalStartAddress + 4 * sizeof(int), ADC[5]);
 MotorPot motB(ADC_ADDRESS[5], potADCPin[5], motorCalFlagAddress, motorCalStartAddress + 5 * sizeof(int), ADC[5]);
-
 MotorPot* MotorPots[] = {&motU, &motR, &motF, &motD, &motL, &motB};
 
 // ================ Motor Setup ================
@@ -137,137 +142,3 @@ ColorSensor colorSensor2(adcPtrs2, sensorPins2, ledPins2, colorSensor2EEPROMAddr
 
 // ================ Rotary Encoder Setup ================
 RotaryEncoder menuEncoder;
-
-
-void mainSetup()
-{
-    Serial.begin(baudRate);
-    pinMode(POWPIN, INPUT);
-
-    // Initialize I2C Bus
-    Wire.begin();
-
-    // Initialize ADC modules
-    ADC1.begin(ADC_ADDRESS[0]);
-    ADC2.begin(ADC_ADDRESS[1]);
-    ADC3.begin(ADC_ADDRESS[2]);
-    ADC4.begin(ADC_ADDRESS[3]);
-    ADC5.begin(ADC_ADDRESS[4]);
-    ADC6.begin(ADC_ADDRESS[5]);
-
-    // Begin Stepper Motors
-    cubeMotors.begin();
-
-    // Begin Servos
-    topServo.begin();
-    botServo.begin();
-
-    // Begin Color Sensors
-    colorSensor1.begin();
-    colorSensor2.begin();
-
-    // Begin Motor Pots
-    for (int i = 0; i < numMotors; i++) {
-        MotorPots[i]->begin();
-    }
-
-    // Begin Rotary Encoder
-    // menuEncoder.begin();
-
-    // Home motors
-    motorHomeState = homeMotors();
-}
-
-bool powerCheck(){
-    bool status = digitalRead(POWPIN);
-    return status;
-}
-
-bool getMotorCalibration() {
-    for (int i = 0; i < numMotors; i++) {
-        if (MotorPots[i]->loadCalibration()) {
-            return false;
-        }
-    }
-    return true;
-}
-
-int homeMotors(){
-    // Homes motors
-    //
-    // Outputs:
-    //      0 - Success
-    //      1 - Motors not calibrated
-    //      2 - Did not reach threshold in time
-
-    int threshold = 1;
-    int stepSize = 1;
-    unsigned long timeout = 5000; // Timeout after 5 seconds
-
-    // Initialize variables
-    bool aligned = false;
-    unsigned long t_home_start = millis();
-    unsigned long t_home = millis();
-    long pos[6];    // Temporary position vector
-
-    // Retrieve calibrated values and check if calibrated
-    if (!getMotorCalibration()) {
-        return 1;
-    }
-
-    // Start loop
-    cubeMotors.enableMotors();
-    while (!aligned) {
-        aligned = true;
-
-        // Check each motor
-        for (int i = 0; i < numMotors; i++) {
-
-            // Update potentiometer values
-            int currentVal = MotorPots[i]->scan();
-            int targetVal = MotorPots[i]->getCalibration();
-
-            // Get position values
-            pos[i] = cubeMotors.getPos(i);
-
-            if (abs(currentVal - targetVal) > threshold) {
-                aligned = false;
-
-                // If Upper Motor
-                if (i == 0) { // Reverse direction for upper motor
-                    if(currentVal > targetVal) {
-                        pos[i] -= stepSize;
-                    }
-                    else {
-                        pos[i] += stepSize;
-                    }
-                }
-
-                // If any other motor
-                else {
-                    if(currentVal > targetVal) {
-                        pos[i] += stepSize;
-                    }
-                    else {
-                        pos[i] -= stepSize;
-                    }
-                }
-            }
-        }
-
-        // Apply new positions
-        cubeMotors.moveTo(pos);
-
-        // Add function timeout
-        t_home = millis();
-        if(t_home - t_home_start > timeout) {
-            return 2;
-        }
-    }
-    cubeMotors.disableMotors();
-
-    // Manually reset stepper position
-    cubeMotors.resetMotorPos();
-    
-    return 0;   // Return successful alignment
-}

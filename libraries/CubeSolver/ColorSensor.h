@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_PCF8591.h>
+#include <EEPROM.h>
 
 class ColorSensor {
 public:

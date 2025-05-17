@@ -1,15 +1,18 @@
-#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\CubeSolver\CubeSolver.cpp"
+#include <CubeSystem.h>
+
+CubeSystem Cube;  // Global CubeSystem instance
 
 void setup() {
-  mainSetup();
+  Cube.begin();
 
   Serial.println("Starting Program...");
   //printMenu();
 
   Serial.print("\nMotors Calibrated: ");
-  Serial.println(getMotorCalibration());
+  Serial.println(Cube.getMotorCalibration());
+
   Serial.print("Home Motors: ");
-  Serial.println(homeMotors());
+  Serial.println(Cube.homeMotors());
 }
 
 void loop() {
@@ -26,87 +29,87 @@ void loop() {
   switch (input) {
     case 1:
       Serial.println("Toggling Ring");
-      cubeMotors.ringToggle();
+      Cube.toggleRing();
       break;
 
     case 2:
       Serial.println("Toggling Bottom Servo");
-      botServo.toggle();
+      Cube.toggleBotServo();
       break;
 
     case 3:
       Serial.println("Toggling Top Servo");
-      topServo.toggle();
+      Cube.toggleTopServo();
       break;
 
     case 4:
       Serial.println("Moving: F");
-      cubeMotors.executeMove("F");
+      Cube.executeMove("F");
       break;
 
     case 5:
       Serial.println("Moving F'");
-      cubeMotors.executeMove("F'");
+      Cube.executeMove("F'");
       break;
 
     case 6:
       Serial.println("Moving: B");
-      cubeMotors.executeMove("B");
+      Cube.executeMove("B");
       break;
 
     case 7:
       Serial.println("Moving: B'");
-      cubeMotors.executeMove("B'");
+      Cube.executeMove("B'");
       break;
 
     case 8:
       Serial.println("Moving: L");
-      cubeMotors.executeMove("L");
+      Cube.executeMove("L");
       break;
 
     case 9:
       Serial.println("Moving: L'");
-      cubeMotors.executeMove("L'");
+      Cube.executeMove("L'");
       break;
 
     case 10:
       Serial.println("Moving: R");
-      cubeMotors.executeMove("R");
+      Cube.executeMove("R");
       break;
 
     case 11:
       Serial.println("Moving: R'");
-      cubeMotors.executeMove("R'");
+      Cube.executeMove("R'");
       break;
 
     case 12:
       Serial.println("Moving: U");
-      cubeMotors.executeMove("U");
+      Cube.executeMove("U");
       break;
 
     case 13:
       Serial.println("Moving: U'");
-      cubeMotors.executeMove("U'");
+      Cube.executeMove("U'");
       break;
 
     case 14:
       Serial.println("Moving: D");
-      cubeMotors.executeMove("D");
+      Cube.executeMove("D");
       break;
 
     case 15:
       Serial.println("Moving: D'");
-      cubeMotors.executeMove("D'");
+      Cube.executeMove("D'");
       break;
 
     case 16:
       Serial.println("Moving: ROT1");
-      cubeMotors.executeMove("ROT1");
+      Cube.executeMove("ROT1");
       break;
 
     case 17:
       Serial.println("Moving: ROT2");
-      cubeMotors.executeMove("ROT2");
+      Cube.executeMove("ROT2");
       break;
 
     default:

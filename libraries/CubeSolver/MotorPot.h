@@ -7,7 +7,7 @@
 
 class MotorPot{
 public:
-    MotorPot(int board, const int pin, int eepromFlagAddr, int eepromAddr, Adafruit_PCF8591* adc);
+    MotorPot(int board, int pin, int eepromFlagAddr, int eepromAddr, Adafruit_PCF8591* adc);
 
     void begin();
     int scan();

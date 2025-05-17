@@ -132,112 +132,52 @@ void CubeMotors::resetMotorPos(){
     }
 }
 
-void CubeMotors::executeMove(String move) {
+void CubeMotors::executeMove(String moveString) {
     int stepDelay = defaultStepDelay;
 
-    if (move == "U") {
-        // Call the function for U move
-        pos[0] += turnStep;
-        //myCube.rotU(1);
-        
-    } else if (move == "U'") {
-        // Call the function for U' move
-        pos[0] -= turnStep;
-        //myCube.rotU(-1);
-        
-    } else if (move == "U2") {
-        // Call the function for U2 move
-        pos[0] += turnStep*2;
-        //myCube.rotU(2);
-        
-    } else if (move == "R") {
-        // Call the function for R move
-        pos[1] += turnStep;
-        //myCube.rotR(1);
-        
-    } else if (move == "R'") {
-        // Call the function for R' move
-        pos[1] -= turnStep;
-        //myCube.rotR(-1);
-        
-    } else if (move == "R2") {
-        // Call the function for R2 move
-        pos[1] += turnStep*2;
-        //myCube.rotR(2);
-        
-    } else if (move == "F") {
-        // Call the function for F move
-        pos[2] += turnStep;
-        //myCube.rotF(1);
-        
-    } else if (move == "F'") {
-        // Call the function for F' move
-        pos[2] -= turnStep;
-        //myCube.rotF(-1);
-        
-    } else if (move == "F2") {
-        // Call the function for F2 move
-        pos[2] += turnStep*2;
-        //myCube.rotF(2);
-        
-    } else if (move == "D") {
-        // Call the function for D move
-        pos[3] += turnStep;
-        //myCube.rotD(1);
-        
-    } else if (move == "D'") {
-        // Call the function for D' move
-        pos[3] -= turnStep;
-        //myCube.rotD(-1);
-        
-    } else if (move == "D2") {
-        // Call the function for D2 move
-        pos[3] += turnStep*2;
-        //myCube.rotD(2);
-        
-    } else if (move == "L") {
-        // Call the function for L move
-        pos[4] += turnStep;
-        //myCube.rotL(1);
-        
-    } else if (move == "L'") {
-        // Call the function for L' move
-        pos[4] -= turnStep;
-        //myCube.rotL(-1);
-        
-    } else if (move == "L2") {
-        // Call the function for L2 move
-        pos[4] += turnStep*2;
-        //myCube.rotL(2);
-        
-    } else if (move == "B") {
-        // Call the function for B move
-        pos[5] += turnStep;
-        //myCube.rotB(1);
-        
-    } else if (move == "B'") {
-        // Call the function for B' move
-        pos[5] -= turnStep;
-        //myCube.rotB(-1);
-        
-    } else if (move == "B2") {
-        // Call the function for B2 move
-        pos[5] += turnStep*2;
-        //myCube.rotB(2);
-    }
-    else if (move == "ROT1") {
-        // Call the function for B2 move
-        pos[4] += turnStep;
-        pos[1] -= turnStep;
-        stepDelay = rotStepDelay;
-    } 
+    CubeMove move = parseMove(moveString);
 
-    else if (move == "ROT2") {
-        // Call the function for B2 move
-        pos[0] += turnStep;
-        pos[3] -= turnStep;
-        stepDelay = rotStepDelay;
-    } 
+    switch (move) {
+        case MOVE_U:     pos[0] += turnStep; break;
+        case MOVE_Up:    pos[0] -= turnStep; break;
+        case MOVE_U2:    pos[0] += 2 * turnStep; break;
+
+        case MOVE_R:     pos[1] += turnStep; break;
+        case MOVE_Rp:    pos[1] -= turnStep; break;
+        case MOVE_R2:    pos[1] += 2 * turnStep; break;
+
+        case MOVE_F:     pos[2] += turnStep; break;
+        case MOVE_Fp:    pos[2] -= turnStep; break;
+        case MOVE_F2:    pos[2] += 2 * turnStep; break;
+
+        case MOVE_D:     pos[3] += turnStep; break;
+        case MOVE_Dp:    pos[3] -= turnStep; break;
+        case MOVE_D2:    pos[3] += 2 * turnStep; break;
+
+        case MOVE_L:     pos[4] += turnStep; break;
+        case MOVE_Lp:    pos[4] -= turnStep; break;
+        case MOVE_L2:    pos[4] += 2 * turnStep; break;
+
+        case MOVE_B:     pos[5] += turnStep; break;
+        case MOVE_Bp:    pos[5] -= turnStep; break;
+        case MOVE_B2:    pos[5] += 2 * turnStep; break;
+
+        case MOVE_ROT1:
+            pos[4] += turnStep;
+            pos[1] -= turnStep;
+            stepDelay = rotStepDelay;
+            break;
+
+        case MOVE_ROT2:
+            pos[0] += turnStep;
+            pos[3] -= turnStep;
+            stepDelay = rotStepDelay;
+            break;
+
+        case MOVE_INVALID:
+        default:
+            return;  // silently ignore
+    }
     
 
     // Move Steppers to position
@@ -284,4 +224,29 @@ void CubeMotors::initRingStepper(AccelStepper &ringStep) {// Initialize Ring Pos
         homeRingStepper(ringStep);
         return;
   }
+}
+
+CubeMotors::CubeMove CubeMotors::parseMove(const String &move){
+    if (move == "U") return MOVE_U;
+    if (move == "U'") return MOVE_Up;
+    if (move == "U2") return MOVE_U2;
+    if (move == "R") return MOVE_R;
+    if (move == "R'") return MOVE_Rp;
+    if (move == "R2") return MOVE_R2;
+    if (move == "F") return MOVE_F;
+    if (move == "F'") return MOVE_Fp;
+    if (move == "F2") return MOVE_F2;
+    if (move == "D") return MOVE_D;
+    if (move == "D'") return MOVE_Dp;
+    if (move == "D2") return MOVE_D2;
+    if (move == "L") return MOVE_L;
+    if (move == "L'") return MOVE_Lp;
+    if (move == "L2") return MOVE_L2;
+    if (move == "B") return MOVE_B;
+    if (move == "B'") return MOVE_Bp;
+    if (move == "B2") return MOVE_B2;
+    if (move == "ROT1") return MOVE_ROT1;
+    if (move == "ROT2") return MOVE_ROT2;
+
+    return MOVE_INVALID;
 }

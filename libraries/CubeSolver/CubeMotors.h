@@ -12,6 +12,18 @@ public:
     // Constructor
     CubeMotors(int enpin, int step_pins[7], int dir_pins[7], int ringStateEEPROMAddress);
 
+    // Cube Moves
+    enum CubeMove {
+        MOVE_U, MOVE_Up, MOVE_U2,
+        MOVE_R, MOVE_Rp, MOVE_R2,
+        MOVE_F, MOVE_Fp, MOVE_F2,
+        MOVE_D, MOVE_Dp, MOVE_D2,
+        MOVE_L, MOVE_Lp, MOVE_L2,
+        MOVE_B, MOVE_Bp, MOVE_B2,
+        MOVE_ROT1, MOVE_ROT2,
+        MOVE_INVALID
+    };
+
     // Public methods
     void begin();
     void enableMotors();
@@ -22,13 +34,16 @@ public:
     long getPos(int posIdx);
     void moveTo(long newPos[6]);
     void resetMotorPos();
-    void executeMove(String move);
+    void executeMove(String moveString);
 
 private:
     // Private helper methods
     void initStepper(MultiStepper &multiStepper, AccelStepper &newStepper);
     void initRingStepper(AccelStepper &ringStep);
 
+    CubeMove parseMove(const String& move);
+
+private:
     // Stepper Objects
     AccelStepper upStepper;
     AccelStepper rightStepper;
@@ -62,6 +77,7 @@ private:
     int ringHalfPos = 450;
     int ringExtPos = 800;
     int ringState = 0;
+    
 };
 
 #endif
