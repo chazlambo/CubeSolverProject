@@ -1,8 +1,10 @@
 #ifndef CubeHardwareConfig_h
 #define CubeHardwareConfig_h
 
+// Library Includes
 #include <Arduino.h>
 #include <EEPROM.h>
+#include <Wire.h>
 #include <Adafruit_PCF8591.h>
 #include <AccelStepper.h>
 #include <MultiStepper.h>
@@ -10,13 +12,16 @@
 #include <Adafruit_seesaw.h>
 #include <string.h>
 
-// TODO: Uncomment when converting to actual library
+// Custom Includes
 #include "CubeMotors.h"
 #include "CubeServo.h"
 #include "MotorPot.h"
 #include "ColorSensor.h"
 #include "RotaryEncoder.h"
 #include "VirtualCube.h"
+
+//================ EEPROM Setup ================
+void initializeEEPROMLayout(int startAddress = 0);
 
 // ================ Serial Communication Setup ================
 extern const int baudRate;
@@ -36,8 +41,9 @@ extern const int numMotors;
 extern const int potADCPin[6];
 
 // Initialize EEPROM Addresses
-extern const int motorCalFlagAddress;
-extern const int motorCalStartAddress;
+extern int motorCalFlagAddress;
+extern int motorCalStartAddress;
+extern int motorCalAddresses[6][4];
 
 // Create MotorPot Objects
 extern MotorPot motU, motR, motF, motD, motL, motB;
@@ -67,7 +73,7 @@ extern unsigned int topExtPos, topRetPos, botExtPos, botRetPos;
 extern int topSweepDelay, botSweepDelay;
 
 // EEPROM Variables
-extern const int topServoEEPROMAddress, botServoEEPROMAddress;
+extern int topServoEEPROMAddress, botServoEEPROMAddress;
 
 // Servo Objects
 extern CubeServo topServo, botServo;
@@ -83,7 +89,7 @@ extern int ledPins1[3], ledPins2[3];
 extern int sensorPins1[9], sensorPins2[9];
 
 // Initialize EEPROM
-extern const int colorSensor1EEPROMAddress, colorSensor2EEPROMAddress;
+extern int colorSensor1EEPROMAddress, colorSensor2EEPROMAddress;
 
 // Create ColorSensor Objects
 extern ColorSensor colorSensor1, colorSensor2;

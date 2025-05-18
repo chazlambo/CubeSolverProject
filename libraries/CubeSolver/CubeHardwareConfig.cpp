@@ -1,7 +1,24 @@
 #include "CubeHardwareConfig.h"
 
+// ================ EEPROM Setup ================
+const int startAddress = 0;
+
+// Early EEPROM layout setup
+struct _EEPROMInit {
+    _EEPROMInit() { initializeEEPROMLayout(startAddress); }
+  } _earlyInit;
+
+int motorCalFlagAddress;
+int motorCalStartAddress;
+int motorCalAddresses[6][4];
+int ringStateEEPROMAddress;
+int topServoEEPROMAddress;
+int botServoEEPROMAddress;
+int colorSensor1EEPROMAddress;
+int colorSensor2EEPROMAddress;
+
 // ================ Serial Communication Setup ================
- const int baudRate = 11520;
+ const int baudRate = 115200;
 
  // ================ Power Setup ================
  const int POWPIN = 23;  
@@ -20,17 +37,13 @@ Adafruit_PCF8591* ADC[] = {&ADC1, &ADC2, &ADC3, &ADC4, &ADC5, &ADC6};
 const int numMotors = 6;
 const int potADCPin[6] = {3, 2, 1, 0, 1, 2};
 
-// Initialize EEPROM Addresses
-const int motorCalFlagAddress = 0;
-const int motorCalStartAddress = motorCalFlagAddress + 1;
-
 // Create MotorPot Objects
-MotorPot motU(ADC_ADDRESS[2], potADCPin[0], motorCalFlagAddress, motorCalStartAddress + 0 * sizeof(int), ADC[2]);
-MotorPot motR(ADC_ADDRESS[2], potADCPin[1], motorCalFlagAddress, motorCalStartAddress + 1 * sizeof(int), ADC[2]);
-MotorPot motF(ADC_ADDRESS[2], potADCPin[2], motorCalFlagAddress, motorCalStartAddress + 2 * sizeof(int), ADC[2]);
-MotorPot motD(ADC_ADDRESS[5], potADCPin[3], motorCalFlagAddress, motorCalStartAddress + 3 * sizeof(int), ADC[5]);
-MotorPot motL(ADC_ADDRESS[5], potADCPin[4], motorCalFlagAddress, motorCalStartAddress + 4 * sizeof(int), ADC[5]);
-MotorPot motB(ADC_ADDRESS[5], potADCPin[5], motorCalFlagAddress, motorCalStartAddress + 5 * sizeof(int), ADC[5]);
+MotorPot motU(ADC_ADDRESS[2], potADCPin[0], motorCalFlagAddress, motorCalAddresses[0], ADC[2]);
+MotorPot motR(ADC_ADDRESS[2], potADCPin[1], motorCalFlagAddress, motorCalAddresses[1], ADC[2]);
+MotorPot motF(ADC_ADDRESS[2], potADCPin[2], motorCalFlagAddress, motorCalAddresses[2], ADC[2]);
+MotorPot motD(ADC_ADDRESS[5], potADCPin[3], motorCalFlagAddress, motorCalAddresses[3], ADC[5]);
+MotorPot motL(ADC_ADDRESS[5], potADCPin[4], motorCalFlagAddress, motorCalAddresses[4], ADC[5]);
+MotorPot motB(ADC_ADDRESS[5], potADCPin[5], motorCalFlagAddress, motorCalAddresses[5], ADC[5]);
 MotorPot* MotorPots[] = {&motU, &motR, &motF, &motD, &motL, &motB};
 
 // ================ Motor Setup ================
@@ -54,9 +67,6 @@ const int STEP7 = 32;
 int STEPPINS[] = {STEP1, STEP2, STEP3, STEP4, STEP5, STEP6, STEP7};
 int DIRPINS[] = {DIR1, DIR2, DIR3, DIR4, DIR5, DIR6, DIR7};
 
-// Ring State EEPROM Variables
-int ringStateEEPROMAddress = motorCalStartAddress + 6 * sizeof(int);
-
 // Create motor object
 CubeMotors cubeMotors(ENPIN, STEPPINS, DIRPINS, ringStateEEPROMAddress);
 
@@ -74,10 +84,6 @@ int topSweepDelay = 20;
 unsigned int botExtPos = 270;
 unsigned int botRetPos = 0;
 int botSweepDelay = 20;
-
-// EEPROM Variables
-const int topServoEEPROMAddress = motorCalStartAddress + 7 * sizeof(int);
-const int botServoEEPROMAddress = topServoEEPROMAddress + sizeof(int);
 
 // Create Servo Objects
 CubeServo topServo(TOPSERVO, topServoEEPROMAddress, topRetPos, topExtPos, topSweepDelay);               
@@ -132,13 +138,44 @@ int sensorPins2[9] = {
     1, 2, 3   // C2-7, C2-8, C2-9
 };
 
-// Initialize EEPROM
-const int colorSensor1EEPROMAddress = botServoEEPROMAddress + sizeof(int) * 2;
-const int colorSensor2EEPROMAddress = colorSensor1EEPROMAddress + sizeof(int);
-
 // Create ColorSensor Objects
 ColorSensor colorSensor1(adcPtrs1, sensorPins1, ledPins1, colorSensor1EEPROMAddress);
 ColorSensor colorSensor2(adcPtrs2, sensorPins2, ledPins2, colorSensor2EEPROMAddress);
 
 // ================ Rotary Encoder Setup ================
 RotaryEncoder menuEncoder;
+
+// Functions
+void initializeEEPROMLayout(int startAddress) {
+    int addr = startAddress;
+
+    // Motor Potentiometer Calibration EEPROM
+    motorCalFlagAddress = addr;
+    addr += sizeof(int);
+
+    motorCalStartAddress = addr;
+    addr += sizeof(int);
+    
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 4; j++) {
+            motorCalAddresses[i][j] = addr;
+            addr += sizeof(int);
+        }
+    }
+
+    // Ring State EEPROM
+    ringStateEEPROMAddress = addr;
+    addr += sizeof(int);
+
+    // Servo EEPROM
+    topServoEEPROMAddress = addr;
+    addr += sizeof(int);
+    botServoEEPROMAddress = addr;
+    addr += sizeof(int);
+
+    // Color Sensor EEPROM
+    colorSensor1EEPROMAddress = addr;
+    addr += sizeof(int);
+    colorSensor2EEPROMAddress = addr;
+    addr += sizeof(int);
+}

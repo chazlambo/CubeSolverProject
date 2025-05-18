@@ -1,6 +1,6 @@
 #include "CubeMotors.h"
 
-// Constructor
+// Constructor 
 CubeMotors::CubeMotors(int enpin, int step_pins[7], int dir_pins[7], int ringStateEEPROMAddress)
     :    upStepper(1, step_pins[0], dir_pins[0]),
       rightStepper(1, step_pins[1], dir_pins[1]),
@@ -23,14 +23,6 @@ void CubeMotors::begin() {
     pinMode(EN_PIN, OUTPUT);
     disableMotors();
 
-    // Initialize stepper position:
-    upStepper.setCurrentPosition(0);
-    rightStepper.setCurrentPosition(0);
-    frontStepper.setCurrentPosition(0);
-    downStepper.setCurrentPosition(0);
-    leftStepper.setCurrentPosition(0);
-    backStepper.setCurrentPosition(0);
-
     // Initialize Cube Steppers and Multi Stepper
     initStepper(multiStep, upStepper);
     initStepper(multiStep, rightStepper);
@@ -38,6 +30,7 @@ void CubeMotors::begin() {
     initStepper(multiStep, downStepper);
     initStepper(multiStep, leftStepper);
     initStepper(multiStep, backStepper);
+
 
     // Initialize Ring Stepper
     initRingStepper(ringStepper); 
@@ -89,7 +82,7 @@ void CubeMotors::ringMove(int state) {
     delay(20);                              // Short delay for timing
 
     ringState = state;                      // Update state variable
-    EEPROM.update(ringStateEEPROMAddress, state); // Update state in EEPROM
+    EEPROM.put(ringStateEEPROMAddress, state); // Update state in EEPROM
 }
 
 void CubeMotors::ringToggle() {
@@ -174,6 +167,12 @@ void CubeMotors::executeMove(String moveString) {
             stepDelay = rotStepDelay;
             break;
 
+        case MOVE_ALL:
+            for(int i = 0; i < 6; i++) {
+                pos[i] += turnStep;
+            }
+            break;
+
         case MOVE_INVALID:
         default:
             return;  // silently ignore
@@ -191,6 +190,7 @@ void CubeMotors::executeMove(String moveString) {
 
 // Private Methods
 void CubeMotors::initStepper(MultiStepper &multiStepper, AccelStepper &newStepper) {
+    newStepper.setCurrentPosition(0);
     newStepper.setMaxSpeed(stepSpeed);
     multiStepper.addStepper(newStepper);
 }
@@ -247,6 +247,7 @@ CubeMotors::CubeMove CubeMotors::parseMove(const String &move){
     if (move == "B2") return MOVE_B2;
     if (move == "ROT1") return MOVE_ROT1;
     if (move == "ROT2") return MOVE_ROT2;
+    if (move == "ALL") return MOVE_ALL;
 
     return MOVE_INVALID;
 }

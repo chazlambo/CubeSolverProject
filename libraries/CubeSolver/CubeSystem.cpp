@@ -3,7 +3,7 @@
 
 CubeSystem::CubeSystem() {}
 
-void CubeSystem::begin() {
+void CubeSystem::begin() {    
     // Serial Communication Setup
     Serial.begin(baudRate);
 
@@ -49,9 +49,54 @@ bool CubeSystem::powerCheck() {
 
 bool CubeSystem::getMotorCalibration() {
     for (int i = 0; i < numMotors; i++) {
-        if (MotorPots[i]->loadCalibration()) return false;
+        if (MotorPots[i]->loadCalibration() != 0) return false;
     }
     return true;
+}
+
+int CubeSystem::calibrateMotorRotations(){
+    int rawVals[6][4];
+
+    cubeMotors.resetMotorPos();
+
+    // Scan current position
+    for (int i = 0; i < numMotors; i++) {
+        rawVals[i][0] = MotorPots[i]->scan();
+    }
+
+    // Rotate and scan 3 more times
+    for (int step = 1; step < 4; step++) {
+        executeMove("ALL");
+
+        for (int i = 0; i < numMotors; i++) {
+            rawVals[i][step] = MotorPots[i]->scan();
+        }
+    }
+    executeMove("ALL"); // Return to original position
+
+    // Sort and rearrange each motor’s vector
+    for (int i = 0; i < numMotors; i++) {
+        // Sort ascending
+        std::sort(rawVals[i], rawVals[i] + 4); // Sorts each motors calibrated values
+
+        // Rotate: [a, b, c, d] → [b, c, d, a] so ~90 val is first
+        int reordered[4] = {
+            rawVals[i][1],
+            rawVals[i][2],
+            rawVals[i][3],
+            rawVals[i][0]   
+        };
+
+        // Write into MotorPot
+        for (int j = 0; j < 4; j++) {
+            MotorPots[i]->setCalibration(j, reordered[j]);
+        }
+
+        // Write calibrated values to EEPROM
+        MotorPots[i]->saveCalibration();
+    }
+
+    return 0;
 }
 
 int CubeSystem::homeMotors() {
@@ -85,7 +130,7 @@ int CubeSystem::homeMotors() {
 
             // Update potentiometer values
             int currentVal = MotorPots[i]->scan();
-            int targetVal = MotorPots[i]->getCalibration();
+            int targetVal = MotorPots[i]->getCalibration(0);
 
             // Get position values
             pos[i] = cubeMotors.getPos(i);
@@ -132,6 +177,22 @@ int CubeSystem::homeMotors() {
     return 0;   // Return successful alignment
 }
 
+void CubeSystem::topServoExtend() {
+    topServo.extend();
+}
+
+void CubeSystem::topServoRetract() {
+    topServo.retract();
+}
+
+void CubeSystem::botServoExtend() {
+    botServo.extend();
+}
+
+void CubeSystem::botServoRetract() {
+    botServo.retract();
+}
+
 void CubeSystem::toggleTopServo() {
     topServo.toggle();
 }
@@ -144,13 +205,19 @@ void CubeSystem::toggleRing() {
     cubeMotors.ringToggle();
 }
 
-void CubeSystem::extendRing() {
+void CubeSystem::ringExtend() {
+    cubeMotors.ringMove(2);
+}
+
+void CubeSystem::ringMiddle() {
     cubeMotors.ringMove(1);
 }
 
-void CubeSystem::retractRing() {
+void CubeSystem::ringRetract() {
     cubeMotors.ringMove(0);
 }
+
+
 
 void CubeSystem::executeMove(const String &move){
     cubeMotors.executeMove(move);

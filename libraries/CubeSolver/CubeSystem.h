@@ -10,22 +10,31 @@ public:
     void begin();                // Initializes all hardware
     
     // Motor Calibration Functions
-    bool getMotorCalibration();  // Checks EEPROM for calibration flag
-    int homeMotors();            // Homes all 6 stepper motors
+    bool getMotorCalibration();     // Checks EEPROM for calibration flag
+    int calibrateMotorRotations();  // Sets all motor calibration values based on current position
+    int homeMotors();               // Homes all 6 stepper motors
 
     // Move Functions
     void executeMove(const String& move);
 
     // Cube Loading Functions
+    void topServoExtend();
+    void topServoRetract();
+    void botServoExtend();
+    void botServoRetract();
     void toggleTopServo();
     void toggleBotServo();
     void toggleRing();
-    void extendRing();
-    void retractRing();
+    void ringExtend();
+    void ringMiddle();
+    void ringRetract();
 
 
 private:
     bool powerCheck();           // Reads POWPIN
+
+public:
+    int numMotors = 6;
 
 private:
     // Motor Home Variables
