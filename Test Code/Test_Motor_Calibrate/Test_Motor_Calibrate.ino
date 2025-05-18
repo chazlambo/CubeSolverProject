@@ -3,7 +3,7 @@
 CubeSystem Cube;  // Global CubeSystem instance
 
 unsigned int t = 0;
-unsigned int t_buffer = 50;
+unsigned int t_buffer = 100;
 unsigned int t_old = 0;
 
 int state = 0;
@@ -13,20 +13,17 @@ bool endPrintBool = false;
 int extendMotors = 0;
 
 void setup() {
+  // Begin Cube Solver System
   Cube.begin();
 
+  // Move all motors into the center
   if (extendMotors) {
     Cube.topServoExtend();
     Cube.botServoExtend();
     Cube.ringExtend();
   }
 
-  Serial.println("Starting Calibration...");
-  delay(100);
-
-  Serial.println("Checking if calibrated...");
-  delay(100);
-
+  // Print if motors are calibrated
   if (Cube.getMotorCalibration()) {
     Serial.println("Motors are calibrated to values:");
     for (int i = 0; i < Cube.numMotors; i++) {
@@ -38,7 +35,6 @@ void setup() {
     Serial.println("Motors are not calibrated");
   }
 
-  delay(100);
   state = 1;
 }
 
@@ -47,11 +43,13 @@ void loop() {
 
   switch (state) {
     case 1: // Waiting to begin
+      // Only print once
       if (!startPrintBool) {
         Serial.println("\nPlease enter anything to begin calibration:");
         startPrintBool = true;
       }
 
+      // Wait for Serial to to start calibration
       if (Serial.available() > 0) {
         while (Serial.available()) Serial.read(); // Clear buffer
         startPrintBool = false;
@@ -61,6 +59,7 @@ void loop() {
       break;
 
     case 2: // Printing calibration values
+      // Print current motor values 
       if (t - t_old > t_buffer) {
         for (int i = 0; i < Cube.numMotors; i++) {
           Serial.print(MotorPots[i]->scan());
@@ -70,6 +69,7 @@ void loop() {
         t_old = t;
       }
 
+      // Once message gets sent, save current position values
       if (Serial.available() > 0) {
         while (Serial.available()) Serial.read(); // Clear buffer
         Serial.println("Saving current motor positions as calibration values...");
@@ -80,15 +80,18 @@ void loop() {
       break;
 
     case 3: // Calibration complete
+      // Only print once
       if (!endPrintBool) {
         Serial.println("\nCalibration Complete.");
 
+        // Retract motors back to starting state
         if (extendMotors) {
           Cube.topServoRetract();
           Cube.botServoRetract();
           Cube.ringRetract();
         }
 
+        // Print the calibrated values for each motors
         Serial.println("Calibrated values for each motor:");
         for (int i = 0; i < Cube.numMotors; i++) {
           Serial.print("Motor ");
@@ -101,8 +104,8 @@ void loop() {
           Serial.println();
         }
 
+        // Print out the calibrated values from EEPROM to check if correct
         Serial.println("\nEEPROM Check: Calibrated Values and Flag");
-
         Serial.print("Calibration Flag: ");
         Serial.println(EEPROM.read(motorCalFlagAddress));
 
