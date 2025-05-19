@@ -47,6 +47,7 @@ bool CubeSystem::powerCheck() {
 }
 
 bool CubeSystem::getMotorCalibration() {
+    // Returns if motor potentiometers are calibrated
     for (int i = 0; i < numMotors; i++) {
         if (MotorPots[i]->loadCalibration() != 0) return false;
     }
@@ -188,6 +189,122 @@ int CubeSystem::homeMotors() {
     return 0;   // Return successful alignment
 }
 
+bool CubeSystem::getColorCalibration(){
+    // Returns if color sensors are calibrated
+    if (colorSensor1->loadCalibration() != 0) return false;
+    if (colorSensor2->loadCalibration() != 0) return false;
+    
+    return true;
+}
+
+int CubeSystem::calibrateColorSensors(){
+    // Outputs:
+    //  0 - Success
+    //  1 - Cube not loaded (NOT IMPLEMENTED)
+
+    // ------------ STEP 1 ------------
+    // Scan first 4 sides
+
+    // Order of faces being scanned in step 1
+    const char faceColors[4][2] = {
+        {'R', 'G'}, // Red Left, Green Back
+        {'B', 'R'}, // Blue Left, Red Back
+        {'O', 'B'}, // Orange Left, Blue Back
+        {'G', 'O'}  // Green Left, Orange Back
+    };
+
+    // Scan the four side faces
+    for (int rot = 0; rot < 4; rot++) {
+
+        // Scan current face configuration
+        colorSensor1.scanFace();
+        colorSensor2.scanFace();
+
+        // Set color calibration values for designated faces
+        for (int i = 0; i < 9; i++) {
+            colorSensor1.setColorCal(i, faceColors[rot][0], colorSensor1.scanVals[i]);
+            colorSensor2.setColorCal(i, faceColors[rot][1], colorSensor2.scanVals[i]);
+        }
+
+        // Rotate cube orientation (skip last time)
+        if (rot < 3) {
+            topServoExtend();
+            botServoExtend();
+            delay(500);
+            executeMove("ROTZ");
+            delay(200);
+            topServoRetract();
+            botServoRetract();
+            delay(500);
+        }
+    }
+
+    // ------------ STEP 2 ------------
+    // Scan empty slot
+
+    // Rotate cube 
+    botServoExtend();
+    ringMiddle();
+    delay(500);
+    topServoRetract();
+    botServoRetract();
+    delay(500);
+
+    // Scan and set color calibration values for empty face
+    colorSensor1.scanFace();
+    colorSensor2.scanFace();
+    for (int i = 0; i < 9; i++) {
+        colorSensor1.setColorCal(i, 'E', colorSensor1.scanVals[i]);
+        colorSensor2.setColorCal(i, 'E', colorSensor2.scanVals[i]);
+    }
+
+    // Rotate cube about x-axis and retract
+    executeMove("ROTX");
+    delay(300);
+    botServoExtend();
+    ringRetract();
+    delay(300);
+    botServoRetract();
+
+    // ------------ STEP 3 ------------
+    // Scan remaining top/bottom faces
+
+    // Order of faces being scanned in step 3
+    const char topFaces[4][2] = {
+        {'G', 'Y'}, // Green Left, Yellow Back
+        {'W', 'G'}, // White Left, Green Back
+        {'B', 'W'}, // Blue Left, White Back
+        {'Y', 'B'}  // Yellow Left, Blue Back
+    };
+    
+    // Scan the four side faces
+    for (int rot = 0; rot < 4; rot++) {
+        colorSensor1.scanFace();
+        colorSensor2.scanFace();
+
+        // Set color calibration values for designated faces
+        for (int i = 0; i < 9; i++) {
+            colorSensor1.setColorCal(i, topFaces[rot][0], colorSensor1.scanVals[i]);
+            colorSensor2.setColorCal(i, topFaces[rot][1], colorSensor2.scanVals[i]);
+        }
+
+        // Rotate cube orientation (skip last time)
+        if (rot < 3) {
+            botServoExtend();
+            delay(300);
+            executeMove("ROTZ");
+            delay(300);
+            botServoRetract();
+        }
+    }
+
+    // Save calibrated values to EEPROM
+    colorSensor1.saveCalibration();
+    colorSensor2.saveCalibration();
+
+    return 0;
+}
+
 void CubeSystem::topServoExtend() {
     topServo.extend();
 }
@@ -228,8 +345,7 @@ void CubeSystem::ringRetract() {
     cubeMotors.ringMove(0);
 }
 
-
-
 void CubeSystem::executeMove(const String &move){
     cubeMotors.executeMove(move);
 }
+

@@ -1,7 +1,10 @@
-#include "C:\Users\charl\OneDrive\Documents\Projects\Cube Solver Project\Arduino Code\CubeSolverProject\libraries\CubeSolver\CubeSolver.cpp"
+#include <Cube.h>
+
+CubeSystem Cube;  // Global CubeSystem instance
 
 void setup() {
-  mainSetup();
+  // Begin Cube Solver System
+  Cube.begin();
 
 }
 

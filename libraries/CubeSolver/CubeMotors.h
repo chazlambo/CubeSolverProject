@@ -20,7 +20,7 @@ public:
         MOVE_D, MOVE_Dp, MOVE_D2,
         MOVE_L, MOVE_Lp, MOVE_L2,
         MOVE_B, MOVE_Bp, MOVE_B2,
-        MOVE_ROT1, MOVE_ROT2, MOVE_ALL,
+        MOVE_ROT_X, MOVE_ROT_Z, MOVE_ALL,
         MOVE_INVALID
     };
 

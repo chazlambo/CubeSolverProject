@@ -89,7 +89,8 @@ extern int ledPins1[3], ledPins2[3];
 extern int sensorPins1[9], sensorPins2[9];
 
 // Initialize EEPROM
-extern int colorSensor1EEPROMAddress, colorSensor2EEPROMAddress;
+extern int colorSensor1EEPROMFlag, colorSensor2EEPROMFlag;
+extern int colorSensor1EEPROMAddresses[9][7][4], colorSensor2EEPROMAddresses[9][7][4];
 
 // Create ColorSensor Objects
 extern ColorSensor colorSensor1, colorSensor2;

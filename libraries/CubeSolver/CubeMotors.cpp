@@ -155,13 +155,15 @@ void CubeMotors::executeMove(String moveString) {
         case MOVE_Bp:    pos[5] -= turnStep; break;
         case MOVE_B2:    pos[5] += 2 * turnStep; break;
 
-        case MOVE_ROT1:
+        // Left/Right rotation
+        case MOVE_ROT_X:
             pos[4] += turnStep;
             pos[1] -= turnStep;
             stepDelay = rotStepDelay;
             break;
 
-        case MOVE_ROT2:
+        // Top/Bottom rotation
+        case MOVE_ROT_Z:
             pos[0] += turnStep;
             pos[3] -= turnStep;
             stepDelay = rotStepDelay;
@@ -245,8 +247,8 @@ CubeMotors::CubeMove CubeMotors::parseMove(const String &move){
     if (move == "B") return MOVE_B;
     if (move == "B'") return MOVE_Bp;
     if (move == "B2") return MOVE_B2;
-    if (move == "ROT1") return MOVE_ROT1;
-    if (move == "ROT2") return MOVE_ROT2;
+    if (move == "ROTX") return MOVE_ROT_X;
+    if (move == "ROTZ") return MOVE_ROT_Z;
     if (move == "ALL") return MOVE_ALL;
 
     return MOVE_INVALID;

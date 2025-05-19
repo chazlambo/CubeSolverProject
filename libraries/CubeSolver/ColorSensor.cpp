@@ -1,14 +1,21 @@
 #include "ColorSensor.h"
 
-ColorSensor::ColorSensor(Adafruit_PCF8591* adcArray[9], const int pinArray[9], const int ledPinsIn[3], int eepromStartAddress) {
+ColorSensor::ColorSensor(Adafruit_PCF8591* adcArray[9], const int pinArray[9], const int ledPinsIn[3], int eepromFlagAddress, int eepromAddresses[9][7][4]) {
+    // Set pin values and EEPROM addresses
     for (int i = 0; i < 9; ++i) {
         adcs[i] = adcArray[i];
         pins[i] = pinArray[i];
+        eepromAddr[i] = eepromAddresses[i];
     }
+
+    // Set LED pin values
     for (int i = 0; i < 3; ++i) {
         ledPins[i] = ledPinsIn[i];
     }
-    eepromBase = eepromStartAddress;
+
+    // Set EEPROM Flag Address
+    eepromFlagAddr = eepromFlagAddress;
+    
 }
 
 void ColorSensor::begin() {
@@ -18,10 +25,11 @@ void ColorSensor::begin() {
         digitalWrite(ledPins[i], LOW); // Turn off by default
     }
 
-    
-    loadCalibration();
+    // Check if calibration can be loaded, otherwise reset to zero
+    if (!loadCalibration()) {
+        resetCalibration();
+    }
 }
-
 
 int ColorSensor::readADC(int index) {
     return adcs[index]->analogRead(pins[index]);
@@ -60,17 +68,17 @@ void ColorSensor::setLED(char color) {
     }
 }
 
-void ColorSensor::scanFace(char* output, int numScans, int delayMs, int tolerance) {
-    int rgbw[4][9] = {};  // red, green, blue, white
+void ColorSensor::scanFace() {
     int channel = 0;
 
+    // Scan each channel numScans times
     for (int i = 0; i < numScans; ++i) {
         // Reset channel variable
         channel = 0;
         for (char ch : {'R', 'G', 'B', 'W'}) {
             // Set LEDs to specified color
             setLED(ch);
-            delay(delayMs);
+            delay(scanDelay);
 
             // Add value to channel (sum will be averaged later)
             for (int j = 0; j < 9; ++j) {
@@ -84,12 +92,19 @@ void ColorSensor::scanFace(char* output, int numScans, int delayMs, int toleranc
 
     setLED(0);  // Turn off LEDs
 
+    // Average scan values and save
     for (int j = 0; j < 9; ++j) {
         int averaged[4];
         for (int k = 0; k < 4; ++k) {
             averaged[k] = rgbw[k][j] / numScans;
+            scanVals[j][k] = averaged[k];
         }
-        output[j] = getColor(j, averaged, tolerance);
+    }
+}
+
+void ColorSensor::getFaceColors(char *output[9]){
+    for(int i = 0; i < 9; i++) {
+        output[i] = getColor(i, scanVals[i])
     }
 }
 
@@ -103,100 +118,117 @@ int ColorSensor::colorDistance(const int rgbw1[4], const int rgbw2[4]) {
     return sqrt(sumSq);
 }
 
-char ColorSensor::getColor(int sensorIdx, const int rgbw[4], int tolerance) {
-    // Calculate color distances to calibration values
-    int dist_R = colorDistance(rgbw, cal_R[sensorIdx]);
-    int dist_G = colorDistance(rgbw, cal_G[sensorIdx]);
-    int dist_B = colorDistance(rgbw, cal_B[sensorIdx]);
-    int dist_Y = colorDistance(rgbw, cal_Y[sensorIdx]);
-    int dist_O = colorDistance(rgbw, cal_O[sensorIdx]);
-    int dist_W = colorDistance(rgbw, cal_W[sensorIdx]);
+void ColorSensor::getColor(int sensorIdx, const int rgbw[4]) {
+    // Initialize search variables
+    int minDist = 999;
+    char closestColor = 'U';  // Default to unknown
+
+    const char colorChars[7] = { 'R', 'G', 'B', 'Y', 'O', 'W', 'E'};
     
-    // Find closest match
-    int minDist = dist_R;
-    char closestColor = 'R';
-    
-    if (dist_G < minDist) {
-        minDist = dist_G;
-        closestColor = 'G';
+    // Check distance to each color
+    for (int c = 0; c < 7; ++c) {
+        int dist = colorDistance(rgbw, cal[c][sensorIdx]);
+
+        // If closest so far then update
+        if (dist < minDist) {
+            minDist = dist;
+            closestColor = colorChars[c];
+        }
     }
-    if (dist_B < minDist) {
-        minDist = dist_B;
-        closestColor = 'B';
-    }
-    if (dist_Y < minDist) {
-        minDist = dist_Y;
-        closestColor = 'Y';
-    }
-    if (dist_O < minDist) {
-        minDist = dist_O;
-        closestColor = 'O';
-    }
-    if (dist_W < minDist) {
-        minDist = dist_W;
-        closestColor = 'W';
-    }
-    
-    // Check if within tolerance
-    if (minDist > tolerance) {
-        return 'E'; // Error - no close match
-    }
+
+    // If not within tolerance to closest color, return unknown
+    if (minDist > colorTol) return 'U';
     
     return closestColor;
 }
 
-void ColorSensor::setColorCal(int sensorIdx, char color, const int rgbw[4]) {
-    if (sensorIdx < 0 || sensorIdx >= 9) return;
-    
-    int* target;
+int ColorSensor::colorIndex(char color) {
     switch (color) {
-        case 'R': target = cal_R[sensorIdx]; break;
-        case 'G': target = cal_G[sensorIdx]; break;
-        case 'B': target = cal_B[sensorIdx]; break;
-        case 'Y': target = cal_Y[sensorIdx]; break;
-        case 'O': target = cal_O[sensorIdx]; break;
-        case 'W': target = cal_W[sensorIdx]; break;
-        default: return;
+        case 'R': return 0;
+        case 'G': return 1;
+        case 'B': return 2;
+        case 'Y': return 3;
+        case 'O': return 4;
+        case 'W': return 5;
+        case 'E': return 6;
+        default:  return -1;
+    }
+}
+
+int ColorSensor::setColorCal(int sensorIdx, char color, const int rgbw[4]) {
+    // Output:
+    //  0 - Success
+    //  1 - Invalid sensor index
+    //  2 - Invalid color
+    //  3 - Invalid RGBW value
+    
+
+    // Check valid sensor index
+    if (sensorIdx < 0 || sensorIdx >= 9){
+        return 1;
+    } 
+
+    // Get color index
+    int colorIdx = colorIndex(color);
+
+    // Validate color index
+    if(colorIdx < 0 || colorIdx > 6) {
+        return 2;
+    }
+
+    // Check valid RGBW values
+    for (int i = 0; i < 4; i++) {
+        if(rgbw[i] < 0 || rgbw[i] > 255) {
+            return 3;
+        }
     }
     
+    // Get calibration array for desired sensor and color    
+    int* target = calVals[sensorIdx][colorIdx];
+
+    // Set calibration array to desired RGBW
     for (int i = 0; i < 4; i++) {
         target[i] = rgbw[i];
     }
+
+    return 0;
+}
+
+int ColorSensor::getColorCal(int sensorIdx, char color, int channel)
+{
+    // Check valid sensor index
+    if (sensorIdx < 0 || sensorIdx >= 9){
+        return -1;
+    } 
+
+    // Check valid channel index
+    if (channel < 0 || channel >= 4){
+        return -1;
+    } 
+
+    // Get color index
+    int colorIdx = colorIndex(color);
+
+    int* target;
+    if(colorIdx > 0 && colorIdx < 7) {
+        return calVals[sensorIdx][colorIdx][channel];
+    }
+
+    return -1;
 }
 
 bool ColorSensor::loadCalibration() {
     // Check if calibration flag exists
-    if (EEPROM.read(eepromBase) != flagValue) {
+    if (EEPROM.get(eepromFlagAddr) != flagValue) {
         return false;
     }
     
-    int addr = eepromBase + 1;
-    
     // Load all calibration data from EEPROM
-    for (int sensor = 0; sensor < 9; sensor++) {
-        for (int i = 0; i < 4; i++) {
-            EEPROM.get(addr, cal_R[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.get(addr, cal_G[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.get(addr, cal_B[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.get(addr, cal_Y[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.get(addr, cal_O[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.get(addr, cal_W[sensor][i]);
-            addr += sizeof(int);
+    for (int i = 0; i < 9; i++) {           // For each sensor
+        for (int j = 0; j < 7; j++) {       // For each color
+            for (int k = 0; k < 4; k++) {   // For each RGBW value
+                calVals[i][j][k] = EEPROM.get(eepromAddr[i][j][k]);
+            }
         }
     }
     
@@ -205,38 +237,26 @@ bool ColorSensor::loadCalibration() {
 
 bool ColorSensor::saveCalibration() {
     // First write the flag value
-    EEPROM.update(eepromBase, flagValue);
-    
-    int addr = eepromBase + 1;
+    EEPROM.put(eepromFlagAddr, flagValue);
     
     // Save all calibration data to EEPROM
-    for (int sensor = 0; sensor < 9; sensor++) {
-        for (int i = 0; i < 4; i++) {
-            EEPROM.put(addr, cal_R[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.put(addr, cal_G[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.put(addr, cal_B[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.put(addr, cal_Y[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.put(addr, cal_O[sensor][i]);
-            addr += sizeof(int);
-        }
-        for (int i = 0; i < 4; i++) {
-            EEPROM.put(addr, cal_W[sensor][i]);
-            addr += sizeof(int);
+    for (int i = 0; i < 9; i++) {           // For each sensor
+        for (int j = 0; j < 7; j++) {       // For each color
+            for (int k = 0; k < 4; k++) {   // For each RGBW value
+                EEPROM.put(eepromAddr[i][j][k], calVals[i][j][k]);
+            }
         }
     }
     
     return true;
 }
 
+void ColorSensor::resetCalibration(int value = 0) {
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 7; j++) {
+            for (int k = 0; k < 4; k++) {
+                calVals[i][j][k] = value;
+            }
+        }
+    }
+}

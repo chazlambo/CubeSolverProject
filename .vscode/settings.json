@@ -16,6 +16,10 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "xloctime": "cpp",
-        "istream": "cpp"
+        "istream": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "xlocmes": "cpp"
     }
 }

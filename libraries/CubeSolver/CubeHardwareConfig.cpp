@@ -139,8 +139,8 @@ int sensorPins2[9] = {
 };
 
 // Create ColorSensor Objects
-ColorSensor colorSensor1(adcPtrs1, sensorPins1, ledPins1, colorSensor1EEPROMAddress);
-ColorSensor colorSensor2(adcPtrs2, sensorPins2, ledPins2, colorSensor2EEPROMAddress);
+ColorSensor colorSensor1(adcPtrs1, sensorPins1, ledPins1, colorSensor1EEPROMFlag, colorSensor1EEPROMAddresses);
+ColorSensor colorSensor2(adcPtrs2, sensorPins2, ledPins2, colorSensor2EEPROMFlag, colorSensor2EEPROMAddresses);
 
 // ================ Rotary Encoder Setup ================
 RotaryEncoder menuEncoder;
@@ -173,9 +173,26 @@ void initializeEEPROMLayout(int startAddress) {
     botServoEEPROMAddress = addr;
     addr += sizeof(int);
 
-    // Color Sensor EEPROM
-    colorSensor1EEPROMAddress = addr;
+    // Color Sensor EEPROM  
+    colorSensor1EEPROMFlag = addr;          // Set flag address
     addr += sizeof(int);
-    colorSensor2EEPROMAddress = addr;
+    for (int i = 0; i < 9; i++) {           // Loop through each sensor
+        for (int j = 0; j < 6; j++) {       // Loop through each color
+            for (int k = 0; k < 4; k++) {   // Loop through RGBW values
+                colorSensor1EEPROMAddresses[i][j][k] = addr;
+                addr += sizeof(int);
+            } 
+        }
+    }
+
+    colorSensor2EEPROMFlag = addr;          // Set flag address
     addr += sizeof(int);
+    for (int i = 0; i < 9; i++) {           // Loop through each sensor
+        for (int j = 0; j < 7; j++) {       // Loop through each color (including empty)
+            for (int k = 0; k < 4; k++) {   // Loop through RGBW values
+                colorSensor2EEPROMAddresses[i][j][k] = addr;
+                addr += sizeof(int);
+            } 
+        }
+    }
 }

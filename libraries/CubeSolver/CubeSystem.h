@@ -14,6 +14,10 @@ public:
     int calibrateMotorRotations();  // Sets all motor calibration values based on current position
     int homeMotors();               // Homes all 6 stepper motors
 
+    // Color Sensor Calibration Functions
+    bool getColorCalibration();     // Checks EEPROM for calibration flag
+    int calibrateColorSensors();    // Calibrates sensors using solved cube
+
     // Move Functions
     void executeMove(const String& move);
 
@@ -28,7 +32,6 @@ public:
     void ringExtend();
     void ringMiddle();
     void ringRetract();
-
 
 private:
     bool powerCheck();           // Reads POWPIN

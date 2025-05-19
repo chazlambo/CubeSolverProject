@@ -7,18 +7,24 @@
 
 class ColorSensor {
 public:
-    ColorSensor(Adafruit_PCF8591* adcArray[9], const int pinArray[9], const int ledPins[3], int eepromStartAddress);
+    ColorSensor(Adafruit_PCF8591* adcArray[9], const int pinArray[9], const int ledPins[3], int eepromFlagAddress, int eepromAddresses[9][7][4]);
 
     void begin();
 
-    void scanFace(char output[9], int numScans = 5, int delayMs = 30, int tolerance = 20);
+    // Scan Functions
+    void setLED(char color);
+    //void scanFace
+    void scanFace(char* output[9], int numScans = 5, int delayMs = 30, int tolerance = 20);
+    void getFaceColors(char* output[9]);
 
-    // Calibration Functions
+    // EEPROM Calibration Functions
     bool loadCalibration();
     bool saveCalibration();
-    void setColorCal(int sensorIdx, char color, const int rgbw[4]);
+    void resetCalibration(int value);
 
-    char getColor(int sensorIdx, const int rgbw[4], int tolerance);
+    // Calibration Get/Set
+    int setColorCal(int sensorIdx, char color, const int rgbw[4]);
+    int getColorCal(int sensorIdx, char color, int channel);
 
 private:
     Adafruit_PCF8591* adcs[9]; // ADC object per sensor
@@ -26,21 +32,25 @@ private:
     int ledPins[3];            // R, G, B output pins for the board
 
     // Calibration values saved on EEPROM
-    int cal_R[9][4];
-    int cal_G[9][4];
-    int cal_B[9][4];
-    int cal_Y[9][4];
-    int cal_O[9][4];
-    int cal_W[9][4];
-    int cal_E[9][4];
+    int calVals[9][7][4];
+
+    // Scan values
+    int scanVals[9][4];
+    int numScans = 5;
+    int scanDelay = 10;
+    int colorTol = 30;
 
     // EEPROM Variables
-    int eepromBase;
+    int eepromFlagAddr;
+    int eepromAddr[9][7][4];
     int flagValue = 122;
 
-    void setLED(char color);
     int colorDistance(const int rgbw1[4], const int rgbw2[4]);
     int readADC(int index);
+
+    // Color Helper Function
+    char getColor(int sensorIdx, const int rgbw[4], int tolerance);
+    int colorIndex(char color);
 };
 
 #endif
