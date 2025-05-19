@@ -40,7 +40,6 @@ void CubeSystem::begin() {
     // Motor Initialization
     motorHomeState = -1;
     homeMotors();
-
 }
 
 bool CubeSystem::powerCheck() {
@@ -107,8 +106,6 @@ int CubeSystem::homeMotors() {
     //      1 - Motors not calibrated
     //      2 - Did not reach threshold in time
 
-    if (!getMotorCalibration()) return 1;
-
     // Initialize variables
     bool aligned = false;
     unsigned long t_home_start = millis();
@@ -130,11 +127,25 @@ int CubeSystem::homeMotors() {
 
             // Update potentiometer values
             int currentVal = MotorPots[i]->scan();
+
+            // Find the closest of the 4 calibration values to move to
+            int minDiff = 256;
             int targetVal = MotorPots[i]->getCalibration(0);
+            for (int j = 0; j < 4; j++) {
+                int calVal = MotorPots[i]->getCalibration(j);
+                int diff = abs(currentVal - calVal);
+                if (diff > 128) diff = 256 - diff;  // Account for wraparound
+
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    targetVal = calVal;
+                }
+            }
 
             // Get position values
             pos[i] = cubeMotors.getPos(i);
 
+            // Move motor if not within threshold of calibrated value
             if (abs(currentVal - targetVal) > threshold) {
                 aligned = false;
 
