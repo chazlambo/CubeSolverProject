@@ -7,7 +7,7 @@
 
 class VirtualCube
 {
-public:
+private:
     // Cube Sides Character Arrays
     char redSide[9];
     char orangeSide[9];
@@ -47,11 +47,8 @@ public:
     char colorCubeArray[54];
 public:
     VirtualCube();
+    bool isReady();
     void resetCube();
-    void resetOrientation();
-    void resetColor();
-    void resetUnorientedCubeArray();
-    void resetCubeArray();
     void setSolved();
     int setColorArray(char color, char newFace[9], char leftSide);
     int setFaceSquare(char color, int squarePos, char newColor);
@@ -59,21 +56,29 @@ public:
     int buildUnorientedCubeArray();
     int buildCubeArray();
     int rebuildFromCubeArray(); // UNFINISHED NEEDS DEBUGGING
-    int rotU(int turns);
-    int rotR(int turns);
-    int rotF(int turns);
-    int rotD(int turns);
-    int rotL(int turns);
-    int rotB(int turns);
 
+    // Movement functions
+    int executeMove(const String &moveString);
 
 private:    
+    void resetOrientation();
+    void resetColor();
+    void resetUnorientedCubeArray();
+    void resetCubeArray();
     int copyColorArray(char color, char copyArray[]);
     void rotateColorArray(char rotArray[], int turns);
     void rotOrientX(char orientArr[], char cubeArr[]);
     void rotOrientY(char orientArr[], char cubeArr[]);
     void rotOrientZ(char orientArr[], char cubeArr[]);
     int rotOrientAll(char tempCubeArr[]);
+
+    // Move functions
+    int rotU(int turns);
+    int rotR(int turns);
+    int rotF(int turns);
+    int rotD(int turns);
+    int rotL(int turns);
+    int rotB(int turns);
     
 };
 

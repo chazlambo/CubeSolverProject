@@ -5,16 +5,18 @@ VirtualCube::VirtualCube()
   this->resetCube();
 }
 
-void VirtualCube::resetCube()
-{
+bool VirtualCube::isReady(){
+    return cubeReady;
+}
+
+void VirtualCube::resetCube() {
   this->resetOrientation();
   this->resetColor();
   this->resetCubeArray();
   this->resetUnorientedCubeArray();
 }
 
-void VirtualCube::resetCubeArray()
-{
+void VirtualCube::resetCubeArray() {
   // Sets each character in the cube array to garbage char X
   char resetArray[] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
   for (int i = 0; i < 54; i++) {
@@ -25,8 +27,7 @@ void VirtualCube::resetCubeArray()
   cubeReady = 0;  // Sets the ready toggle to false
 }
 
-void VirtualCube::resetUnorientedCubeArray()
-{
+void VirtualCube::resetUnorientedCubeArray() {
   // Sets each character in the cube array to garbage char X
   char resetArray[] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
   for (int i = 0; i < 54; i++) {
@@ -37,8 +38,7 @@ void VirtualCube::resetUnorientedCubeArray()
   cubeBuilt = 0;
 }
 
-void VirtualCube::resetOrientation()
-{
+void VirtualCube::resetOrientation() {
   // Sets each character in orientation array to default orientation
   char resetArray[] = "WBRYGO"; //URFDLB
   for (int i = 0; i < 6; i++) {
@@ -50,8 +50,7 @@ void VirtualCube::resetOrientation()
   this->resetCubeArray();
 }
 
-void VirtualCube::resetColor()
-{
+void VirtualCube::resetColor() {
   // Undefine faces
   setColorArray('W', "QQQQWQQQQ", 'G'); // Up
   setColorArray('B', "QQQQBQQQQ", 'R'); // Right
@@ -100,7 +99,7 @@ int VirtualCube::setColorArray(char color, char newFace[], char left)
   // Outputs: 0 - Ran successfully
   //          1 - Error: Middle square of newFace doesn't match color
   //          2 - Error: newFace string contained invalid characters
-  //          3 - Error: color input doesn't match a side (check uppercase)
+  //          3 - Error: Color input doesn't match a side (check uppercase)
   //          4 - Error: Left side input is not a valid color
   //          5 - Error: Left side input is impossible
   //          6 - newFace input is empty
@@ -863,6 +862,93 @@ int VirtualCube::buildCubeArray() {
 
 
   cubeReady = 1;
+  return 0;
+}
+
+int VirtualCube::rebuildFromCubeArray() {
+  // Takes a cube array and updates the other class variables
+  // Outputs: 0 - Ran successfully
+  //          1 - Cube array isn't available (not built?)
+  //          2X - Failed to write color array, X is error of set function
+  //          3X - Failed to build unoriented cube, X is error of build function
+  //          4X - Failed to set orientation, X is error of set function
+  //          5X - Failed to build final cube, X is error of build function
+  
+  if (!cubeReady) { // Check if cube is in ready state
+    return 1;
+  }
+
+  // Make temporary arrays
+  char uArray[9];
+  char rArray[9];
+  char fArray[9];
+  char dArray[9];
+  char lArray[9];
+  char bArray[9];
+
+  // Make temporary orientation
+  char tempOrient[6];
+  for (int i = 0; i< 6; i++) {
+    tempOrient[i] = orientation[i];
+  }
+
+  // Convert cube array back to color cube array
+  char tempColorArray[54];
+  for(int i = 0; i<54; i++) {
+    tempColorArray[i] = cubeArray[i];
+
+    if(cubeArray[i] == 'B') {
+      tempColorArray[i] = tempOrient[5];
+    }
+    else if(cubeArray[i] == 'U') {
+      tempColorArray[i] = tempOrient[0];
+    }
+    else if(cubeArray[i] == 'R') {
+      tempColorArray[i] = tempOrient[1];
+    }
+    else if(cubeArray[i] == 'F') {
+      tempColorArray[i] = tempOrient[2];
+    }
+    else if(cubeArray[i] == 'D') {
+      tempColorArray[i] = tempOrient[3];
+    }
+    else if(cubeArray[i] == 'L') {
+      tempColorArray[i] = tempOrient[4];
+    }
+    else {
+      tempColorArray[i] = 'Q';
+    }
+  }
+  
+  // Assign the temporary color cube array to the individual faces
+  for (int i = 0; i < 9; i++) {
+    uArray[i] = tempColorArray[i];
+    rArray[i] = tempColorArray[i + 9];
+    fArray[i] = tempColorArray[i + 18];
+    dArray[i] = tempColorArray[i + 27];
+    lArray[i] = tempColorArray[i + 36];
+    bArray[i] = tempColorArray[i + 45];
+  }
+
+  // DEBUG REMOVE LATER
+  for(int i = 0; i<54; i++) {
+    colorCubeArray[i] = tempColorArray[i];
+  }
+  
+
+  // DEBUG UNCOMMENT OUT LATER
+  // The if statements here are for error handling and will print out a unique rebuild error combined with the function error
+  //resetCube();
+  //if(int i = setOrientation(tempOrient[4], tempOrient[5])){return 4*10 + i;}
+  // if(int i = setColorArray(orientation[0], uArray, orientation[4])){return 2*100+i*10+1;}
+  // if(int i = setColorArray(orientation[1], rArray, orientation[2])){return 2*100+i*10+2;}
+  // if(int i = setColorArray(orientation[2], fArray, orientation[4])){return 2*100+i*10+3;}
+  // if(int i = setColorArray(orientation[3], dArray, orientation[4])){return 2*100+i*10+4;}
+  // if(int i = setColorArray(orientation[4], lArray, orientation[5])){return 2*100+i*10+5;}
+  // if(int i = setColorArray(orientation[5], bArray, orientation[1])){return 2*100+i*10+6;}
+  // if(int i = buildUnorientedCubeArray()){return 3*10 + i;}
+  // if(int i = buildCubeArray()){return 5*10 + i;}
+
   return 0;
 }
 
@@ -1869,89 +1955,55 @@ int VirtualCube::rotB(int turns) {
   return 0;
 }
 
-int VirtualCube::rebuildFromCubeArray() {
-  // Takes a cube array and updates the other class variables
-  // Outputs: 0 - Ran successfully
-  //          1 - Cube array isn't available (not built?)
-  //          2X - Failed to write color array, X is error of set function
-  //          3X - Failed to build unoriented cube, X is error of build function
-  //          4X - Failed to set orientation, X is error of set function
-  //          5X - Failed to build final cube, X is error of build function
-  
-  if (!cubeReady) { // Check if cube is in ready state
+int VirtualCube::executeMove(const String &move) {
+  // Rotates virtual cube
+  // Outputs:
+  //  0 - Rotated successfuly
+  //  1 - Cube is not ready to be turned
+  //  2 - Move string is empty
+  //  3 - Move execution failed
+
+
+  // Check if cube is ready to be moved
+  if (!cubeReady) {
     return 1;
   }
 
-  // Make temporary arrays
-  char uArray[9];
-  char rArray[9];
-  char fArray[9];
-  char dArray[9];
-  char lArray[9];
-  char bArray[9];
+  // Check if move string is empty
+  if (move.length() == 0) return 1;
 
-  // Make temporary orientation
-  char tempOrient[6];
-  for (int i = 0; i< 6; i++) {
-    tempOrient[i] = orientation[i];
-  }
+  // Extract which face is moving
+  char face = move.charAt(0);
 
-  // Convert cube array back to color cube array
-  char tempColorArray[54];
-  for(int i = 0; i<54; i++) {
-    tempColorArray[i] = cubeArray[i];
+  // Initialize number of turns
+  int turns = 1;
 
-    if(cubeArray[i] == 'B') {
-      tempColorArray[i] = tempOrient[5];
-    }
-    else if(cubeArray[i] == 'U') {
-      tempColorArray[i] = tempOrient[0];
-    }
-    else if(cubeArray[i] == 'R') {
-      tempColorArray[i] = tempOrient[1];
-    }
-    else if(cubeArray[i] == 'F') {
-      tempColorArray[i] = tempOrient[2];
-    }
-    else if(cubeArray[i] == 'D') {
-      tempColorArray[i] = tempOrient[3];
-    }
-    else if(cubeArray[i] == 'L') {
-      tempColorArray[i] = tempOrient[4];
-    }
-    else {
-      tempColorArray[i] = 'Q';
-    }
+  // If rotating twice
+  if (move.endsWith("2")) {         
+      turns = 2;
   }
   
-  // Assign the temporary color cube array to the individual faces
-  for (int i = 0; i < 9; i++) {
-    uArray[i] = tempColorArray[i];
-    rArray[i] = tempColorArray[i + 9];
-    fArray[i] = tempColorArray[i + 18];
-    dArray[i] = tempColorArray[i + 27];
-    lArray[i] = tempColorArray[i + 36];
-    bArray[i] = tempColorArray[i + 45];
+  // If rotating backwards
+  if (move.endsWith("'")) {  
+      turns = -1*turns;
   }
 
-  // DEBUG REMOVE LATER
-  for(int i = 0; i<54; i++) {
-    colorCubeArray[i] = tempColorArray[i];
+  // Execute desired move
+  int result = 0;
+  switch (face) {
+    case 'U': result = rotU(turns); break;
+    case 'R': result = rotR(turns); break;
+    case 'F': result = rotF(turns); break;
+    case 'D': result = rotD(turns); break;
+    case 'L': result = rotL(turns); break;
+    case 'B': result = rotB(turns); break;
+    default: return 3; // Invalid face character
   }
-  
 
-  // DEBUG UNCOMMENT OUT LATER
-  // The if statements here are for error handling and will print out a unique rebuild error combined with the function error
-  //resetCube();
-  //if(int i = setOrientation(tempOrient[4], tempOrient[5])){return 4*10 + i;}
-  // if(int i = setColorArray(orientation[0], uArray, orientation[4])){return 2*100+i*10+1;}
-  // if(int i = setColorArray(orientation[1], rArray, orientation[2])){return 2*100+i*10+2;}
-  // if(int i = setColorArray(orientation[2], fArray, orientation[4])){return 2*100+i*10+3;}
-  // if(int i = setColorArray(orientation[3], dArray, orientation[4])){return 2*100+i*10+4;}
-  // if(int i = setColorArray(orientation[4], lArray, orientation[5])){return 2*100+i*10+5;}
-  // if(int i = setColorArray(orientation[5], bArray, orientation[1])){return 2*100+i*10+6;}
-  // if(int i = buildUnorientedCubeArray()){return 3*10 + i;}
-  // if(int i = buildCubeArray()){return 5*10 + i;}
+  // Check if move execution failed
+  if (result != 0) {
+    return 3;
+  }
 
   return 0;
 }

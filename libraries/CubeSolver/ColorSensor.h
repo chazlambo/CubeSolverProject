@@ -26,6 +26,9 @@ public:
     int setColorCal(int sensorIdx, char color, const int rgbw[4]);
     int getColorCal(int sensorIdx, char color, int channel);
 
+    // Parse Color
+    char getColor(int sensorIdx, const int rgbw[4]);
+
 private:
     Adafruit_PCF8591* adcs[9]; // ADC object per sensor
     int pins[9];               // ADC pin (0-3) for each sensor
@@ -49,7 +52,6 @@ private:
     int readADC(int index);
 
     // Color Helper Function
-    char getColor(int sensorIdx, const int rgbw[4]);
     int colorIndex(char color);
 };
 

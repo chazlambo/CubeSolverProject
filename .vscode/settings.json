@@ -20,6 +20,7 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "xlocmes": "cpp"
+        "xlocmes": "cpp",
+        "xlocale": "cpp"
     }
 }

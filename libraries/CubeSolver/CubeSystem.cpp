@@ -53,6 +53,80 @@ void CubeSystem::begin() {
     }
 }
 
+int CubeSystem::scanCube(){
+    // Scans cube colors and builds virtual cube for solving
+    // Outputs:
+    //  0 - Success
+    //  1 - Color Sensor 1 encountered an invalid face value
+    //  2 - Color Sensor 2 encountered an invalid face value
+    //  3 - Opposite faces scanned next to eachother (scan error)
+    //  1X - Sensor 1 failed to set color array
+    //  2X - Sensor 2 failed to set color array
+
+    // Reset the virtual cube before scanning
+    virtualCube.resetCube();
+
+    // Move and scan the cube
+    // Scan order is [L, B], [U, F], [D, R]
+    for (int i = 0; i < 3; i++) {
+        // Scan Sensors
+        colorSensor1.scanFace();
+        colorSensor2.scanFace();
+
+        // Determine face being scanned by each sensor
+        char face1 = colorSensor1.getColor(4, colorSensor1.getScanValRow(4));
+        char face2 = colorSensor2.getColor(4, colorSensor2.getScanValRow(4));
+        if (face1 == 'U') return 1;
+        if (face2 == 'U') return 2;
+
+        // Determine face left of the sensor (for orientation)
+        char left1 = face2;     // Sensor 2 is to the left of Sensor 1
+        char left2;             // Left 2 is opposite of sensor 1 
+        switch (face1) {
+            case 'R': left2 = 'O'; break;
+            case 'O': left2 = 'R'; break;
+            case 'W': left2 = 'Y'; break;
+            case 'Y': left2 = 'W'; break;
+            case 'G': left2 = 'B'; break;
+            case 'B': left2 = 'G'; break;
+            default:  left2 = 'X';  // Invalid
+        }
+
+        // Check for impossible face pairing: opposite faces scanned adjacent
+        if (left2 == face2) return 3;
+
+        // Convert scan values to color array
+        char face1_colors[9];
+        char face2_colors[9];
+        colorSensor1.getFaceColors(face1_colors);
+        colorSensor2.getFaceColors(face2_colors);
+
+        // Update virtual cube
+        int res1 = virtualCube.setColorArray(face1, face1_colors, left1);
+        int res2 = virtualCube.setColorArray(face2, face2_colors, left2);
+        if(res1) return 10+res1;
+        if(res2) return 20+res2;
+
+        // Rotate the cube to next scanning orientation
+        if (i < 2) {
+            botServoExtend();
+            delay(500);
+            executeMove("ROTZ");
+            ringMiddle();
+            botServoRetract();
+            delay(500);
+            executeMove("ROTX");
+            botServoExtend();
+            delay(500);
+            ringRetract();
+            botServoRetract();
+            delay(500);
+        }
+    }
+
+    return 0; // Success
+}
+
 bool CubeSystem::powerCheck() {
     return digitalRead(POWPIN);
 }
@@ -357,11 +431,34 @@ void CubeSystem::ringRetract() {
     cubeMotors.ringMove(0);
 }
 
-void CubeSystem::executeMove(const String &move, bool align){
+int CubeSystem::executeMove(const String &move, bool moveVirtual, bool align){
+    // Function to execute any turn of the cube
+    // Inputs:
+    //  bool moveVirtual - set true to turn virtual cube
+    //  bool align       - set true to activate alignment after movement
+    // Outputs:
+    //  0 - Ran succesfully
+    //  1X - Virtual move failed (X is error thrown by virtual move)
+    //  2X - Home motors failed
+
+    // Turn real cube side
     cubeMotors.executeMove(move);
-    if(align && !checkAlignment()){
-        homeMotors();
+
+    // Turn Virtual Cube
+    int result = 0;
+    if (moveVirtual) {
+        result = virtualCube.executeMove(move);
+        if(result) return 10+result;
     }
+
+    // If alignment is active and motor is misaligned
+    result = 0;
+    if(align && !checkAlignment()){
+        result = homeMotors();
+        if(result) return 20+result;
+    }
+
+    return 0;   // Success
 }
 
 bool CubeSystem::checkAlignment()

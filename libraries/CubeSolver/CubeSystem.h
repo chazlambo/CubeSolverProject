@@ -7,7 +7,10 @@
 class CubeSystem {
 public:
     CubeSystem();
-    void begin();                // Initializes all hardware
+
+    // Main Functions
+    void begin();                   // Initializes all hardware
+    int scanCube();
     
     // Motor Calibration Functions
     bool getMotorCalibration();     // Checks EEPROM for calibration flag
@@ -19,7 +22,7 @@ public:
     int calibrateColorSensors();    // Calibrates sensors using solved cube
 
     // Move Functions
-    void executeMove(const String& move, bool align = false);
+    int executeMove(const String& move, bool moveVirtual = false, bool align = false);
     bool checkAlignment();
 
     // Cube Loading Functions
@@ -41,6 +44,9 @@ public:
     int numMotors = 6;
 
 private:
+    // Virtual Cube
+    VirtualCube virtualCube;
+
     // Motor Home Variables
     int threshold = 1;
     int stepSize = 1;
