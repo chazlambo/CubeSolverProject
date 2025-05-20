@@ -1,11 +1,15 @@
 #include <CubeSystem.h>
 
 CubeSystem Cube;  // Global CubeSystem instance
+bool alignCheck = true;
 
 void setup() {
   Cube.begin();
 
   Serial.println("Starting Program...");
+
+  Serial.print("\nMotors Calibrated: ");
+  Serial.println(Cube.getMotorCalibration());
 
   printMenu();
 }
@@ -39,72 +43,72 @@ void loop() {
 
     case 4:
       Serial.println("Moving: F");
-      Cube.executeMove("F");
+      Cube.executeMove("F", alignCheck);
       break;
 
     case 5:
       Serial.println("Moving F'");
-      Cube.executeMove("F'");
+      Cube.executeMove("F'", alignCheck);
       break;
 
     case 6:
       Serial.println("Moving: B");
-      Cube.executeMove("B");
+      Cube.executeMove("B", alignCheck);
       break;
 
     case 7:
       Serial.println("Moving: B'");
-      Cube.executeMove("B'");
+      Cube.executeMove("B'", alignCheck);
       break;
 
     case 8:
       Serial.println("Moving: L");
-      Cube.executeMove("L");
+      Cube.executeMove("L", alignCheck);
       break;
 
     case 9:
       Serial.println("Moving: L'");
-      Cube.executeMove("L'");
+      Cube.executeMove("L'", alignCheck);
       break;
 
     case 10:
       Serial.println("Moving: R");
-      Cube.executeMove("R");
+      Cube.executeMove("R", alignCheck);
       break;
 
     case 11:
       Serial.println("Moving: R'");
-      Cube.executeMove("R'");
+      Cube.executeMove("R'", alignCheck);
       break;
 
     case 12:
       Serial.println("Moving: U");
-      Cube.executeMove("U");
+      Cube.executeMove("U", alignCheck);
       break;
 
     case 13:
       Serial.println("Moving: U'");
-      Cube.executeMove("U'");
+      Cube.executeMove("U'", alignCheck);
       break;
 
     case 14:
       Serial.println("Moving: D");
-      Cube.executeMove("D");
+      Cube.executeMove("D", alignCheck);
       break;
 
     case 15:
       Serial.println("Moving: D'");
-      Cube.executeMove("D'");
+      Cube.executeMove("D'", alignCheck);
       break;
 
     case 16:
       Serial.println("Moving: ROT1");
-      Cube.executeMove("ROT1");
+      Cube.executeMove("ROT1", alignCheck);
       break;
 
     case 17:
       Serial.println("Moving: ROT2");
-      Cube.executeMove("ROT2");
+      Cube.executeMove("ROT2", alignCheck);
       break;
 
     default:

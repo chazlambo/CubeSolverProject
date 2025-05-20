@@ -19,7 +19,8 @@ public:
     int calibrateColorSensors();    // Calibrates sensors using solved cube
 
     // Move Functions
-    void executeMove(const String& move);
+    void executeMove(const String& move, bool align = false);
+    bool checkAlignment();
 
     // Cube Loading Functions
     void topServoExtend();
@@ -45,7 +46,7 @@ private:
     int stepSize = 1;
     unsigned long timeout = 5000;
     int motorHomeState;
-    
+    int motorAlignmentTol = 1;
     
 };
 

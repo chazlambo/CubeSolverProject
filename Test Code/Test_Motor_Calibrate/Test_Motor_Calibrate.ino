@@ -10,7 +10,7 @@ int state = 0;
 bool startPrintBool = false;
 bool endPrintBool = false;
 
-int extendMotors = 0;
+int extendMotors = 1;
 
 void setup() {
   // Begin Cube Solver System

@@ -34,12 +34,23 @@ void CubeSystem::begin() {
         MotorPots[i]->begin();
     }
 
+    Serial.println("Motor Calibration Check:");
+    for (int i = 0; i < 6; i++) {
+        int code = MotorPots[i]->loadCalibration();
+        Serial.print("Motor ");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(code);  // 0 = OK, 1 = flag missing, 2 = value invalid
+    }
+
     // Begin Rotary Encoder
-    menuEncoder.begin();
+    // menuEncoder.begin();
 
     // Motor Initialization
     motorHomeState = -1;
-    homeMotors();
+    if(getMotorCalibration()){
+        homeMotors();
+    }
 }
 
 bool CubeSystem::powerCheck() {
@@ -229,10 +240,10 @@ int CubeSystem::calibrateColorSensors(){
         // Rotate cube orientation (skip last time)
         if (rot < 3) {
             botServoExtend();
-            topServoExtend();
+            //topServoExtend();
             delay(500);
             executeMove("ROTZ");
-            topServoRetract();
+            //topServoRetract();
             botServoRetract();
             delay(500);
         }
@@ -290,10 +301,10 @@ int CubeSystem::calibrateColorSensors(){
         // Rotate cube orientation (skip last time)
         if (rot < 3) {
             botServoExtend();
-            topServoExtend();
+            //topServoExtend();
             delay(500);
             executeMove("ROTZ");
-            topServoRetract();
+            //topServoRetract();
             botServoRetract();
             delay(500);
         }
@@ -346,7 +357,33 @@ void CubeSystem::ringRetract() {
     cubeMotors.ringMove(0);
 }
 
-void CubeSystem::executeMove(const String &move){
+void CubeSystem::executeMove(const String &move, bool align){
     cubeMotors.executeMove(move);
+    if(align && !checkAlignment()){
+        homeMotors();
+    }
 }
 
+bool CubeSystem::checkAlignment()
+{
+    // Returns true if aligned
+    // Returns false if one or more motors is misaligned
+    for (int i = 0; i < numMotors; i++) {
+        int currentVal = MotorPots[i]->scan();
+        bool aligned = false;
+
+        for (int j = 0; j < 4; j++) {
+            int calVal = MotorPots[i]->getCalibration(j);
+            if (abs(currentVal - calVal) <= motorAlignmentTol) {
+                aligned = true;
+                break;
+            }
+        }
+
+        if (!aligned) {
+            return false;
+        }
+    }
+
+    return true;
+}

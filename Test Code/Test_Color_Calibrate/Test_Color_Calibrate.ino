@@ -10,10 +10,7 @@ bool startPrintBool = false;
 bool endPrintBool = false;
 
 void setup() {
-  Serial.begin(115200);
-  delay(200);  // Wait for serial monitor to connect
-
-  // Begin Cube System
+// Begin Cube System
   Cube.begin();
 
   // Print if color sensors are already calibrated

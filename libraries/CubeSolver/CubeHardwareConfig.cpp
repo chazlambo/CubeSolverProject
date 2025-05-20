@@ -78,12 +78,12 @@ const int BOTSERVO = 14;
 // Top Servo Variables
 unsigned int topExtPos = 235;
 unsigned int topRetPos = 0;
-int topSweepDelay = 10;
+int topSweepDelay = 15;
 
 // Bottom Servo Variables
 unsigned int botExtPos = 270;
 unsigned int botRetPos = 0;
-int botSweepDelay = 20;
+int botSweepDelay = 15;
 
 // Create Servo Objects
 CubeServo topServo(TOPSERVO, topServoEEPROMAddress, topRetPos, topExtPos, topSweepDelay);               
