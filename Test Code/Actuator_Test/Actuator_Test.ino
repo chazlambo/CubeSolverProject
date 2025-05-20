@@ -6,13 +6,8 @@ void setup() {
   Cube.begin();
 
   Serial.println("Starting Program...");
-  //printMenu();
 
-  Serial.print("\nMotors Calibrated: ");
-  Serial.println(Cube.getMotorCalibration());
-
-  Serial.print("Home Motors: ");
-  Serial.println(Cube.homeMotors());
+  printMenu();
 }
 
 void loop() {

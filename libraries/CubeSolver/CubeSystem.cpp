@@ -191,8 +191,8 @@ int CubeSystem::homeMotors() {
 
 bool CubeSystem::getColorCalibration(){
     // Returns if color sensors are calibrated
-    if (colorSensor1->loadCalibration() != 0) return false;
-    if (colorSensor2->loadCalibration() != 0) return false;
+    if (colorSensor1.loadCalibration() != 0) return false;
+    if (colorSensor2.loadCalibration() != 0) return false;
     
     return true;
 }
@@ -222,17 +222,16 @@ int CubeSystem::calibrateColorSensors(){
 
         // Set color calibration values for designated faces
         for (int i = 0; i < 9; i++) {
-            colorSensor1.setColorCal(i, faceColors[rot][0], colorSensor1.scanVals[i]);
-            colorSensor2.setColorCal(i, faceColors[rot][1], colorSensor2.scanVals[i]);
+            colorSensor1.setColorCal(i, faceColors[rot][0], colorSensor1.getScanValRow(i));
+            colorSensor2.setColorCal(i, faceColors[rot][1], colorSensor2.getScanValRow(i));
         }
 
         // Rotate cube orientation (skip last time)
         if (rot < 3) {
-            topServoExtend();
             botServoExtend();
+            topServoExtend();
             delay(500);
             executeMove("ROTZ");
-            delay(200);
             topServoRetract();
             botServoRetract();
             delay(500);
@@ -254,17 +253,17 @@ int CubeSystem::calibrateColorSensors(){
     colorSensor1.scanFace();
     colorSensor2.scanFace();
     for (int i = 0; i < 9; i++) {
-        colorSensor1.setColorCal(i, 'E', colorSensor1.scanVals[i]);
-        colorSensor2.setColorCal(i, 'E', colorSensor2.scanVals[i]);
+        colorSensor1.setColorCal(i, 'E', colorSensor1.getScanValRow(i));
+        colorSensor2.setColorCal(i, 'E', colorSensor2.getScanValRow(i));
     }
 
     // Rotate cube about x-axis and retract
     executeMove("ROTX");
-    delay(300);
     botServoExtend();
+    delay(500);
     ringRetract();
-    delay(300);
     botServoRetract();
+    delay(500);
 
     // ------------ STEP 3 ------------
     // Scan remaining top/bottom faces
@@ -284,17 +283,19 @@ int CubeSystem::calibrateColorSensors(){
 
         // Set color calibration values for designated faces
         for (int i = 0; i < 9; i++) {
-            colorSensor1.setColorCal(i, topFaces[rot][0], colorSensor1.scanVals[i]);
-            colorSensor2.setColorCal(i, topFaces[rot][1], colorSensor2.scanVals[i]);
+            colorSensor1.setColorCal(i, topFaces[rot][0], colorSensor1.getScanValRow(i));
+            colorSensor2.setColorCal(i, topFaces[rot][1], colorSensor2.getScanValRow(i));
         }
 
         // Rotate cube orientation (skip last time)
         if (rot < 3) {
             botServoExtend();
-            delay(300);
+            topServoExtend();
+            delay(500);
             executeMove("ROTZ");
-            delay(300);
+            topServoRetract();
             botServoRetract();
+            delay(500);
         }
     }
 

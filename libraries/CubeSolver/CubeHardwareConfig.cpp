@@ -78,7 +78,7 @@ const int BOTSERVO = 14;
 // Top Servo Variables
 unsigned int topExtPos = 235;
 unsigned int topRetPos = 0;
-int topSweepDelay = 20;
+int topSweepDelay = 10;
 
 // Bottom Servo Variables
 unsigned int botExtPos = 270;
@@ -137,6 +137,12 @@ int sensorPins2[9] = {
     3, 3, 0,  // C2-4, C2-5, C2-6
     1, 2, 3   // C2-7, C2-8, C2-9
 };
+
+// Color Sensor EEPROM
+int colorSensor1EEPROMFlag;
+int colorSensor2EEPROMFlag;
+int colorSensor1EEPROMAddresses[9][7][4];
+int colorSensor2EEPROMAddresses[9][7][4];
 
 // Create ColorSensor Objects
 ColorSensor colorSensor1(adcPtrs1, sensorPins1, ledPins1, colorSensor1EEPROMFlag, colorSensor1EEPROMAddresses);

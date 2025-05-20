@@ -13,14 +13,14 @@ public:
 
     // Scan Functions
     void setLED(char color);
-    //void scanFace
-    void scanFace(char* output[9], int numScans = 5, int delayMs = 30, int tolerance = 20);
-    void getFaceColors(char* output[9]);
+    void scanFace();
+    void getFaceColors(char output[9]);
+    const int* getScanValRow(int idx);
 
     // EEPROM Calibration Functions
     bool loadCalibration();
     bool saveCalibration();
-    void resetCalibration(int value);
+    void resetCalibration();
 
     // Calibration Get/Set
     int setColorCal(int sensorIdx, char color, const int rgbw[4]);
@@ -49,7 +49,7 @@ private:
     int readADC(int index);
 
     // Color Helper Function
-    char getColor(int sensorIdx, const int rgbw[4], int tolerance);
+    char getColor(int sensorIdx, const int rgbw[4]);
     int colorIndex(char color);
 };
 

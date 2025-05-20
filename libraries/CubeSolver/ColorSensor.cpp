@@ -5,7 +5,12 @@ ColorSensor::ColorSensor(Adafruit_PCF8591* adcArray[9], const int pinArray[9], c
     for (int i = 0; i < 9; ++i) {
         adcs[i] = adcArray[i];
         pins[i] = pinArray[i];
-        eepromAddr[i] = eepromAddresses[i];
+
+        for (int j = 0; j < 7; j++){
+            for (int k = 0; k < 4; k++){
+                eepromAddr[i][j][k] = eepromAddresses[i][j][k];
+            }
+        }
     }
 
     // Set LED pin values
@@ -69,6 +74,7 @@ void ColorSensor::setLED(char color) {
 }
 
 void ColorSensor::scanFace() {
+    int rgbw[9][4] = {0};
     int channel = 0;
 
     // Scan each channel numScans times
@@ -82,7 +88,7 @@ void ColorSensor::scanFace() {
 
             // Add value to channel (sum will be averaged later)
             for (int j = 0; j < 9; ++j) {
-                rgbw[channel][j] += readADC(j);
+                rgbw[j][channel] += readADC(j);
             }
 
             // Update channel variable
@@ -96,16 +102,21 @@ void ColorSensor::scanFace() {
     for (int j = 0; j < 9; ++j) {
         int averaged[4];
         for (int k = 0; k < 4; ++k) {
-            averaged[k] = rgbw[k][j] / numScans;
+            averaged[k] = rgbw[j][k] / numScans;
             scanVals[j][k] = averaged[k];
         }
     }
 }
 
-void ColorSensor::getFaceColors(char *output[9]){
+void ColorSensor::getFaceColors(char output[9]){
     for(int i = 0; i < 9; i++) {
-        output[i] = getColor(i, scanVals[i])
+        output[i] = getColor(i, scanVals[i]);
     }
+}
+
+const int *ColorSensor::getScanValRow(int idx)
+{
+    return scanVals[idx]; 
 }
 
 int ColorSensor::colorDistance(const int rgbw1[4], const int rgbw2[4]) {
@@ -118,7 +129,7 @@ int ColorSensor::colorDistance(const int rgbw1[4], const int rgbw2[4]) {
     return sqrt(sumSq);
 }
 
-void ColorSensor::getColor(int sensorIdx, const int rgbw[4]) {
+char ColorSensor::getColor(int sensorIdx, const int rgbw[4]) {
     // Initialize search variables
     int minDist = 999;
     char closestColor = 'U';  // Default to unknown
@@ -127,7 +138,7 @@ void ColorSensor::getColor(int sensorIdx, const int rgbw[4]) {
     
     // Check distance to each color
     for (int c = 0; c < 7; ++c) {
-        int dist = colorDistance(rgbw, cal[c][sensorIdx]);
+        int dist = colorDistance(rgbw, calVals[sensorIdx][c]);
 
         // If closest so far then update
         if (dist < minDist) {
@@ -194,8 +205,7 @@ int ColorSensor::setColorCal(int sensorIdx, char color, const int rgbw[4]) {
     return 0;
 }
 
-int ColorSensor::getColorCal(int sensorIdx, char color, int channel)
-{
+int ColorSensor::getColorCal(int sensorIdx, char color, int channel){
     // Check valid sensor index
     if (sensorIdx < 0 || sensorIdx >= 9){
         return -1;
@@ -209,8 +219,7 @@ int ColorSensor::getColorCal(int sensorIdx, char color, int channel)
     // Get color index
     int colorIdx = colorIndex(color);
 
-    int* target;
-    if(colorIdx > 0 && colorIdx < 7) {
+    if(colorIdx >= 0 && colorIdx < 7) {
         return calVals[sensorIdx][colorIdx][channel];
     }
 
@@ -219,7 +228,10 @@ int ColorSensor::getColorCal(int sensorIdx, char color, int channel)
 
 bool ColorSensor::loadCalibration() {
     // Check if calibration flag exists
-    if (EEPROM.get(eepromFlagAddr) != flagValue) {
+    int flag;
+    EEPROM.get(eepromFlagAddr, flag);
+
+    if (flag != flagValue) {
         return false;
     }
     
@@ -227,7 +239,7 @@ bool ColorSensor::loadCalibration() {
     for (int i = 0; i < 9; i++) {           // For each sensor
         for (int j = 0; j < 7; j++) {       // For each color
             for (int k = 0; k < 4; k++) {   // For each RGBW value
-                calVals[i][j][k] = EEPROM.get(eepromAddr[i][j][k]);
+                EEPROM.get(eepromAddr[i][j][k], calVals[i][j][k]);
             }
         }
     }
@@ -251,11 +263,11 @@ bool ColorSensor::saveCalibration() {
     return true;
 }
 
-void ColorSensor::resetCalibration(int value = 0) {
+void ColorSensor::resetCalibration() {
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 7; j++) {
             for (int k = 0; k < 4; k++) {
-                calVals[i][j][k] = value;
+                calVals[i][j][k] = 0;
             }
         }
     }
