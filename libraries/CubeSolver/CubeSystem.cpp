@@ -125,7 +125,7 @@ int CubeSystem::scanCube(){
             delay(500);
             executeMove("ROTZ");
             ringMiddle();
-            botServoRetract();
+            botServoPartialRetract();
             delay(500);
             executeMove("ROTX");
             botServoExtend();
@@ -342,7 +342,6 @@ int CubeSystem::calibrateColorSensors(){
     botServoExtend();
     ringMiddle();
     delay(500);
-    topServoRetract();
     botServoRetract();
     delay(500);
 
@@ -411,12 +410,22 @@ void CubeSystem::topServoRetract() {
     topServo.retract();
 }
 
+void CubeSystem::topServoPartialRetract()
+{
+    topServo.partialRetract();
+}
+
 void CubeSystem::botServoExtend() {
     botServo.extend();
 }
 
 void CubeSystem::botServoRetract() {
     botServo.retract();
+}
+
+void CubeSystem::botServoPartialRetract()
+{
+    botServo.partialRetract();
 }
 
 void CubeSystem::toggleTopServo() {

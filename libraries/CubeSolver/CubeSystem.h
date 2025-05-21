@@ -26,12 +26,19 @@ public:
     bool checkAlignment();
 
     // Cube Loading Functions
+    // Top Servo Functions
     void topServoExtend();
     void topServoRetract();
+    void topServoPartialRetract();
+    void toggleTopServo();
+
+    // Bot Servo Functions
     void botServoExtend();
     void botServoRetract();
-    void toggleTopServo();
+    void botServoPartialRetract();
     void toggleBotServo();
+
+    // Ring Functions
     void toggleRing();
     void ringExtend();
     void ringMiddle();

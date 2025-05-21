@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <Adafruit_PCF8591.h>
 #include <EEPROM.h>
+#include <RunningMedian.h>
 
 class ColorSensor {
 public:
@@ -40,7 +41,7 @@ private:
     // Scan values
     int scanVals[9][4];
     int numScans = 1;
-    int scanDelay = 500;
+    int scanDelay = 1000;
     int colorTol = 20;
 
     // EEPROM Variables

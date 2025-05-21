@@ -16,8 +16,12 @@ void CubeServo::begin() {
             currentPos = extPos;
             retract(); // Always start in retracted position
             break;
+        case 2: // Partially Retracted
+            currentPos = (extPos + retPos) / 2;
+            retract();
+            break;
         default: // Unknown
-            currentPos = (extPos - retPos) / 2;
+            currentPos = (extPos + retPos) / 2;
             retract();
             extState = 0;
             break;
@@ -35,6 +39,21 @@ void CubeServo::extend() {
 
     // Update state
     extState = 1;
+    updateEEPROM();
+}
+
+void CubeServo::partialRetract(){
+    // Set to unknown state temporarily
+    extState = -1;
+    updateEEPROM();
+
+    // Sweep servo to desired position
+    int partialPos = (retPos+extPos)/2;
+    sweepTo(partialPos);
+    currentPos = partialPos;
+
+    // Update state
+    extState = 2;
     updateEEPROM();
 }
 
