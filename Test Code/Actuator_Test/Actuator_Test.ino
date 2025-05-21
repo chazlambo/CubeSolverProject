@@ -1,6 +1,6 @@
 #include <CubeSystem.h>
 
-CubeSystem Cube;  // Global CubeSystem instance
+CubeSystem Cube;
 bool alignCheck = true;
 
 void setup() {

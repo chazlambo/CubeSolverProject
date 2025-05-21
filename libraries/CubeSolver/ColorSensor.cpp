@@ -148,7 +148,15 @@ char ColorSensor::getColor(int sensorIdx, const int rgbw[4]) {
     }
 
     // If not within tolerance to closest color, return unknown
-    if (minDist > colorTol) return 'U';
+    if (minDist > colorTol){
+        // TODO: DEBUG REMOVE LATER
+        Serial.print("Min Dist: ");
+        Serial.println(minDist);
+        Serial.print("Closest Color: ");
+        Serial.println(closestColor);
+
+        return 'U';
+    } 
     
     return closestColor;
 }
@@ -260,6 +268,7 @@ bool ColorSensor::saveCalibration() {
         }
     }
     
+    EEPROM.put(eepromFlagAddr, flagValue);
     return true;
 }
 

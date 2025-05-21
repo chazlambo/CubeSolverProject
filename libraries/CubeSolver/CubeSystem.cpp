@@ -29,18 +29,9 @@ void CubeSystem::begin() {
     colorSensor1.begin();
     colorSensor2.begin();
 
-    // MOtor Potentiometer Setup
+    // Motor Potentiometer Setup
     for (int i = 0; i < numMotors; i++) {
         MotorPots[i]->begin();
-    }
-
-    Serial.println("Motor Calibration Check:");
-    for (int i = 0; i < 6; i++) {
-        int code = MotorPots[i]->loadCalibration();
-        Serial.print("Motor ");
-        Serial.print(i);
-        Serial.print(": ");
-        Serial.println(code);  // 0 = OK, 1 = flag missing, 2 = value invalid
     }
 
     // Begin Rotary Encoder
@@ -76,6 +67,12 @@ int CubeSystem::scanCube(){
         // Determine face being scanned by each sensor
         char face1 = colorSensor1.getColor(4, colorSensor1.getScanValRow(4));
         char face2 = colorSensor2.getColor(4, colorSensor2.getScanValRow(4));
+
+        // TODO: DEBUG (REMOVE LATER)
+        Serial.print("face1: "); Serial.println(face1);
+        Serial.print("face2: "); Serial.println(face2);
+        
+        
         if (face1 == 'U') return 1;
         if (face2 == 'U') return 2;
 
@@ -92,6 +89,10 @@ int CubeSystem::scanCube(){
             default:  left2 = 'X';  // Invalid
         }
 
+        // TODO: DEBUG (REMOVE LATER)
+        Serial.print("left1: "); Serial.println(left1);
+        Serial.print("left2: "); Serial.println(left2);
+
         // Check for impossible face pairing: opposite faces scanned adjacent
         if (left2 == face2) return 3;
 
@@ -100,6 +101,17 @@ int CubeSystem::scanCube(){
         char face2_colors[9];
         colorSensor1.getFaceColors(face1_colors);
         colorSensor2.getFaceColors(face2_colors);
+
+        // TODO: DEBUG (REMOVE LATER)
+        Serial.print("face1_colors: ");
+        for (int i = 0; i < 9; i++) {
+        Serial.print(face1_colors[i]); Serial.print(' ');
+        }
+        Serial.print("\nface2_colors: ");
+        for (int i = 0; i < 9; i++) {
+        Serial.print(face2_colors[i]); Serial.print(' ');
+        }
+        Serial.println();
 
         // Update virtual cube
         int res1 = virtualCube.setColorArray(face1, face1_colors, left1);

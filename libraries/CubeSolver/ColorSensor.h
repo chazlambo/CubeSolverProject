@@ -39,9 +39,9 @@ private:
 
     // Scan values
     int scanVals[9][4];
-    int numScans = 5;
-    int scanDelay = 10;
-    int colorTol = 30;
+    int numScans = 1;
+    int scanDelay = 500;
+    int colorTol = 20;
 
     // EEPROM Variables
     int eepromFlagAddr;

@@ -57,8 +57,9 @@ void loop() {
         Serial.print("Sensor 2 Flag: ");
         Serial.println(EEPROM.read(colorSensor2EEPROMFlag));
 
+        Serial.println("Color Sensor 1");
         for (int i = 0; i < 9; i++) {
-          Serial.print("Sensor ");
+          Serial.print("1 - Sensor ");
           Serial.print(i);
           Serial.println(":");
 
@@ -79,6 +80,36 @@ void loop() {
             Serial.print(": ");
             for (int k = 0; k < 4; k++) {
               Serial.print(colorSensor1.getColorCal(i, color, k));
+              Serial.print("\t");
+            }
+            Serial.println();
+          }
+          Serial.println();
+        }
+
+        Serial.println("Color Sensor 2");
+        for (int i = 0; i < 9; i++) {
+          Serial.print("2 - Sensor ");
+          Serial.print(i);
+          Serial.println(":");
+
+          for (int c = 0; c < 7; c++) {
+            char color;
+            switch (c) {
+              case 0: color = 'R'; break;
+              case 1: color = 'G'; break;
+              case 2: color = 'B'; break;
+              case 3: color = 'Y'; break;
+              case 4: color = 'O'; break;
+              case 5: color = 'W'; break;
+              case 6: color = 'E'; break;
+            }
+
+            Serial.print("  ");
+            Serial.print(color);
+            Serial.print(": ");
+            for (int k = 0; k < 4; k++) {
+              Serial.print(colorSensor2.getColorCal(i, color, k));
               Serial.print("\t");
             }
             Serial.println();
