@@ -42,13 +42,13 @@ void CubeServo::extend() {
     updateEEPROM();
 }
 
-void CubeServo::partialRetract(){
+void CubeServo::partial(){
     // Set to unknown state temporarily
     extState = -1;
     updateEEPROM();
 
     // Sweep servo to desired position
-    int partialPos = (retPos+extPos)/2;
+    int partialPos = 3*(retPos+extPos)/4;
     sweepTo(partialPos);
     currentPos = partialPos;
 

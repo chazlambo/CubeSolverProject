@@ -125,7 +125,7 @@ int CubeSystem::scanCube(){
             delay(500);
             executeMove("ROTZ");
             ringMiddle();
-            botServoPartialRetract();
+            botServoPartial();
             delay(500);
             executeMove("ROTX");
             botServoExtend();
@@ -325,7 +325,7 @@ int CubeSystem::calibrateColorSensors(){
 
         // Rotate cube orientation (skip last time)
         if (rot < 3) {
-            botServoExtend();
+            botServoPartial();
             //topServoExtend();
             delay(500);
             executeMove("ROTZ");
@@ -410,9 +410,9 @@ void CubeSystem::topServoRetract() {
     topServo.retract();
 }
 
-void CubeSystem::topServoPartialRetract()
+void CubeSystem::topServoPartial()
 {
-    topServo.partialRetract();
+    topServo.partial();
 }
 
 void CubeSystem::botServoExtend() {
@@ -423,9 +423,9 @@ void CubeSystem::botServoRetract() {
     botServo.retract();
 }
 
-void CubeSystem::botServoPartialRetract()
+void CubeSystem::botServoPartial()
 {
-    botServo.partialRetract();
+    botServo.partial();
 }
 
 void CubeSystem::toggleTopServo() {

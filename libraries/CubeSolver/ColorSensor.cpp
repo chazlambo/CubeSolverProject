@@ -74,7 +74,18 @@ void ColorSensor::setLED(char color) {
 }
 
 void ColorSensor::scanFace() {
-    int rgbw[9][4] = {0};
+    RunningMedian filter[9][4] = {
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)}
+      };
+      
     int channel = 0;
 
     // Scan each channel numScans times
@@ -86,9 +97,10 @@ void ColorSensor::scanFace() {
             setLED(ch);
             delay(scanDelay);
 
-            // Add value to channel (sum will be averaged later)
+            // Add value to filter
             for (int j = 0; j < 9; ++j) {
-                rgbw[j][channel] += readADC(j);
+                int reading = readADC(j);
+                filter[j][channel].add(reading);
             }
 
             // Update channel variable
@@ -100,10 +112,8 @@ void ColorSensor::scanFace() {
 
     // Average scan values and save
     for (int j = 0; j < 9; ++j) {
-        int averaged[4];
         for (int k = 0; k < 4; ++k) {
-            averaged[k] = rgbw[j][k] / numScans;
-            scanVals[j][k] = averaged[k];
+            scanVals[j][k] = filter[j][k].getMedian();
         }
     }
 }

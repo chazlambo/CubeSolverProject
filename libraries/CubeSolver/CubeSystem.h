@@ -29,13 +29,13 @@ public:
     // Top Servo Functions
     void topServoExtend();
     void topServoRetract();
-    void topServoPartialRetract();
+    void topServoPartial();
     void toggleTopServo();
 
     // Bot Servo Functions
     void botServoExtend();
     void botServoRetract();
-    void botServoPartialRetract();
+    void botServoPartial();
     void toggleBotServo();
 
     // Ring Functions

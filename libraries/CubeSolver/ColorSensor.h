@@ -40,8 +40,8 @@ private:
 
     // Scan values
     int scanVals[9][4];
-    int numScans = 1;
-    int scanDelay = 1000;
+    int numScans = 10;
+    int scanDelay = 20;
     int colorTol = 20;
 
     // EEPROM Variables

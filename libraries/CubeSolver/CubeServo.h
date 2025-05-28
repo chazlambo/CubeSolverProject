@@ -15,7 +15,7 @@ public:
 
     void begin();      // Call in setup
     void extend();     // Move to extended position
-    void partialRetract();  // TO DO IMPLEMENT LATER
+    void partial();  // TO DO IMPLEMENT LATER
     void retract();    // Move to retracted position
     void toggle();     // Toggle between extended/retracted
     bool isExtended(); // Returns true if extended
