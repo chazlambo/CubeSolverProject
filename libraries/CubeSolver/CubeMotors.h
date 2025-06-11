@@ -74,6 +74,7 @@ private:
     int ringStepSpeed = 800;
     int ringStepAccel = 400;
     int ringRetPos = 0;
+    int ringPartialPos = 200;
     int ringHalfPos = 450;
     int ringExtPos = 800;
     int ringState = 0;

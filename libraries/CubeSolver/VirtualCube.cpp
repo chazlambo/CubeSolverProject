@@ -952,6 +952,59 @@ int VirtualCube::rebuildFromCubeArray() {
   return 0;
 }
 
+int VirtualCube::splitSolveString(String input, char delimiter, String output[]){
+  // Splits solve string into array of substrings
+  // Inputs:
+  //  1 - input: solve string to be split apart
+  //  2 - delimiter: character used to separate moves in solve string
+  //  3 - output: Placeholder to be poplulated by move substrings
+  // Outputs:
+  //  tokenCount: The number of moves in solution
+
+  int tokenIndex = 0;
+  int tokenCount = 0;
+  while (tokenIndex >= 0) {
+    tokenIndex = input.indexOf(delimiter);
+    if (tokenIndex >= 0) {
+      output[tokenCount] = input.substring(0, tokenIndex);
+      input = input.substring(tokenIndex + 1);
+      tokenCount++;
+    }
+  }
+  if (input.length() > 0) {
+    output[tokenCount] = input;
+    tokenCount++;
+  }
+  return tokenCount;
+}
+
+int VirtualCube::solveCube(String moves[], int maxMoves){
+  // Uses Kociemba algorithm to get moves to solve cube
+  // Inputs:
+  //  1 - String moves[]: String that will be populated with moves to solve
+  //  2 - int maxMoves: Maximum number of moves allowed before exiting and failing
+  // Outputs:
+  //  0 - Success
+  //  1 - Cube is not ready
+  //  2 - Solution not found
+
+    // Solve using Kociemba
+    const char* sol;
+    sol = kociemba::solve(myCube.cubeArray);
+    if (sol == nullptr) {
+      return 2;
+    }
+
+    // Break solution string into substrings of moves
+    int moveCount = splitString(sol, ' ', moves);
+
+
+    if (!cubeReady) return 1;  // Make sure the cube has been built
+
+
+    return 0;  // Success
+}
+
 int VirtualCube::rotOrientAll(char tempCubeArray[]) {
   // Takes an unoriented and rotates it until it matches the correct orientation
   // Outputs: 0 - Found Solution
@@ -2007,3 +2060,4 @@ int VirtualCube::executeMove(const String &move) {
 
   return 0;
 }
+

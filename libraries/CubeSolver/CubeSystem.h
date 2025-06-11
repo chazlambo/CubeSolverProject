@@ -25,6 +25,11 @@ public:
     int executeMove(const String& move, bool moveVirtual = false, bool align = false);
     bool checkAlignment();
 
+    // Main Solving Functions
+    void clearSolution();
+    int solveVirtual();
+    int executeSolve();
+
     // Cube Loading Functions
     // Top Servo Functions
     void topServoExtend();
@@ -41,6 +46,7 @@ public:
     // Ring Functions
     void toggleRing();
     void ringExtend();
+    void ringPartial();
     void ringMiddle();
     void ringRetract();
 
@@ -60,6 +66,11 @@ private:
     unsigned long timeout = 5000;
     int motorHomeState;
     int motorAlignmentTol = 1;
+
+    // Solution String
+    solutionLength = 0;
+    int maxMoves = 50;
+    String solveMoves[maxMoves];
     
 };
 

@@ -53,6 +53,9 @@ int CubeSystem::scanCube(){
     //  3 - Opposite faces scanned next to eachother (scan error)
     //  1X - Sensor 1 failed to set color array
     //  2X - Sensor 2 failed to set color array
+    //  3X - Failed to set orientation
+    //  4X - Failed to build unoriented cube array
+    //  5X - Failed to build cube array
 
     // Reset the virtual cube before scanning
     virtualCube.resetCube();
@@ -122,19 +125,33 @@ int CubeSystem::scanCube(){
         // Rotate the cube to next scanning orientation
         if (i < 2) {
             botServoExtend();
-            delay(500);
+            delay(200);
             executeMove("ROTZ");
             ringMiddle();
             botServoPartial();
-            delay(500);
+            delay(200);
             executeMove("ROTX");
             botServoExtend();
-            delay(500);
-            ringRetract();
+            delay(200);
+            ringPartial();
             botServoRetract();
-            delay(500);
+            delay(200);
         }
     }
+
+    // Set Orientation of Cube
+    char leftColor = face1;
+    char backColor = face2;
+    int e = virtualCube.setOrientation(leftClr, backClr);
+    if (e)   return 30 + e;
+
+    // Build Unoriented Cube Array
+    int e = virtualCube.buildUnorientedCubeArray();
+    if (e)   return 40 + e;
+
+    // Build Cube Array
+    e = virtualCube.buildCubeArray();
+    if (e)   return 50 + e;
 
     return 0; // Success
 }
@@ -444,6 +461,10 @@ void CubeSystem::ringExtend() {
     cubeMotors.ringMove(2);
 }
 
+void CubeSystem::ringPartial(){
+    cubeMotors.ringMove(3);
+}
+
 void CubeSystem::ringMiddle() {
     cubeMotors.ringMove(1);
 }
@@ -504,4 +525,62 @@ bool CubeSystem::checkAlignment()
     }
 
     return true;
+}
+
+void CubeSystem::clearSolution(){
+    // Resets the class solution string
+    solutionLength = 0;
+    for (int i = 0; i < kMaxSolutionMoves; ++i) {
+        solution[i] = "";
+    }
+}
+
+int CubeSystem::solveVirtual(){
+    // Updates the solution for the current state of the cube
+    // Outputs:
+    //  0 - Success
+    //  1X - Virtual Cube Solve Error
+
+    // Clear current solution
+    clearSolution();
+
+    // Solve Cube
+    int status = virtualCube.solveCube(solveMoves, maxMoves);
+    if(status){
+        clearSolution();
+        return 10 + status;
+    }
+
+    // Get number of moves
+    solutionLength = moves.size();
+
+    return 0;
+}
+
+int CubeSystem::executeSolve(){
+    // If the cube has been solved for, executes moves to solve it
+    // Outputs:
+    //  0 - Success
+    //  1 - Cube is not ready
+    //  2 - No solution
+    //  1XX - 
+
+    // Ensure the virtual cube is ready
+    if (!virtualCube.isReady()) {
+        return 1; // Cube not ready
+    }
+
+    // Check for empty solution
+    if (solutionLength == 0 || solveMoves[0].length() == 0) {
+        return 2; // No moves found
+    }
+
+    // Execute each move
+    for (int i = 0; i < moveCount; i++) {
+        int e = 0;
+        e = executeMove(moves[i], 1, 1);
+        if (e) return 100+e;
+    }
+    
+    return 0;
 }

@@ -70,6 +70,9 @@ void CubeMotors::ringMove(int state) {
         case 2:     // Extended
             newPos = ringExtPos;
             break;
+        case 3:     // Partially between retracted and halfway
+            newPos = ringPartialPos;
+            break;
         default:
             return;
     }
@@ -220,6 +223,12 @@ void CubeMotors::initRingStepper(AccelStepper &ringStep) {// Initialize Ring Pos
       ringStep.setCurrentPosition(ringPos);
       ringMove(0);
       break;
+
+    case 3:     // Partial Retract (Between retracted and halfway)
+        ringPos = ringPartialPos;
+        ringStep.setCurrentPosition(ringPos);
+        ringMove(0);
+        break;
 
     default:
         ringState = -1;

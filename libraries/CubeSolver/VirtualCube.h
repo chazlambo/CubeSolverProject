@@ -3,6 +3,7 @@
 #define VirtualCube_h
 
 #include <Arduino.h>
+#include <kociemba.h>
 #include "string.h"
 
 class VirtualCube
@@ -42,9 +43,11 @@ private:
     bool cubeBuilt = 0;
     bool cubeReady = 0;
 
+    // Cube Arrays
     char unorientedCubeArray[54];
     char cubeArray[54];
     char colorCubeArray[54];
+
 public:
     VirtualCube();
     bool isReady();
@@ -56,6 +59,10 @@ public:
     int buildUnorientedCubeArray();
     int buildCubeArray();
     int rebuildFromCubeArray(); // UNFINISHED NEEDS DEBUGGING
+
+    // Get Solution
+    int splitSolveString(String input, char delimiter, String output[]);
+    int solveCube(String moves[], int maxMoves);
 
     // Movement functions
     int executeMove(const String &moveString);
@@ -73,6 +80,7 @@ private:
     int rotOrientAll(char tempCubeArr[]);
 
     // Move functions
+    int executeMove(const String &moveString);
     int rotU(int turns);
     int rotR(int turns);
     int rotF(int turns);
