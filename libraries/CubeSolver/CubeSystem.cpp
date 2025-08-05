@@ -10,13 +10,9 @@ void CubeSystem::begin() {
     // Power Setup
     pinMode(POWPIN, INPUT);
 
-    // IDC Setup
+    // I2C Setup
     Wire.begin();
 
-    // Initialize ADC modules
-    for (int i = 0; i < 6; i++) {
-        ADC[i]->begin(ADC_ADDRESS[i]);
-    }
 
     // Motor Setup
     cubeMotors.begin();
@@ -29,9 +25,14 @@ void CubeSystem::begin() {
     colorSensor1.begin();
     colorSensor2.begin();
 
-    // Motor Potentiometer Setup
-    for (int i = 0; i < numMotors; i++) {
-        MotorPots[i]->begin();
+    // Motor Encoder Setup
+    encoderMux.begin();                  // Begins I2C Mux for encoders
+    for (int i = 0; i < 7; ++i) {
+        int rc = MotorEncoders[i]->begin();
+        if (rc != 0) {
+            Serial.print("MotorEncoder "); Serial.print(i);
+            Serial.print(" begin() failed rc="); Serial.println(rc);
+        }
     }
 
     // Begin Rotary Encoder
@@ -62,6 +63,9 @@ int CubeSystem::scanCube(){
 
     // Move and scan the cube
     // Scan order is [L, B], [U, F], [D, R]
+    char lastface1 = 'X';
+    char lastface2 = 'X';
+
     for (int i = 0; i < 3; i++) {
         // Scan Sensors
         colorSensor1.scanFace();
@@ -70,6 +74,7 @@ int CubeSystem::scanCube(){
         // Determine face being scanned by each sensor
         char face1 = colorSensor1.getColor(4, colorSensor1.getScanValRow(4));
         char face2 = colorSensor2.getColor(4, colorSensor2.getScanValRow(4));
+        lastFace1 = face1; lastFace2 = face2;
 
         // TODO: DEBUG (REMOVE LATER)
         Serial.print("face1: "); Serial.println(face1);
@@ -140,13 +145,13 @@ int CubeSystem::scanCube(){
     }
 
     // Set Orientation of Cube
-    char leftColor = face1;
-    char backColor = face2;
-    int e = virtualCube.setOrientation(leftClr, backClr);
+    char leftColor = lastface1;
+    char backColor = lastface2;
+    int e = virtualCube.setOrientation(leftColor, backColor);
     if (e)   return 30 + e;
 
     // Build Unoriented Cube Array
-    int e = virtualCube.buildUnorientedCubeArray();
+    e = virtualCube.buildUnorientedCubeArray();
     if (e)   return 40 + e;
 
     // Build Cube Array
@@ -161,9 +166,9 @@ bool CubeSystem::powerCheck() {
 }
 
 bool CubeSystem::getMotorCalibration() {
-    // Returns if motor potentiometers are calibrated
+    // Returns if motor encoders are calibrated
     for (int i = 0; i < numMotors; i++) {
-        if (MotorPots[i]->loadCalibration() != 0) return false;
+        if (MotorEncoders[i]->loadCalibration() != 0) return false;
     }
     return true;
 }
@@ -175,7 +180,7 @@ int CubeSystem::calibrateMotorRotations(){
 
     // Scan current position
     for (int i = 0; i < numMotors; i++) {
-        rawVals[i][0] = MotorPots[i]->scan();
+        rawVals[i][0] = MotorEncoders[i]->scan();
     }
 
     // Rotate and scan 3 more times
@@ -183,7 +188,7 @@ int CubeSystem::calibrateMotorRotations(){
         executeMove("ALL");
 
         for (int i = 0; i < numMotors; i++) {
-            rawVals[i][step] = MotorPots[i]->scan();
+            rawVals[i][step] = MotorEncoders[i]->scan();
         }
     }
     executeMove("ALL"); // Return to original position
@@ -201,13 +206,13 @@ int CubeSystem::calibrateMotorRotations(){
             rawVals[i][0]   
         };
 
-        // Write into MotorPot
+        // Write into MotorEncoders
         for (int j = 0; j < 4; j++) {
-            MotorPots[i]->setCalibration(j, reordered[j]);
+            MotorEncoders[i]->setCalibration(j, reordered[j]);
         }
 
         // Write calibrated values to EEPROM
-        MotorPots[i]->saveCalibration();
+        MotorEncoders[i]->saveCalibration();
     }
 
     return 0;
@@ -240,16 +245,16 @@ int CubeSystem::homeMotors() {
         // Check each motor
         for (int i = 0; i < numMotors; i++) {
 
-            // Update potentiometer values
-            int currentVal = MotorPots[i]->scan();
+            // Update encoder values
+            int currentVal = MotorEncoders[i]->scan();
 
             // Find the closest of the 4 calibration values to move to
-            int minDiff = 256;
-            int targetVal = MotorPots[i]->getCalibration(0);
+            int minDiff = 4096;
+            int targetVal = MotorEncoders[i]->getCalibration(0);
             for (int j = 0; j < 4; j++) {
-                int calVal = MotorPots[i]->getCalibration(j);
+                int calVal = MotorEncoders[i]->getCalibration(j);
                 int diff = abs(currentVal - calVal);
-                if (diff > 128) diff = 256 - diff;  // Account for wraparound
+                if (diff > 2048) diff = 4096  - diff;  // Account for wraparound
 
                 if (diff < minDiff) {
                     minDiff = diff;
@@ -508,11 +513,11 @@ bool CubeSystem::checkAlignment()
     // Returns true if aligned
     // Returns false if one or more motors is misaligned
     for (int i = 0; i < numMotors; i++) {
-        int currentVal = MotorPots[i]->scan();
+        int currentVal = MotorEncoders[i]->scan();
         bool aligned = false;
 
         for (int j = 0; j < 4; j++) {
-            int calVal = MotorPots[i]->getCalibration(j);
+            int calVal = MotorEncoders[i]->getCalibration(j);
             if (abs(currentVal - calVal) <= motorAlignmentTol) {
                 aligned = true;
                 break;

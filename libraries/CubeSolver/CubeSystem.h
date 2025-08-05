@@ -51,7 +51,7 @@ public:
     void ringRetract();
 
 private:
-    bool powerCheck();           // Reads POWPIN
+    bool powerCheck();
 
 public:
     int numMotors = 6;
@@ -65,10 +65,10 @@ private:
     int stepSize = 1;
     unsigned long timeout = 5000;
     int motorHomeState;
-    int motorAlignmentTol = 1;
+    int motorAlignmentTol = 6;
 
     // Solution String
-    solutionLength = 0;
+    int solutionLength = 0;
     int maxMoves = 50;
     String solveMoves[maxMoves];
     

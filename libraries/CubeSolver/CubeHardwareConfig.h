@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <Wire.h>
-#include <Adafruit_PCF8591.h>
+#include <Adafruit_TCA9548A.h>
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <PWMServo.h>
@@ -15,7 +15,7 @@
 // Custom Includes
 #include "CubeMotors.h"
 #include "CubeServo.h"
-#include "MotorPot.h"
+#include "MotorEncoder.h"
 #include "ColorSensor.h"
 #include "RotaryEncoder.h"
 #include "VirtualCube.h"
@@ -29,25 +29,23 @@ extern const int baudRate;
 // ================ Power Setup ================
 extern const int POWPIN;    
 
-// ================ ADC Module Setup ================
-extern const int ADC_ADDRESS[6];
-extern Adafruit_PCF8591 ADC1, ADC2, ADC3, ADC4, ADC5, ADC6;
-extern Adafruit_PCF8591* ADC[6];
+// ================ I2C Multiplexer Setup ================
+extern Adafruit_TCA9548A encoderMux;
+extern Adafruit_TCA9548A color1Mux1;
+extern Adafruit_TCA9548A color1Mux2;
+extern Adafruit_TCA9548A color2Mux1;
+extern Adafruit_TCA9548A color2Mux2;
 
-// ================ Motor Potentiometer Setup ================
-extern const int numMotors;
 
-// Pins
-extern const int potADCPin[6];
+// ================ Motor Encoder Setup ================
 
 // Initialize EEPROM Addresses
 extern int motorCalFlagAddress;
-extern int motorCalStartAddress;
-extern int motorCalAddresses[6][4];
+extern int motorCalAddresses[7][4];
 
-// Create MotorPot Objects
-extern MotorPot motU, motR, motF, motD, motL, motB;
-extern MotorPot* MotorPots[6];
+// Create Motor Encoder Objects
+extern MotorEncoder motU, motR, motF, motD, motL, motB, motRing;
+extern MotorEncoder* MotorEncoders[7];
 
 // ================ Motor Setup ================
 
@@ -79,10 +77,6 @@ extern int topServoEEPROMAddress, botServoEEPROMAddress;
 extern CubeServo topServo, botServo;
 
 // ================ Color Sensor Setup ================
-
-// ADC Pointer Arrays
-extern Adafruit_PCF8591* adcPtrs1[9];
-extern Adafruit_PCF8591* adcPtrs2[9];
 
 // Pins
 extern int ledPins1[3], ledPins2[3];

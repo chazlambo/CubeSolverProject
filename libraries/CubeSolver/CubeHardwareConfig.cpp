@@ -10,7 +10,7 @@ struct _EEPROMInit {
 
 int motorCalFlagAddress;
 int motorCalStartAddress;
-int motorCalAddresses[6][4];
+int motorCalAddresses[7][4];
 int ringStateEEPROMAddress;
 int topServoEEPROMAddress;
 int botServoEEPROMAddress;
@@ -23,28 +23,20 @@ int colorSensor2EEPROMAddress;
  // ================ Power Setup ================
  const int POWPIN = 23;  
 
-// ================ ADC Module Setup ================
-const int ADC_ADDRESS[6] = {0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D};
-Adafruit_PCF8591 ADC1 = Adafruit_PCF8591();
-Adafruit_PCF8591 ADC2 = Adafruit_PCF8591();
-Adafruit_PCF8591 ADC3 = Adafruit_PCF8591();
-Adafruit_PCF8591 ADC4 = Adafruit_PCF8591();
-Adafruit_PCF8591 ADC5 = Adafruit_PCF8591();
-Adafruit_PCF8591 ADC6 = Adafruit_PCF8591();
-Adafruit_PCF8591* ADC[] = {&ADC1, &ADC2, &ADC3, &ADC4, &ADC5, &ADC6};
+// ================ Motor Encoder Setup ================
 
-// ================ Motor Potentiometer Setup ================
-const int numMotors = 6;
-const int potADCPin[6] = {3, 2, 1, 0, 1, 2};
+// Create Motor Encoder Multiplexer
+Adafruit_TCA9548A encoderMux;
 
-// Create MotorPot Objects
-MotorPot motU(ADC_ADDRESS[2], potADCPin[0], motorCalFlagAddress, motorCalAddresses[0], ADC[2]);
-MotorPot motR(ADC_ADDRESS[2], potADCPin[1], motorCalFlagAddress, motorCalAddresses[1], ADC[2]);
-MotorPot motF(ADC_ADDRESS[2], potADCPin[2], motorCalFlagAddress, motorCalAddresses[2], ADC[2]);
-MotorPot motD(ADC_ADDRESS[5], potADCPin[3], motorCalFlagAddress, motorCalAddresses[3], ADC[5]);
-MotorPot motL(ADC_ADDRESS[5], potADCPin[4], motorCalFlagAddress, motorCalAddresses[4], ADC[5]);
-MotorPot motB(ADC_ADDRESS[5], potADCPin[5], motorCalFlagAddress, motorCalAddresses[5], ADC[5]);
-MotorPot* MotorPots[] = {&motU, &motR, &motF, &motD, &motL, &motB};
+// Create MotorEncoder Objects
+MotorEncoder motU(0, motorCalFlagAddress, motorCalAddresses[0], &encoderMux);
+MotorEncoder motR(1, motorCalFlagAddress, motorCalAddresses[1], &encoderMux);
+MotorEncoder motF(2, motorCalFlagAddress, motorCalAddresses[2], &encoderMux);
+MotorEncoder motD(3, motorCalFlagAddress, motorCalAddresses[3], &encoderMux);
+MotorEncoder motL(4, motorCalFlagAddress, motorCalAddresses[4], &encoderMux);
+MotorEncoder motB(5, motorCalFlagAddress, motorCalAddresses[5], &encoderMux);
+MotorEncoder motRing(6, motorCalFlagAddress, motorCalAddresses[6], &encoderMux);
+MotorEncoder* MotorEncoders[] = {&motU, &motR, &motF, &motD, &motL, &motB, &motRing};
 
 // ================ Motor Setup ================
 
@@ -158,11 +150,8 @@ void initializeEEPROMLayout(int startAddress) {
     // Motor Potentiometer Calibration EEPROM
     motorCalFlagAddress = addr;
     addr += sizeof(int);
-
-    motorCalStartAddress = addr;
-    addr += sizeof(int);
     
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         for (int j = 0; j < 4; j++) {
             motorCalAddresses[i][j] = addr;
             addr += sizeof(int);
