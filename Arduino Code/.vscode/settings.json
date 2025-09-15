@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "ostream": "cpp",
+        "map": "cpp",
+        "iosfwd": "cpp",
+        "xlocbuf": "cpp",
+        "algorithm": "cpp",
+        "ios": "cpp",
+        "type_traits": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp"
+    }
+}

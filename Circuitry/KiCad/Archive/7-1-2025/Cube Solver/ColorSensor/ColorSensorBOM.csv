@@ -1,0 +1,12 @@
+"Id";"Designator";"Footprint";"Quantity";"Designation";"Supplier and ref";
+1;"R10,R19,R13,R1,R16,R25,R22,R7,R4";"R_0805_2012Metric";9;"470R";;;
+2;"Q1,Q6,Q8,Q5,Q3,Q2,Q9,Q4,Q7";"LED_D5.0mm_Clear";9;"PT334-6C";;;
+3;"R34,R30,R35,R32,R36,R38,R33,R31,R37";"R_0805_2012Metric";9;"100kR";;;
+4;"R3,R27,R6,R20,R9,R17,R8,R21,R11,R24,R23,R12,R15,R2,R5,R26,R14,R18";"R_0805_2012Metric";18;"430R";;;
+5;"J4";"JST_XH_B5B-XH-A_1x05_P2.50mm_Vertical";1;"Color Out 2";;;
+6;"Q12,Q10,Q11";"TO-92_Inline";3;"PN2222A";;;
+7;"D4,D6,D5,D8,D3,D7,D2,D9,D1";"LED_D5.0mm-RKGB";9;"LED_KRGB";;;
+8;"R28,R29,R39";"R_0805_2012Metric";3;"1kR";;;
+9;"J2";"JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical";1;"Power";;;
+10;"J3";"JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical";1;"Color Out 1";;;
+11;"J1";"JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical";1;"Color Pins";;;

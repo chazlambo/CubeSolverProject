@@ -1,0 +1,195 @@
+(footprint "VISHAY_VEML6040_1.25X2X1"
+	(version 20240108)
+	(generator "pcbnew")
+	(generator_version "8.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0.173093 -1.872017 0)
+		(layer "F.SilkS")
+		(uuid "aabb353a-11c2-46f2-acba-7e88ff8a92f8")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "VISHAY_VEML6040_1.25X2X1"
+		(at 7.414534 1.872654 0)
+		(layer "F.Fab")
+		(uuid "70ea28ef-ba22-4837-900d-c2bb71569bfe")
+		(effects
+			(font
+				(size 0.600529 0.600529)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Footprint" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "dd1c12c1-ca9e-4b95-9a1e-86b5cc52abc0")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "a3fe6f89-f698-49f4-b96b-d0f6c6a6da07")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "ca1c2094-534f-48ce-960a-b6276133f519")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr smd)
+	(fp_circle
+		(center -2.2 -0.45)
+		(end -2.15 -0.45)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(fill none)
+		(layer "F.SilkS")
+		(uuid "04771fc2-f99f-4600-a92a-50573b695c6e")
+	)
+	(fp_line
+		(start -1.8 -0.9)
+		(end 1.8 -0.9)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "3663f120-1aa2-4546-b0ab-ee53dc6dd0b8")
+	)
+	(fp_line
+		(start -1.8 0.8)
+		(end -1.8 -0.9)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "32c18fa3-d7b1-409e-b315-eedfad3d7b39")
+	)
+	(fp_line
+		(start 1.8 -0.9)
+		(end 1.8 0.8)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "b3e23964-bf57-4cbf-b657-aa1de7728fd3")
+	)
+	(fp_line
+		(start 1.8 0.8)
+		(end -1.8 0.8)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "99aca0d9-6656-41b8-8cc7-806dfc924547")
+	)
+	(fp_line
+		(start -1 -0.625)
+		(end 1 -0.625)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "c12b7697-daa0-457d-a3ea-7c2ff2dbf422")
+	)
+	(fp_line
+		(start -1 0.625)
+		(end -1 -0.625)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "2d65fe53-d9e4-4bc7-b628-df23ec5f1cbf")
+	)
+	(fp_line
+		(start 1 -0.625)
+		(end 1 0.625)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "5df62870-3958-47b0-9984-61f09f09152a")
+	)
+	(fp_line
+		(start 1 0.625)
+		(end -1 0.625)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "30afaef4-6a56-4d49-95ca-99c00db08332")
+	)
+	(pad "1" smd rect
+		(at -0.95 -0.35)
+		(size 0.9 0.35)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(solder_mask_margin 0.102)
+		(uuid "ee613b74-c094-42d8-887c-810866c19247")
+	)
+	(pad "2" smd rect
+		(at -0.95 0.35)
+		(size 0.9 0.35)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(solder_mask_margin 0.102)
+		(uuid "9dfdb204-b6bf-4c06-9f2e-29e9e45d1cef")
+	)
+	(pad "3" smd rect
+		(at 0.9 0.35)
+		(size 1 0.35)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(solder_mask_margin 0.102)
+		(uuid "9ebab59b-6140-4bbb-8c16-fa1b0bed136e")
+	)
+	(pad "4" smd rect
+		(at 0.95 -0.35)
+		(size 0.9 0.35)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(solder_mask_margin 0.102)
+		(uuid "8edc3284-86b9-48ab-9a84-c118e783e1d7")
+	)
+	(model "C:/Users/charl/OneDrive/Documents/Projects/Cube Solver Project/Circuitry/KiCad/CubeSolverLibraries/3dmodels/VEML6040.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

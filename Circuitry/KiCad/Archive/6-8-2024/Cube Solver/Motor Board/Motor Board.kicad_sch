@@ -1,0 +1,9191 @@
+(kicad_sch
+	(version 20231120)
+	(generator "eeschema")
+	(generator_version "8.0")
+	(uuid "86e99f28-168c-43be-9ce7-30322976128a")
+	(paper "B" portrait)
+	(title_block
+		(title "Rubik's Cube Motor Driver Board")
+		(date "5/23/24")
+		(rev "A")
+		(company "Designed by Charlie Lambert")
+		(comment 1 "Motor Driver baord for Rubik's Cube Solving Machine")
+	)
+	(lib_symbols
+		(symbol "Conn_01x08_1"
+			(pin_names
+				(offset 1.016)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "J16"
+				(at 0 8.89 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Value" "Driver Input 1"
+				(at 0 11.43 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Generic connector, single row, 01x08, script generated (kicad-library-utils/schlib/autogen/connector/)"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "connector"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "Connector*:*_1x??_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "Conn_01x08_1_1_1"
+				(rectangle
+					(start -1.27 -10.033)
+					(end 0 -10.287)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -7.493)
+					(end 0 -7.747)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -4.953)
+					(end 0 -5.207)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -2.413)
+					(end 0 -2.667)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 0.127)
+					(end 0 -0.127)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 2.667)
+					(end 0 2.413)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 5.207)
+					(end 0 4.953)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 7.747)
+					(end 0 7.493)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 8.89)
+					(end 7.62 -11.43)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin passive line
+					(at -5.08 7.62 0)
+					(length 3.81)
+					(name "3v3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 5.08 0)
+					(length 3.81)
+					(name "EN"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 2.54 0)
+					(length 3.81)
+					(name "U_Dir"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 0 0)
+					(length 3.81)
+					(name "U_Step"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -2.54 0)
+					(length 3.81)
+					(name "R_Dir"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -5.08 0)
+					(length 3.81)
+					(name "R_Step"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -7.62 0)
+					(length 3.81)
+					(name "F_Dir"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -10.16 0)
+					(length 3.81)
+					(name "F_Step"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
+		(symbol "Connector_Generic:Conn_01x02"
+			(pin_numbers hide)
+			(pin_names
+				(offset 1.016)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "J1"
+				(at 0 8.89 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Value" "Power Input	"
+				(at 0 3.81 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "connector"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "Connector*:*_1x??_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "Conn_01x02_1_1"
+				(rectangle
+					(start -1.27 -2.413)
+					(end 0 -2.667)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 0.127)
+					(end 0 -0.127)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 1.27)
+					(end 3.81 -3.81)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin passive line
+					(at -5.08 0 0)
+					(length 3.81)
+					(name "24V"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -2.54 0)
+					(length 3.81)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
+		(symbol "Connector_Generic:Conn_01x04"
+			(pin_names
+				(offset 1.016) hide)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "J"
+				(at 0 5.08 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Conn_01x04"
+				(at 0 -7.62 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "connector"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "Connector*:*_1x??_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "Conn_01x04_1_1"
+				(rectangle
+					(start -1.27 -4.953)
+					(end 0 -5.207)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -2.413)
+					(end 0 -2.667)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 0.127)
+					(end 0 -0.127)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 2.667)
+					(end 0 2.413)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 3.81)
+					(end 1.27 -6.35)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin passive line
+					(at -5.08 2.54 0)
+					(length 3.81)
+					(name "Pin_1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 0 0)
+					(length 3.81)
+					(name "Pin_2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -2.54 0)
+					(length 3.81)
+					(name "Pin_3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -5.08 0)
+					(length 3.81)
+					(name "Pin_4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
+		(symbol "Connector_Generic:Conn_01x08"
+			(pin_names
+				(offset 1.016)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "J17"
+				(at 0 8.89 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Value" "Driver Input 2"
+				(at 0 11.43 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Generic connector, single row, 01x08, script generated (kicad-library-utils/schlib/autogen/connector/)"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "connector"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "Connector*:*_1x??_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "Conn_01x08_1_1"
+				(rectangle
+					(start -1.27 -10.033)
+					(end 0 -10.287)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -7.493)
+					(end 0 -7.747)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -4.953)
+					(end 0 -5.207)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -2.413)
+					(end 0 -2.667)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 0.127)
+					(end 0 -0.127)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 2.667)
+					(end 0 2.413)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 5.207)
+					(end 0 4.953)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 7.747)
+					(end 0 7.493)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 8.89)
+					(end 7.62 -11.43)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin passive line
+					(at -5.08 7.62 0)
+					(length 3.81)
+					(name "D_Dir"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 5.08 0)
+					(length 3.81)
+					(name "D_Step"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 2.54 0)
+					(length 3.81)
+					(name "L_Dir"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 0 0)
+					(length 3.81)
+					(name "L_Step"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -2.54 0)
+					(length 3.81)
+					(name "B_Dir"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -5.08 0)
+					(length 3.81)
+					(name "B_Step"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -7.62 0)
+					(length 3.81)
+					(name "O-Dir"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -10.16 0)
+					(length 3.81)
+					(name "O-Step"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
+		(symbol "Device:C"
+			(pin_numbers hide)
+			(pin_names
+				(offset 0.254)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "C"
+				(at 0.635 2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "C"
+				(at 0.635 -2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Footprint" ""
+				(at 0.9652 -3.81 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Unpolarized capacitor"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "cap capacitor"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "C_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "C_0_1"
+				(polyline
+					(pts
+						(xy -2.032 -0.762) (xy 2.032 -0.762)
+					)
+					(stroke
+						(width 0.508)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -2.032 0.762) (xy 2.032 0.762)
+					)
+					(stroke
+						(width 0.508)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "C_1_1"
+				(pin passive line
+					(at 0 3.81 270)
+					(length 2.794)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 0 -3.81 90)
+					(length 2.794)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
+		(symbol "Device:LED"
+			(pin_numbers hide)
+			(pin_names
+				(offset 1.016) hide)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "D"
+				(at 0 2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "LED"
+				(at 0 -2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Light emitting diode"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "LED diode"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "LED* LED_SMD:* LED_THT:*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "LED_0_1"
+				(polyline
+					(pts
+						(xy -1.27 -1.27) (xy -1.27 1.27)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.27 0) (xy 1.27 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -3.048 -0.762) (xy -4.572 -2.286) (xy -3.81 -2.286) (xy -4.572 -2.286) (xy -4.572 -1.524)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.778 -0.762) (xy -3.302 -2.286) (xy -2.54 -2.286) (xy -3.302 -2.286) (xy -3.302 -1.524)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "LED_1_1"
+				(pin passive line
+					(at -3.81 0 0)
+					(length 2.54)
+					(name "K"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 3.81 0 180)
+					(length 2.54)
+					(name "A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
+		(symbol "Device:R"
+			(pin_numbers hide)
+			(pin_names
+				(offset 0)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "R"
+				(at 2.032 0 90)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "R"
+				(at 0 0 90)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at -1.778 0 90)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Resistor"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "R res resistor"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "R_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "R_0_1"
+				(rectangle
+					(start -1.016 -2.54)
+					(end 1.016 2.54)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "R_1_1"
+				(pin passive line
+					(at 0 3.81 270)
+					(length 1.27)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 0 -3.81 90)
+					(length 1.27)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
+		(symbol "Motor:Stepper_Motor_bipolar"
+			(pin_names
+				(offset 0) hide)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "M"
+				(at 3.81 2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "Stepper_Motor_bipolar"
+				(at 3.81 1.27 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left top)
+				)
+			)
+			(property "Footprint" ""
+				(at 0.254 -0.254 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
+				(at 0.254 -0.254 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "4-wire bipolar stepper motor"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "bipolar stepper motor"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "PinHeader*P2.54mm*Vertical* TerminalBlock* Motor*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "Stepper_Motor_bipolar_0_0"
+				(polyline
+					(pts
+						(xy -1.27 -1.778) (xy -1.27 2.032) (xy 0 -0.508) (xy 1.27 2.032) (xy 1.27 -1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "Stepper_Motor_bipolar_0_1"
+				(arc
+					(start -4.445 -2.54)
+					(mid -3.8127 -1.905)
+					(end -4.445 -1.27)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -4.445 -1.27)
+					(mid -3.8127 -0.635)
+					(end -4.445 0)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -4.445 0)
+					(mid -3.8127 0.635)
+					(end -4.445 1.27)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -4.445 1.27)
+					(mid -3.8127 1.905)
+					(end -4.445 2.54)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -2.54 4.445)
+					(mid -1.905 3.8127)
+					(end -1.27 4.445)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start -1.27 4.445)
+					(mid -0.635 3.8127)
+					(end 0 4.445)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -5.08 -2.54) (xy -4.445 -2.54)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -5.08 2.54) (xy -4.445 2.54)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -2.54 5.08) (xy -2.54 4.445)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 5.08) (xy 2.54 4.445)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 0 0)
+					(radius 3.2512)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 0 4.445)
+					(mid 0.635 3.8127)
+					(end 1.27 4.445)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 1.27 4.445)
+					(mid 1.905 3.8127)
+					(end 2.54 4.445)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "Stepper_Motor_bipolar_1_1"
+				(pin passive line
+					(at -2.54 7.62 270)
+					(length 2.54)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 2.54 7.62 270)
+					(length 2.54)
+					(name "-"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -7.62 2.54 0)
+					(length 2.54)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -7.62 -2.54 0)
+					(length 2.54)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
+		(symbol "TMC2208_SILENTSTEPSTICK:TMC2208_SILENTSTEPSTICK"
+			(pin_names
+				(offset 1.016)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "U"
+				(at -12.7 19.05 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+				)
+			)
+			(property "Value" "TMC2208_SILENTSTEPSTICK"
+				(at -12.7 -22.86 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+				)
+			)
+			(property "Footprint" "TMC2208_SILENTSTEPSTICK:MODULE_TMC2208_SILENTSTEPSTICK"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "MF" "Trinamic Motion"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "Description_1" "\nTMC2208 Motor Controller/Driver, Stepper Power Management Evaluation Board\n"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "Package" "None"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "Price" "None"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "Check_prices" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=eda"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "SnapEDA_Link" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=snap"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "MP" "TMC2208 SILENTSTEPSTICK"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "Availability" "In Stock"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(property "MANUFACTURER" "Trinamic Motion"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+					(hide yes)
+				)
+			)
+			(symbol "TMC2208_SILENTSTEPSTICK_0_0"
+				(rectangle
+					(start -12.7 -20.32)
+					(end 12.7 17.78)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin input line
+					(at -17.78 5.08 0)
+					(length 5.08)
+					(name "DIR"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP1_1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -17.78 2.54 0)
+					(length 5.08)
+					(name "STEP"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP1_2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -17.78 -10.16 0)
+					(length 5.08)
+					(name "PDN/UART1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP1_4"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -17.78 -12.7 0)
+					(length 5.08)
+					(name "PDN/UART2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP1_5"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -17.78 -5.08 0)
+					(length 5.08)
+					(name "MS2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP1_6"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -17.78 -2.54 0)
+					(length 5.08)
+					(name "MS1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP1_7"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -17.78 10.16 0)
+					(length 5.08)
+					(name "EN"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP1_8"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 17.78 12.7 180)
+					(length 5.08)
+					(name "VM"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP2_1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 17.78 -17.78 180)
+					(length 5.08)
+					(name "GND"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP2_2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 17.78 0 180)
+					(length 5.08)
+					(name "OA2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP2_3"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 17.78 2.54 180)
+					(length 5.08)
+					(name "OA1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP2_4"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 17.78 -2.54 180)
+					(length 5.08)
+					(name "OB1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP2_5"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 17.78 -5.08 180)
+					(length 5.08)
+					(name "OB2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP2_6"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 17.78 15.24 180)
+					(length 5.08)
+					(name "VIO"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP2_7"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 17.78 -17.78 180)
+					(length 5.08)
+					(name "GND"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP2_8"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 17.78 -12.7 180)
+					(length 5.08)
+					(name "DIAG"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP3_1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 17.78 -10.16 180)
+					(length 5.08)
+					(name "INDEX"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "JP3_2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 17.78 7.62 180)
+					(length 5.08)
+					(name "VREF"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "VREF"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+			)
+		)
+	)
+	(junction
+		(at 128.27 129.54)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "0bceaadf-cbc6-43a1-9b87-67b3b84d1325")
+	)
+	(junction
+		(at 176.53 142.24)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "15965635-37c8-409c-ae5b-7d8f033a48cc")
+	)
+	(junction
+		(at 128.27 208.28)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "15bc503c-19eb-4b25-a551-fec59e959d5a")
+	)
+	(junction
+		(at 128.27 77.47)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "224b11a9-a7cb-459f-9ce4-6e707db00895")
+	)
+	(junction
+		(at 176.53 297.18)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "2783494f-22a4-46c6-868a-590051db0e59")
+	)
+	(junction
+		(at 187.96 297.18)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "2f6d3d3d-86ff-40b0-a3a8-b6205ce5d56a")
+	)
+	(junction
+		(at 125.73 144.78)
+		(diameter 0)
+		(color 194 194 0 1)
+		(uuid "332cd256-3d5a-4dd0-8398-09ab9789d0d1")
+	)
+	(junction
+		(at 187.96 193.04)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "403f3f45-6c6d-49e6-aa7a-cb4ab09e4d67")
+	)
+	(junction
+		(at 100.33 39.37)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "4f5ae4cd-a903-4d6b-8664-8809f203b8e0")
+	)
+	(junction
+		(at 176.53 193.04)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "53e9d2cd-01b0-46c5-a1e6-8cdb924f877c")
+	)
+	(junction
+		(at 128.27 180.34)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "54e45777-4bc8-424a-9c6a-585a600de5cb")
+	)
+	(junction
+		(at 69.85 20.32)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "5f152459-3f36-4e32-bd28-24a4c8e60c77")
+	)
+	(junction
+		(at 128.27 260.35)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "5fca8e48-8c3a-45d9-ae8b-19db42c4a08d")
+	)
+	(junction
+		(at 128.27 232.41)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "7324a458-d7a0-4194-ae31-93c62c70936b")
+	)
+	(junction
+		(at 128.27 105.41)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "7730e31d-d6fa-4b33-818e-f3a691bf6598")
+	)
+	(junction
+		(at 128.27 39.37)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "7bc61adc-c557-4fb7-9eba-e0eb36b7d618")
+	)
+	(junction
+		(at 125.73 41.91)
+		(diameter 0)
+		(color 194 194 0 1)
+		(uuid "8d683e6d-873a-4b1c-8900-38b36ff59a83")
+	)
+	(junction
+		(at 125.73 92.71)
+		(diameter 0)
+		(color 194 194 0 1)
+		(uuid "90f7314b-5aa5-48df-8737-65d885369014")
+	)
+	(junction
+		(at 171.45 67.31)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "955c7671-1a76-4749-8cfe-a19c2ddc2bec")
+	)
+	(junction
+		(at 187.96 142.24)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "95ef8bdf-6beb-49c9-a738-2f44a2e6e678")
+	)
+	(junction
+		(at 128.27 312.42)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "9f2653dc-7032-42f6-aa53-89fd76cfddb4")
+	)
+	(junction
+		(at 176.53 39.37)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "a5521f24-ce8e-41ad-8ce1-ab76970b9fd6")
+	)
+	(junction
+		(at 125.73 247.65)
+		(diameter 0)
+		(color 194 194 0 1)
+		(uuid "a8330e66-f50b-4d43-a6a1-669db0558eea")
+	)
+	(junction
+		(at 187.96 39.37)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "aea23808-be76-4201-bf17-e679e53d9ebf")
+	)
+	(junction
+		(at 176.53 90.17)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "b8b3da48-6199-4f7e-ad59-3132b10516cc")
+	)
+	(junction
+		(at 187.96 90.17)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "b9a6f09d-c839-4402-a13d-78fb38428207")
+	)
+	(junction
+		(at 187.96 245.11)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "c570217d-cfd3-4d26-9d6b-5221533a3ddf")
+	)
+	(junction
+		(at 125.73 299.72)
+		(diameter 0)
+		(color 194 194 0 1)
+		(uuid "c765c664-8152-4c2d-b539-82a475ec2ac6")
+	)
+	(junction
+		(at 128.27 54.61)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "cf30aeb0-7460-49f6-b772-9dbfc8dd771f")
+	)
+	(junction
+		(at 128.27 284.48)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "d33446d3-c253-4f1a-b71b-4b99c87c3946")
+	)
+	(junction
+		(at 125.73 195.58)
+		(diameter 0)
+		(color 194 194 0 1)
+		(uuid "d7f6a922-818e-4134-8c53-38d7785bd5fa")
+	)
+	(junction
+		(at 176.53 245.11)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "df5e7e3e-8e65-4056-8708-30db14d90c5b")
+	)
+	(junction
+		(at 100.33 22.86)
+		(diameter 0)
+		(color 0 0 0 1)
+		(uuid "eaed9419-8f53-4bd3-89ec-f94d0f6568a3")
+	)
+	(junction
+		(at 90.17 22.86)
+		(diameter 0)
+		(color 0 0 0 1)
+		(uuid "ebd66181-e37d-4550-a191-3f29e1a322dd")
+	)
+	(junction
+		(at 128.27 335.28)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "ec7e1ed0-eaa1-408c-9923-77f332c50e5a")
+	)
+	(junction
+		(at 128.27 157.48)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "f3ced074-ac52-4ba2-bcfb-166e89d8d9bd")
+	)
+	(junction
+		(at 176.53 347.98)
+		(diameter 0)
+		(color 255 0 0 1)
+		(uuid "f5ba9710-0468-4b4e-a8fb-4c4d64f362c7")
+	)
+	(wire
+		(pts
+			(xy 167.64 105.41) (xy 193.04 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "0147465d-98c2-44c4-af64-8b71a48e8c18")
+	)
+	(wire
+		(pts
+			(xy 128.27 208.28) (xy 128.27 232.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "0156eb4a-c207-4322-86e0-f6c5f025f5f5")
+	)
+	(wire
+		(pts
+			(xy 227.33 303.53) (xy 242.57 303.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "016eed29-3a23-4899-8790-2c7b36ca09b8")
+	)
+	(wire
+		(pts
+			(xy 232.41 107.95) (xy 215.9 107.95)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "01707628-42aa-46a2-96a4-3aa065c82ff1")
+	)
+	(wire
+		(pts
+			(xy 132.08 157.48) (xy 128.27 157.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "018cb5cb-5cde-4d1d-8502-613aec5ba429")
+	)
+	(wire
+		(pts
+			(xy 58.42 73.66) (xy 106.68 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "023202bd-b162-4ba8-b383-298a8dc3fdbe")
+	)
+	(wire
+		(pts
+			(xy 227.33 148.59) (xy 227.33 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "02772aa2-f12e-403b-bad5-018145c42fad")
+	)
+	(wire
+		(pts
+			(xy 224.79 200.66) (xy 224.79 203.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "0446b02e-43ec-4473-ac11-3370f29cda13")
+	)
+	(wire
+		(pts
+			(xy 215.9 358.14) (xy 224.79 358.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "0531a412-4e89-4e52-bc1d-41a4f0900027")
+	)
+	(wire
+		(pts
+			(xy 171.45 67.31) (xy 171.45 69.85)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "0718cf98-fb10-4a6a-88d7-7ce2694a5a1e")
+	)
+	(wire
+		(pts
+			(xy 132.08 46.99) (xy 121.92 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "0793a7a2-f0f3-4b83-b6a0-525997847921")
+	)
+	(wire
+		(pts
+			(xy 99.06 81.28) (xy 99.06 255.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "0d2a082a-61c3-449c-9005-96adcc5bd3d2")
+	)
+	(wire
+		(pts
+			(xy 116.84 49.53) (xy 58.42 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "0dcdbaa2-16c7-4f09-8a57-27f0d19cc5d0")
+	)
+	(wire
+		(pts
+			(xy 224.79 46.99) (xy 237.49 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "0e6ed5ae-f433-4381-a41e-400c4c07f23b")
+	)
+	(wire
+		(pts
+			(xy 171.45 67.31) (xy 176.53 67.31)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "0f82540c-2c0c-4dca-9083-82588f9e896c")
+	)
+	(wire
+		(pts
+			(xy 167.64 152.4) (xy 193.04 152.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "10b40a6d-3495-4d55-b50a-899b3493abd5")
+	)
+	(wire
+		(pts
+			(xy 58.42 88.9) (xy 91.44 88.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "110b2bf5-58d1-4643-87d0-32e81e446beb")
+	)
+	(wire
+		(pts
+			(xy 227.33 360.68) (xy 215.9 360.68)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "116cd682-3b2b-4522-897e-d312faa95eb0")
+	)
+	(wire
+		(pts
+			(xy 167.64 260.35) (xy 193.04 260.35)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "1182a274-5398-4b59-93b0-eb7f2f4047e4")
+	)
+	(wire
+		(pts
+			(xy 167.64 205.74) (xy 193.04 205.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "1340ca42-1b7c-4968-8eb5-cd5f7c41e499")
+	)
+	(wire
+		(pts
+			(xy 100.33 39.37) (xy 128.27 39.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "143471d5-ab7d-4977-800a-688352549f5d")
+	)
+	(wire
+		(pts
+			(xy 125.73 195.58) (xy 125.73 247.65)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "143f70cf-88e9-4102-a844-b4b23e2adfa0")
+	)
+	(wire
+		(pts
+			(xy 167.64 107.95) (xy 193.04 107.95)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "15fd470e-0114-46b9-ae5c-1a83c890b173")
+	)
+	(wire
+		(pts
+			(xy 128.27 26.67) (xy 167.64 26.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "170026df-c391-40df-bf64-a1df204dc88e")
+	)
+	(wire
+		(pts
+			(xy 176.53 245.11) (xy 167.64 245.11)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "17e74241-bd08-479d-8037-cf863b6dc309")
+	)
+	(wire
+		(pts
+			(xy 128.27 77.47) (xy 167.64 77.47)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "18868209-d54e-4062-bc87-5a31206d8b05")
+	)
+	(wire
+		(pts
+			(xy 215.9 255.27) (xy 224.79 255.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "19c40863-094a-45e1-8b54-cd7a39242910")
+	)
+	(wire
+		(pts
+			(xy 167.64 180.34) (xy 167.64 190.5)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "1a5a691f-4ef0-416b-94b0-753aaa0f0f33")
+	)
+	(wire
+		(pts
+			(xy 176.53 267.97) (xy 176.53 245.11)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "1ac1616b-f483-4135-b00a-b677a9d4ae14")
+	)
+	(wire
+		(pts
+			(xy 227.33 45.72) (xy 242.57 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "1ba465ec-14cd-4f22-97e2-1a129db3af8f")
+	)
+	(wire
+		(pts
+			(xy 187.96 245.11) (xy 176.53 245.11)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "1c1f230d-84bd-4de8-99be-2e880c7514f9")
+	)
+	(wire
+		(pts
+			(xy 187.96 297.18) (xy 176.53 297.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "1c8d1e8b-b51c-44a4-8e7a-7888431d7e73")
+	)
+	(wire
+		(pts
+			(xy 167.64 314.96) (xy 193.04 314.96)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "1de10034-3a49-4012-8a06-1f79a82e27a6")
+	)
+	(wire
+		(pts
+			(xy 229.87 360.68) (xy 232.41 360.68)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "1e640367-8bad-4e18-9ed6-8fd722f76e2f")
+	)
+	(wire
+		(pts
+			(xy 176.53 320.04) (xy 176.53 297.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "1e941a74-a368-4600-80aa-658f797c3ed6")
+	)
+	(wire
+		(pts
+			(xy 215.9 49.53) (xy 224.79 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "1e9735aa-ec23-4e35-b8b5-5cdf08c2c7b8")
+	)
+	(wire
+		(pts
+			(xy 224.79 200.66) (xy 237.49 200.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "21224e15-af0f-4452-8987-85d448c95094")
+	)
+	(wire
+		(pts
+			(xy 227.33 303.53) (xy 227.33 309.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "212540dc-7505-4803-ae66-57753e3fadb8")
+	)
+	(wire
+		(pts
+			(xy 187.96 193.04) (xy 176.53 193.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "217a0a11-dc04-4ea4-8f5b-edca9c1e3764")
+	)
+	(wire
+		(pts
+			(xy 109.22 152.4) (xy 132.08 152.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "21889555-6774-4afa-9994-271469873046")
+	)
+	(wire
+		(pts
+			(xy 176.53 165.1) (xy 176.53 142.24)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "2306fb81-e9b1-45c9-a16a-c5cb5cf644dd")
+	)
+	(wire
+		(pts
+			(xy 128.27 335.28) (xy 167.64 335.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "23785339-3a16-4b58-8526-0769b0f968ef")
+	)
+	(wire
+		(pts
+			(xy 125.73 41.91) (xy 125.73 92.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "253864f7-a10e-4c6c-a990-f84288712086")
+	)
+	(wire
+		(pts
+			(xy 224.79 304.8) (xy 237.49 304.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "261cd632-3e3a-489a-9c76-110bca7dd36e")
+	)
+	(wire
+		(pts
+			(xy 58.42 83.82) (xy 96.52 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "2793f608-e98c-471c-a498-16ce69e9beef")
+	)
+	(wire
+		(pts
+			(xy 167.64 232.41) (xy 167.64 242.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "27a23bb2-0da3-439f-a6b3-46791c9c00db")
+	)
+	(wire
+		(pts
+			(xy 167.64 203.2) (xy 193.04 203.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "27ca7d8b-ba22-4cdf-9ecb-3d9763d00ef4")
+	)
+	(wire
+		(pts
+			(xy 229.87 102.87) (xy 232.41 102.87)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "29f7fdf0-2b45-4f27-8f76-788bf17b1ce4")
+	)
+	(wire
+		(pts
+			(xy 132.08 363.22) (xy 128.27 363.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "2ca31e64-da69-49fe-a9f5-4a00ed85efe1")
+	)
+	(wire
+		(pts
+			(xy 132.08 203.2) (xy 104.14 203.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "2f1d5cd2-8a7a-4f7a-9532-74d5446e6275")
+	)
+	(wire
+		(pts
+			(xy 125.73 41.91) (xy 132.08 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "2f753beb-fd39-4f3f-a413-17dfa6976cf1")
+	)
+	(wire
+		(pts
+			(xy 215.9 260.35) (xy 229.87 260.35)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "2fb7bcc1-55ee-4e92-ae21-c0ea0522ddd4")
+	)
+	(wire
+		(pts
+			(xy 224.79 149.86) (xy 224.79 152.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "301657e7-7dd3-463c-831f-fd2b289824d7")
+	)
+	(wire
+		(pts
+			(xy 91.44 355.6) (xy 132.08 355.6)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "32a66e43-9a36-4db3-9bf6-a82cd433a8d4")
+	)
+	(wire
+		(pts
+			(xy 128.27 157.48) (xy 128.27 180.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "32c7467b-6415-4aff-9905-4ba1c0d52695")
+	)
+	(wire
+		(pts
+			(xy 187.96 142.24) (xy 187.96 193.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "32eb68b4-03ae-4978-bd7a-4f14d5e8236f")
+	)
+	(wire
+		(pts
+			(xy 100.33 22.86) (xy 100.33 24.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "334d7313-57ee-4c78-8d53-e0017dd5a8f9")
+	)
+	(wire
+		(pts
+			(xy 242.57 96.52) (xy 242.57 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "349713c4-4a86-407d-a66d-c6eab611af97")
+	)
+	(wire
+		(pts
+			(xy 128.27 54.61) (xy 128.27 77.47)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "35874758-281b-41c4-b1ac-fc5d7924f343")
+	)
+	(wire
+		(pts
+			(xy 215.9 312.42) (xy 229.87 312.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "36f4a416-a062-4ba1-a15f-1b60993f7e82")
+	)
+	(wire
+		(pts
+			(xy 229.87 360.68) (xy 229.87 363.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "3975209a-c8ff-41e6-993d-0c9121b52e38")
+	)
+	(wire
+		(pts
+			(xy 229.87 257.81) (xy 229.87 260.35)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "3aa8313b-0bc8-494f-84be-d3ffbac0fee0")
+	)
+	(wire
+		(pts
+			(xy 176.53 39.37) (xy 167.64 39.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "3cef1fdc-8247-4079-8238-546198fab89e")
+	)
+	(wire
+		(pts
+			(xy 229.87 257.81) (xy 232.41 257.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "3e2a5549-cb91-4189-a91a-c0092cdab315")
+	)
+	(wire
+		(pts
+			(xy 128.27 284.48) (xy 167.64 284.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "3e3790cd-f4b2-4398-b23b-db7bb281588a")
+	)
+	(wire
+		(pts
+			(xy 132.08 260.35) (xy 128.27 260.35)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "42203056-e0d0-4d2f-ab65-76d5f129a816")
+	)
+	(wire
+		(pts
+			(xy 125.73 247.65) (xy 125.73 299.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "4237ddf7-1a70-4b3e-b86d-4bf8eafa1ac3")
+	)
+	(wire
+		(pts
+			(xy 88.9 358.14) (xy 132.08 358.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "42da500f-793e-455e-ac83-414f1cddad2e")
+	)
+	(wire
+		(pts
+			(xy 88.9 91.44) (xy 58.42 91.44)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "43581356-df08-4f7a-a0f7-f533c55ebed7")
+	)
+	(wire
+		(pts
+			(xy 167.64 255.27) (xy 193.04 255.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "44546eca-f17e-4fea-b8c7-6b3e2b9985fb")
+	)
+	(wire
+		(pts
+			(xy 215.9 152.4) (xy 224.79 152.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "4611a186-9fba-4a90-99b2-2791b26184d6")
+	)
+	(wire
+		(pts
+			(xy 125.73 92.71) (xy 125.73 144.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "4737b6bd-1394-4156-8708-f86e747273d7")
+	)
+	(wire
+		(pts
+			(xy 91.44 88.9) (xy 91.44 355.6)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "47422752-68a0-4371-92b9-993023d63e6c")
+	)
+	(wire
+		(pts
+			(xy 215.9 363.22) (xy 229.87 363.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "47deeafe-5f0d-4785-b0dd-6425dff37449")
+	)
+	(wire
+		(pts
+			(xy 224.79 355.6) (xy 224.79 358.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "4938c9c0-2fde-4f76-ae72-a521a4cfede2")
+	)
+	(wire
+		(pts
+			(xy 167.64 120.65) (xy 176.53 120.65)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "49df5094-3c47-4287-9012-89d9428a1823")
+	)
+	(wire
+		(pts
+			(xy 132.08 208.28) (xy 128.27 208.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "49e5d101-7b58-4930-a089-950e873372e3")
+	)
+	(wire
+		(pts
+			(xy 167.64 223.52) (xy 176.53 223.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "4a2bbafb-7485-4c12-ba36-ab65ffdb2caf")
+	)
+	(wire
+		(pts
+			(xy 167.64 307.34) (xy 193.04 307.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "4d5a6263-da12-446d-971d-2a9ee8d3a57b")
+	)
+	(wire
+		(pts
+			(xy 176.53 113.03) (xy 176.53 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "4eb03014-dd26-4a58-9f51-6f90b88be2a4")
+	)
+	(wire
+		(pts
+			(xy 88.9 358.14) (xy 88.9 91.44)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "4ee1ee01-203d-4baf-9907-c9fee075b23e")
+	)
+	(wire
+		(pts
+			(xy 227.33 251.46) (xy 227.33 257.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "51066330-bea9-4414-ab13-130e488e783c")
+	)
+	(wire
+		(pts
+			(xy 119.38 46.99) (xy 58.42 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "5229b989-5a22-49b7-b6a1-be4299d5b260")
+	)
+	(wire
+		(pts
+			(xy 116.84 97.79) (xy 116.84 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "546b8aab-e50b-436c-a483-85f26990e03c")
+	)
+	(wire
+		(pts
+			(xy 128.27 312.42) (xy 128.27 335.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "54c2ddd5-f089-42d2-b6a7-d801a0712054")
+	)
+	(wire
+		(pts
+			(xy 114.3 52.07) (xy 58.42 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "550f55c1-bc37-4ed2-9a3a-905f1265c818")
+	)
+	(wire
+		(pts
+			(xy 232.41 365.76) (xy 215.9 365.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "55319f98-89eb-4e05-8c32-e61cca20e99e")
+	)
+	(wire
+		(pts
+			(xy 242.57 303.53) (xy 242.57 304.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "55ad9b70-6ab4-445e-a1f7-e2ae2a86d491")
+	)
+	(wire
+		(pts
+			(xy 167.64 172.72) (xy 176.53 172.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "57209d2f-54c4-48a5-8ab1-c39f2efb43ae")
+	)
+	(wire
+		(pts
+			(xy 187.96 347.98) (xy 176.53 347.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "57ecfe81-6fb3-46ea-b149-8161860cf19f")
+	)
+	(wire
+		(pts
+			(xy 224.79 97.79) (xy 237.49 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "58b51116-5feb-4747-a7ed-6acf5d43f52f")
+	)
+	(wire
+		(pts
+			(xy 229.87 52.07) (xy 229.87 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "58fefc27-b1d4-4aaa-923d-43019fade520")
+	)
+	(wire
+		(pts
+			(xy 224.79 252.73) (xy 237.49 252.73)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "593dab7f-46e6-4afe-b23d-d5ae90c44a3b")
+	)
+	(wire
+		(pts
+			(xy 128.27 157.48) (xy 128.27 129.54)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "5ad89d06-bb49-44de-920e-6ba3d9386744")
+	)
+	(wire
+		(pts
+			(xy 111.76 54.61) (xy 111.76 149.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "5bf0f91b-4686-42cc-8a9e-664b808431b3")
+	)
+	(wire
+		(pts
+			(xy 167.64 257.81) (xy 193.04 257.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "5dea9d26-e8ef-43bf-8fe0-2d35b548d8d7")
+	)
+	(wire
+		(pts
+			(xy 224.79 46.99) (xy 224.79 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "5e0dfebc-582c-46cb-bb48-91517f95de47")
+	)
+	(wire
+		(pts
+			(xy 171.45 22.86) (xy 171.45 67.31)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "5f3bcdf3-d2a8-4276-931b-3407285f9acc")
+	)
+	(wire
+		(pts
+			(xy 176.53 347.98) (xy 167.64 347.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "5f75f879-cfe7-4cfb-ab8c-ad8866607e19")
+	)
+	(wire
+		(pts
+			(xy 227.33 199.39) (xy 242.57 199.39)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "61573b7a-f6c6-4a68-af36-810955edd232")
+	)
+	(wire
+		(pts
+			(xy 229.87 205.74) (xy 232.41 205.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "62e30606-0c95-46e3-bf2e-d2c4a53c30de")
+	)
+	(wire
+		(pts
+			(xy 128.27 232.41) (xy 167.64 232.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "63277f39-5552-4a3e-a72b-ae883c3d4fdd")
+	)
+	(wire
+		(pts
+			(xy 167.64 208.28) (xy 193.04 208.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "63a5649c-e6d7-4add-8f2d-034aff23521c")
+	)
+	(wire
+		(pts
+			(xy 227.33 52.07) (xy 215.9 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "65f16118-15d9-417e-b4b8-02a1614c72f8")
+	)
+	(wire
+		(pts
+			(xy 215.9 54.61) (xy 229.87 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "67ea01d6-b4ef-4665-b1a3-09d830ee7080")
+	)
+	(wire
+		(pts
+			(xy 227.33 257.81) (xy 215.9 257.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "687929bb-838f-40fe-b420-e8cede0c0190")
+	)
+	(wire
+		(pts
+			(xy 167.64 52.07) (xy 193.04 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "6a0a52c2-5d7c-42c4-8d62-25efb54affa4")
+	)
+	(wire
+		(pts
+			(xy 224.79 97.79) (xy 224.79 100.33)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "6a95bbfb-ac73-4361-9389-74a9aef1800d")
+	)
+	(wire
+		(pts
+			(xy 187.96 20.32) (xy 187.96 39.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "6be12253-0c40-470e-a42b-ada1e5dc3350")
+	)
+	(wire
+		(pts
+			(xy 167.64 335.28) (xy 167.64 345.44)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "6c7a230c-873a-4a8b-9248-8e16b34be22c")
+	)
+	(wire
+		(pts
+			(xy 125.73 247.65) (xy 132.08 247.65)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "6db9aff0-6e91-47e7-8e78-8b87dc1ec151")
+	)
+	(wire
+		(pts
+			(xy 69.85 20.32) (xy 187.96 20.32)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "6f587cfc-eaf3-4dd6-ac47-4b5df02cd538")
+	)
+	(wire
+		(pts
+			(xy 128.27 260.35) (xy 128.27 232.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "70d090ea-5ec1-48e9-8d9e-0c52cb468f80")
+	)
+	(wire
+		(pts
+			(xy 106.68 73.66) (xy 106.68 200.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "71005f49-fbe6-401e-913f-941f002e723e")
+	)
+	(wire
+		(pts
+			(xy 62.23 20.32) (xy 69.85 20.32)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "73076a47-1c10-45de-b085-6eca33543a23")
+	)
+	(wire
+		(pts
+			(xy 90.17 22.86) (xy 90.17 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "74c878cf-7976-4d76-b10a-ee31c1ae86da")
+	)
+	(wire
+		(pts
+			(xy 229.87 52.07) (xy 232.41 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "74e6e5e7-4e3a-46f4-9f8f-3674fa43b2e1")
+	)
+	(wire
+		(pts
+			(xy 128.27 363.22) (xy 128.27 335.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "750ddb41-8f97-4d54-b68d-1b7fb8bf368d")
+	)
+	(wire
+		(pts
+			(xy 224.79 252.73) (xy 224.79 255.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "7549a880-43f0-4bfc-adf5-50bd72c47482")
+	)
+	(wire
+		(pts
+			(xy 167.64 69.85) (xy 171.45 69.85)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "77d7d56e-1751-4e67-ab36-290afde2bf6b")
+	)
+	(wire
+		(pts
+			(xy 90.17 29.21) (xy 86.36 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "792eb537-e323-42e2-a5e3-cd41bb683c07")
+	)
+	(wire
+		(pts
+			(xy 96.52 304.8) (xy 132.08 304.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "794a68b3-3784-4420-8f01-de695cdb5e60")
+	)
+	(wire
+		(pts
+			(xy 125.73 144.78) (xy 132.08 144.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "7b3ae8f4-c505-496a-8646-d2f7328c2df7")
+	)
+	(wire
+		(pts
+			(xy 242.57 45.72) (xy 242.57 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "7b563848-8867-4652-a02d-8ab1e476db63")
+	)
+	(wire
+		(pts
+			(xy 128.27 105.41) (xy 128.27 129.54)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "7cb0542b-a660-4093-86af-805a7c969cfc")
+	)
+	(wire
+		(pts
+			(xy 167.64 363.22) (xy 193.04 363.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "7d5475fa-188e-49a5-b966-635017b202e9")
+	)
+	(wire
+		(pts
+			(xy 224.79 355.6) (xy 237.49 355.6)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "7eb30cb0-d240-4a71-8ffa-659a5c6b08cf")
+	)
+	(wire
+		(pts
+			(xy 229.87 102.87) (xy 229.87 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "81a1507e-cd2f-46b9-8278-69c867696217")
+	)
+	(wire
+		(pts
+			(xy 229.87 154.94) (xy 232.41 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "8295bddf-da26-4278-aae2-f837a6f5adcb")
+	)
+	(wire
+		(pts
+			(xy 99.06 81.28) (xy 58.42 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "82b087aa-4328-49d8-ad51-8a351a346031")
+	)
+	(wire
+		(pts
+			(xy 242.57 148.59) (xy 242.57 149.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "83257699-83ac-4e14-abbe-cc2fc46eac8b")
+	)
+	(wire
+		(pts
+			(xy 58.42 39.37) (xy 100.33 39.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "839b8899-7b3d-4514-a58a-ed2c000225fb")
+	)
+	(wire
+		(pts
+			(xy 187.96 90.17) (xy 176.53 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "83dcf39d-e440-4470-b0e2-77c29de35c0d")
+	)
+	(wire
+		(pts
+			(xy 227.33 96.52) (xy 242.57 96.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "83f500b0-960d-48e1-b0ae-41c4b4db3552")
+	)
+	(wire
+		(pts
+			(xy 232.41 210.82) (xy 215.9 210.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "84a7aaf4-9de8-4e3c-9092-04b2a590378c")
+	)
+	(wire
+		(pts
+			(xy 111.76 149.86) (xy 132.08 149.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "862d84e6-b70c-4970-b698-2af84bc13d39")
+	)
+	(wire
+		(pts
+			(xy 232.41 314.96) (xy 215.9 314.96)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "8c2d1895-95e7-4f97-b22b-e949f3a42e0b")
+	)
+	(wire
+		(pts
+			(xy 227.33 96.52) (xy 227.33 102.87)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "8c4c612a-d833-416b-8124-2f59594c1770")
+	)
+	(wire
+		(pts
+			(xy 167.64 77.47) (xy 167.64 87.63)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "8d6c09f3-b5bd-487f-ba68-46ac9ae7d177")
+	)
+	(wire
+		(pts
+			(xy 167.64 210.82) (xy 193.04 210.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "8db011a3-4ab5-4c26-97f1-6a02356de91c")
+	)
+	(wire
+		(pts
+			(xy 227.33 251.46) (xy 242.57 251.46)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "91d6a0b6-b08c-46d1-9ad9-b4f8390fc5de")
+	)
+	(wire
+		(pts
+			(xy 176.53 59.69) (xy 176.53 39.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "9455bec3-7738-4cd4-a0c6-0f5c680dfa91")
+	)
+	(wire
+		(pts
+			(xy 232.41 57.15) (xy 215.9 57.15)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "961cb89f-9f16-4fa6-ae2b-7653383a22a8")
+	)
+	(wire
+		(pts
+			(xy 176.53 142.24) (xy 167.64 142.24)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "96911af9-1730-4e70-8c31-f03aa34e7301")
+	)
+	(wire
+		(pts
+			(xy 167.64 284.48) (xy 167.64 294.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "97a854f8-5930-4454-a8d5-d511e988c676")
+	)
+	(wire
+		(pts
+			(xy 242.57 251.46) (xy 242.57 252.73)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "9834c185-a91f-4c1d-bc6b-357d57d93231")
+	)
+	(wire
+		(pts
+			(xy 121.92 44.45) (xy 58.42 44.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "9a3d8e37-59d2-4785-95e1-c9f17c6398d3")
+	)
+	(wire
+		(pts
+			(xy 119.38 49.53) (xy 132.08 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "9b3969dd-9691-42bb-811b-0bf0a49bf416")
+	)
+	(wire
+		(pts
+			(xy 125.73 299.72) (xy 125.73 350.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "9bef02a8-1881-490f-a62b-634b6bcdc43b")
+	)
+	(wire
+		(pts
+			(xy 232.41 160.02) (xy 215.9 160.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "9d22a676-8851-4c84-895b-a35310719cb2")
+	)
+	(wire
+		(pts
+			(xy 58.42 41.91) (xy 125.73 41.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "a1944cb5-52d2-4799-bdaa-3c7e5e4ac983")
+	)
+	(wire
+		(pts
+			(xy 125.73 350.52) (xy 132.08 350.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "a29beb8f-4f43-4c79-9b74-ff28aebcfbf2")
+	)
+	(wire
+		(pts
+			(xy 114.3 100.33) (xy 114.3 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "a4945075-b601-49da-b970-8bf9f447bd07")
+	)
+	(wire
+		(pts
+			(xy 121.92 46.99) (xy 121.92 44.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "a5f48232-5f44-4317-bf9f-17af93fb6731")
+	)
+	(wire
+		(pts
+			(xy 167.64 26.67) (xy 167.64 36.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "a69b277b-051b-4dc5-ad18-7d31d3baab05")
+	)
+	(wire
+		(pts
+			(xy 187.96 193.04) (xy 187.96 245.11)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "a6caec6c-94a9-4c45-99c2-5eb5383ccdb3")
+	)
+	(wire
+		(pts
+			(xy 78.74 29.21) (xy 77.47 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a6dec019-2c78-498f-9ed9-9a16cb0b3000")
+	)
+	(wire
+		(pts
+			(xy 167.64 312.42) (xy 193.04 312.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "a730da26-63c1-4073-9c7f-363184d438e6")
+	)
+	(wire
+		(pts
+			(xy 101.6 252.73) (xy 101.6 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "a822db05-4b4e-44d9-a3f6-a4ddf02078c2")
+	)
+	(wire
+		(pts
+			(xy 176.53 297.18) (xy 167.64 297.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "a908aba6-e536-4af8-b0a6-e4d73c4020d5")
+	)
+	(wire
+		(pts
+			(xy 58.42 57.15) (xy 109.22 57.15)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "a9ac34d9-8dc0-4105-8253-fc076d5e4169")
+	)
+	(wire
+		(pts
+			(xy 167.64 275.59) (xy 176.53 275.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "a9af6d69-2309-4092-bd7b-1d515eaf6977")
+	)
+	(wire
+		(pts
+			(xy 229.87 154.94) (xy 229.87 157.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "a9ce6961-5334-49b2-b45f-756c9b7ba4da")
+	)
+	(wire
+		(pts
+			(xy 128.27 105.41) (xy 128.27 77.47)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "aa4548ad-84ad-495c-9e5d-47e615252c79")
+	)
+	(wire
+		(pts
+			(xy 167.64 54.61) (xy 193.04 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "abdad87b-055e-4201-b971-11b40ca9b2a1")
+	)
+	(wire
+		(pts
+			(xy 242.57 199.39) (xy 242.57 200.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "adabdf7e-8849-41ba-953e-8b678fccc01f")
+	)
+	(wire
+		(pts
+			(xy 167.64 262.89) (xy 193.04 262.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "ae6e3639-cb52-4dbd-a42f-2ba03da9a704")
+	)
+	(wire
+		(pts
+			(xy 167.64 327.66) (xy 176.53 327.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "ae716bb5-691a-484a-8e15-3844c275dada")
+	)
+	(wire
+		(pts
+			(xy 167.64 129.54) (xy 167.64 139.7)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "aea24f34-439c-491e-be33-6c81cd430caf")
+	)
+	(wire
+		(pts
+			(xy 167.64 378.46) (xy 176.53 378.46)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "b0e10dcb-a915-4ced-b65b-c8186c48b561")
+	)
+	(wire
+		(pts
+			(xy 99.06 255.27) (xy 132.08 255.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "b22ce93b-4d0f-4dab-9d5e-7ac421571f7e")
+	)
+	(wire
+		(pts
+			(xy 227.33 309.88) (xy 215.9 309.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "b2588825-1579-4d87-ade2-c8f069212b5f")
+	)
+	(wire
+		(pts
+			(xy 132.08 97.79) (xy 116.84 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "b2686599-bec3-4371-8dc1-5171144317c6")
+	)
+	(wire
+		(pts
+			(xy 125.73 144.78) (xy 125.73 195.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "b410519c-8bc2-4817-91bb-597c7355f32d")
+	)
+	(wire
+		(pts
+			(xy 119.38 49.53) (xy 119.38 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "b462f4eb-bc73-441c-8ad4-a172488ef688")
+	)
+	(wire
+		(pts
+			(xy 227.33 154.94) (xy 215.9 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "b492b8e1-2b37-43e2-9fee-5c6fb5a744b0")
+	)
+	(wire
+		(pts
+			(xy 58.42 54.61) (xy 111.76 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "b52c1721-39b8-4a5e-86c4-3d274e40780b")
+	)
+	(wire
+		(pts
+			(xy 93.98 86.36) (xy 93.98 307.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "b87799dc-0797-4aa8-a20b-2153e94381e0")
+	)
+	(wire
+		(pts
+			(xy 229.87 309.88) (xy 229.87 312.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "b8bb2966-8deb-416d-9afe-6e32d7264c2b")
+	)
+	(wire
+		(pts
+			(xy 106.68 200.66) (xy 132.08 200.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "ba2b19dd-c20c-4a3a-b999-83f3b9a2a268")
+	)
+	(wire
+		(pts
+			(xy 176.53 193.04) (xy 167.64 193.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "ba57a44b-92b5-46a2-bb86-7e2a4898aa5e")
+	)
+	(wire
+		(pts
+			(xy 167.64 157.48) (xy 193.04 157.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "bf9997b5-1780-4e99-a48c-d3ea672bd867")
+	)
+	(wire
+		(pts
+			(xy 104.14 76.2) (xy 58.42 76.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "bfb51a52-c9f8-45de-895c-7cab4a575e12")
+	)
+	(wire
+		(pts
+			(xy 227.33 354.33) (xy 227.33 360.68)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "c0f07be9-07d3-4bd0-9f1b-ec66408c7db0")
+	)
+	(wire
+		(pts
+			(xy 187.96 39.37) (xy 187.96 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "c1a89d43-bae5-4ca8-ba4b-7beda26cdc0c")
+	)
+	(wire
+		(pts
+			(xy 93.98 307.34) (xy 132.08 307.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "c239b353-8e0d-4255-9253-eb2ef831fe28")
+	)
+	(wire
+		(pts
+			(xy 229.87 309.88) (xy 232.41 309.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "c26525ca-3a84-4902-8ca3-0482cbc6550d")
+	)
+	(wire
+		(pts
+			(xy 167.64 57.15) (xy 193.04 57.15)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "c26a013a-2611-4972-8225-786fb36472d7")
+	)
+	(wire
+		(pts
+			(xy 90.17 22.86) (xy 100.33 22.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "c2e2ca06-f403-4e69-928c-43feea35514f")
+	)
+	(wire
+		(pts
+			(xy 167.64 358.14) (xy 193.04 358.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "c3a0292b-1af2-4d63-8830-ccda68dd0a73")
+	)
+	(wire
+		(pts
+			(xy 227.33 102.87) (xy 215.9 102.87)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "c43335ae-37bf-4750-83c1-b12af28547c0")
+	)
+	(wire
+		(pts
+			(xy 132.08 252.73) (xy 101.6 252.73)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "c59206c5-f1ac-4708-bd49-6e4ddb970a20")
+	)
+	(wire
+		(pts
+			(xy 215.9 100.33) (xy 224.79 100.33)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "c5cddc7b-b306-4f75-8ca0-f955c262c73d")
+	)
+	(wire
+		(pts
+			(xy 242.57 354.33) (xy 242.57 355.6)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "c5ffb42b-1531-4ed7-83a5-80f845dcbd64")
+	)
+	(wire
+		(pts
+			(xy 229.87 205.74) (xy 229.87 208.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "c65cb77b-91e9-4e68-9086-24db3d0b7678")
+	)
+	(wire
+		(pts
+			(xy 128.27 129.54) (xy 167.64 129.54)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "c779ab28-feab-4d01-b13e-0b7ebdbb32ce")
+	)
+	(wire
+		(pts
+			(xy 176.53 215.9) (xy 176.53 193.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "ca1b60a0-386a-400f-9b37-8a4798df4a55")
+	)
+	(wire
+		(pts
+			(xy 128.27 180.34) (xy 167.64 180.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "cad86a02-2bb0-48c3-8644-756e4bd910f2")
+	)
+	(wire
+		(pts
+			(xy 167.64 309.88) (xy 193.04 309.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "cb921ec4-2368-46b4-be50-1dd83759ea35")
+	)
+	(wire
+		(pts
+			(xy 232.41 262.89) (xy 215.9 262.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "cbe994bf-97bb-4133-8bf0-10e8c6e58ad3")
+	)
+	(wire
+		(pts
+			(xy 132.08 312.42) (xy 128.27 312.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "cc694a12-0b94-41a0-9288-336557bbc81f")
+	)
+	(wire
+		(pts
+			(xy 227.33 45.72) (xy 227.33 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "ce0facc9-ee74-4fdc-ae9d-54760e089b6a")
+	)
+	(wire
+		(pts
+			(xy 128.27 39.37) (xy 128.27 26.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "cf0b0976-046c-46e9-98b5-8e1e9e9ffe26")
+	)
+	(wire
+		(pts
+			(xy 128.27 39.37) (xy 128.27 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "d2729ae7-c4af-4b87-9d56-eb583d552e5c")
+	)
+	(wire
+		(pts
+			(xy 167.64 360.68) (xy 193.04 360.68)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "d323c2f8-83c0-43dc-9592-71e9c6febab8")
+	)
+	(wire
+		(pts
+			(xy 215.9 208.28) (xy 229.87 208.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "d37bb67c-c96c-43e5-be6f-5b0aae19fd5d")
+	)
+	(wire
+		(pts
+			(xy 187.96 90.17) (xy 187.96 142.24)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "d577ee50-0749-4294-b3ab-f9fefc3f68c9")
+	)
+	(wire
+		(pts
+			(xy 125.73 195.58) (xy 132.08 195.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "d6b839a9-2a7b-449b-8920-4307051ebb95")
+	)
+	(wire
+		(pts
+			(xy 167.64 154.94) (xy 193.04 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "d7a97112-8607-46c9-ae09-331761c42da8")
+	)
+	(wire
+		(pts
+			(xy 167.64 100.33) (xy 193.04 100.33)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "d8213a41-47d2-4cb0-9b25-72f4b006f148")
+	)
+	(wire
+		(pts
+			(xy 227.33 199.39) (xy 227.33 205.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "da42868a-10b1-40e0-a214-0548d8d5515c")
+	)
+	(wire
+		(pts
+			(xy 187.96 142.24) (xy 176.53 142.24)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "da6edb6e-77fa-4804-96f3-d5d7ba1963c2")
+	)
+	(wire
+		(pts
+			(xy 227.33 205.74) (xy 215.9 205.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "dacd73e1-0612-4f10-af72-05ea4005c816")
+	)
+	(wire
+		(pts
+			(xy 167.64 365.76) (xy 193.04 365.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "db554739-bc16-4fb7-b1d2-59add4d7667c")
+	)
+	(wire
+		(pts
+			(xy 128.27 312.42) (xy 128.27 284.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "dd5939d7-dea5-41a3-97cf-c1881a6014a0")
+	)
+	(wire
+		(pts
+			(xy 69.85 20.32) (xy 69.85 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "dffd169e-356d-4d6b-9397-7ada87878192")
+	)
+	(wire
+		(pts
+			(xy 167.64 102.87) (xy 193.04 102.87)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "e1f4c601-0741-417d-a032-047859174b49")
+	)
+	(wire
+		(pts
+			(xy 215.9 157.48) (xy 229.87 157.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "e288e7e3-2bcc-46ca-bd90-316a50dbd92a")
+	)
+	(wire
+		(pts
+			(xy 167.64 49.53) (xy 193.04 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "e2e10845-1f87-4773-a737-e6052c3332e3")
+	)
+	(wire
+		(pts
+			(xy 104.14 203.2) (xy 104.14 76.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "e38e5154-f35c-4120-a98c-719a9ae7cd7d")
+	)
+	(wire
+		(pts
+			(xy 132.08 54.61) (xy 128.27 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "e47a64d0-4fbf-40e9-b407-f0114e201fc5")
+	)
+	(wire
+		(pts
+			(xy 96.52 304.8) (xy 96.52 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "e5dee1a1-aed8-4701-bab1-9dd976e78a7c")
+	)
+	(wire
+		(pts
+			(xy 215.9 307.34) (xy 224.79 307.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "e642d6cd-953d-44a9-a647-10fa33eb2c94")
+	)
+	(wire
+		(pts
+			(xy 215.9 203.2) (xy 224.79 203.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "e70a0b2e-4118-4af4-ac7d-f1f5938df78f")
+	)
+	(wire
+		(pts
+			(xy 132.08 105.41) (xy 128.27 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "e770f742-3751-4fd9-baa7-f55d629b7f6d")
+	)
+	(wire
+		(pts
+			(xy 187.96 245.11) (xy 187.96 297.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "e9ef637f-35e2-4b4f-946b-24f9063f857e")
+	)
+	(wire
+		(pts
+			(xy 132.08 100.33) (xy 114.3 100.33)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "eb184320-4c69-483a-9982-c712d551fa13")
+	)
+	(wire
+		(pts
+			(xy 128.27 208.28) (xy 128.27 180.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "eb8f4da9-710d-4baf-8b3a-be72d1007dc3")
+	)
+	(wire
+		(pts
+			(xy 125.73 299.72) (xy 132.08 299.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "ebfe4284-8592-41e2-8722-fe51e753a4ea")
+	)
+	(wire
+		(pts
+			(xy 176.53 90.17) (xy 167.64 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "ee07ea18-0e67-4fcc-a208-a9218dc5e44f")
+	)
+	(wire
+		(pts
+			(xy 224.79 149.86) (xy 237.49 149.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "ee5bf52d-9d0d-4f41-b9e0-d0d382438cbd")
+	)
+	(wire
+		(pts
+			(xy 58.42 78.74) (xy 101.6 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "ef06eb85-4aab-4892-b147-31d110c5b435")
+	)
+	(wire
+		(pts
+			(xy 227.33 148.59) (xy 242.57 148.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "f15a1e88-234f-45f7-8b13-eeccf515a029")
+	)
+	(wire
+		(pts
+			(xy 62.23 22.86) (xy 90.17 22.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "f1f7acbb-a2db-4072-b0ed-d18cee39df16")
+	)
+	(wire
+		(pts
+			(xy 187.96 39.37) (xy 176.53 39.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "f32ed98c-9bac-4ce8-8f38-3ee1572d2a4b")
+	)
+	(wire
+		(pts
+			(xy 224.79 304.8) (xy 224.79 307.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 255 1)
+		)
+		(uuid "f373641b-8900-47f7-871f-2d5b3095b7b3")
+	)
+	(wire
+		(pts
+			(xy 176.53 370.84) (xy 176.53 347.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "f465406d-0b2e-4af0-911b-06c58c94df16")
+	)
+	(wire
+		(pts
+			(xy 227.33 354.33) (xy 242.57 354.33)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "f62bb109-6bb2-464c-b25c-7e856750a562")
+	)
+	(wire
+		(pts
+			(xy 215.9 105.41) (xy 229.87 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 194 0 1)
+		)
+		(uuid "f94c3185-9b0b-4f64-9b84-2c0c3c52af73")
+	)
+	(wire
+		(pts
+			(xy 100.33 22.86) (xy 171.45 22.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 0 0 0 1)
+		)
+		(uuid "fad21a7b-9059-45f3-ab39-ad07c84d8580")
+	)
+	(wire
+		(pts
+			(xy 93.98 86.36) (xy 58.42 86.36)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "fbdc2320-8617-4ade-9801-ad57548eed3d")
+	)
+	(wire
+		(pts
+			(xy 125.73 92.71) (xy 132.08 92.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 194 194 0 1)
+		)
+		(uuid "fc644ce5-b111-462e-b83a-a19d6d571cef")
+	)
+	(wire
+		(pts
+			(xy 128.27 260.35) (xy 128.27 284.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "fcc949e6-a97c-4266-8a98-236a2ed31b0c")
+	)
+	(wire
+		(pts
+			(xy 187.96 297.18) (xy 187.96 347.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 0 0 1)
+		)
+		(uuid "fd7fdc49-1014-4be8-be55-ba817b28a173")
+	)
+	(wire
+		(pts
+			(xy 109.22 57.15) (xy 109.22 152.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 255 153 0 1)
+		)
+		(uuid "fdefc106-86c8-4653-9abc-4a882a52086e")
+	)
+	(wire
+		(pts
+			(xy 167.64 160.02) (xy 193.04 160.02)
+		)
+		(stroke
+			(width 0)
+			(type default)
+			(color 128 77 0 1)
+		)
+		(uuid "feed19f8-f873-4101-aff5-f3c275e1eeaf")
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 198.12 52.07 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "02b6f7b4-5d84-4710-bd62-b741df73b2e7")
+		(property "Reference" "J2"
+			(at 198.12 43.18 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "U Motor Input"
+			(at 198.12 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 198.12 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 198.12 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 198.12 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "911a4b09-1e5b-4434-b2a7-7aa3cfb95d87")
+		)
+		(pin "1"
+			(uuid "d26ebfdc-93c1-45ae-99f2-09c5a7080ac8")
+		)
+		(pin "2"
+			(uuid "fa5f22e7-8f61-43e0-8b73-38389d796f5c")
+		)
+		(pin "3"
+			(uuid "a1be9f45-bd5b-4861-ad03-6aa0b3381df1")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Motor:Stepper_Motor_bipolar")
+		(at 240.03 260.35 0)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "05f1baa5-27a4-4195-ae7c-001f693688af")
+		(property "Reference" "M5"
+			(at 245.11 258.229 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Stepper_Motor_bipolar"
+			(at 245.11 260.769 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 240.284 260.604 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
+			(at 240.284 260.604 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "4-wire bipolar stepper motor"
+			(at 240.03 260.35 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "94d19d5d-abd7-4a86-8d86-4131978ee8db")
+		)
+		(pin "2"
+			(uuid "eb62f399-d627-4317-acd2-e961313c740b")
+		)
+		(pin "3"
+			(uuid "dbe95885-b0a2-42ac-845c-557c0dd316f4")
+		)
+		(pin "4"
+			(uuid "20b237af-89e6-41cb-9ca1-d5cf9ca05516")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "M5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "TMC2208_SILENTSTEPSTICK:TMC2208_SILENTSTEPSTICK")
+		(at 149.86 102.87 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "092843b0-b72a-4a63-bbaf-b2c639eac73a")
+		(property "Reference" "U2"
+			(at 149.86 80.01 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TMC2208_SILENTSTEPSTICK"
+			(at 149.86 82.55 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TMC2208_SILENTSTEPSTICK:MODULE_TMC2208_SILENTSTEPSTICK"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MF" "Trinamic Motion"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Description_1" "\nTMC2208 Motor Controller/Driver, Stepper Power Management Evaluation Board\n"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Package" "None"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Price" "None"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Check_prices" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=eda"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "SnapEDA_Link" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=snap"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MP" "TMC2208 SILENTSTEPSTICK"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Availability" "In Stock"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MANUFACTURER" "Trinamic Motion"
+			(at 149.86 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(pin "JP3_1"
+			(uuid "6fea9e81-b220-47d1-8fdd-24bf9dd7e46d")
+		)
+		(pin "VREF"
+			(uuid "06012e65-f616-4363-be64-9b17b7502030")
+		)
+		(pin "JP3_2"
+			(uuid "a7da825d-22f1-4750-a8a7-1abad89d62de")
+		)
+		(pin "JP2_5"
+			(uuid "add50fa7-fa38-4053-82a3-93be1b337b88")
+		)
+		(pin "JP2_4"
+			(uuid "3dbddc17-b639-40e1-96fb-5314423cc8fa")
+		)
+		(pin "JP2_6"
+			(uuid "1a0f8351-3af4-4478-8818-d4b641df0341")
+		)
+		(pin "JP2_7"
+			(uuid "5b998c18-d617-49aa-ba00-ae2f5a865bcd")
+		)
+		(pin "JP2_8"
+			(uuid "d70bf29b-5ee4-4cb8-87c5-1a03154763c9")
+		)
+		(pin "JP1_4"
+			(uuid "16cbff23-f996-484a-a782-3c5bfabaa0c7")
+		)
+		(pin "JP1_7"
+			(uuid "c6cd0a91-ac90-4115-b4a0-dbb457fcb858")
+		)
+		(pin "JP1_5"
+			(uuid "07f10552-e182-4580-99f6-9b4e0c7604eb")
+		)
+		(pin "JP2_2"
+			(uuid "6e4b7a58-3675-4c56-a6d8-271444544fec")
+		)
+		(pin "JP1_1"
+			(uuid "0c739af1-b6b0-491e-a1ad-dc1397996ced")
+		)
+		(pin "JP2_3"
+			(uuid "b67701bd-292e-414f-9100-feb86264712e")
+		)
+		(pin "JP1_2"
+			(uuid "c020eea5-eac8-4be9-8dae-edd7f0025204")
+		)
+		(pin "JP2_1"
+			(uuid "d134aca6-4fc6-4032-a9a2-424fa1450755")
+		)
+		(pin "JP1_6"
+			(uuid "1a06e13c-a8f5-46a5-a64e-52e2388503a1")
+		)
+		(pin "JP1_8"
+			(uuid "eda4087e-8c69-4b5c-b0a3-1a91b1429c3a")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "U2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 100.33 35.56 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "0acc66d4-fcac-4ebb-8246-94ac421ac616")
+		(property "Reference" "R2"
+			(at 106.68 35.56 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "330R"
+			(at 104.14 35.56 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal"
+			(at 98.552 35.56 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 100.33 35.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 100.33 35.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "78d3c339-54a6-4ea5-ad5e-fdd6c16009af")
+		)
+		(pin "2"
+			(uuid "440759df-1ca4-4083-9511-c49d3520257d")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "R2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 176.53 271.78 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "11f6520e-b25d-4d9d-998b-3e07e7cc89a2")
+		(property "Reference" "C5"
+			(at 180.34 270.5099 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "0.1mF"
+			(at 180.34 273.0499 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Capacitor_THT:C_Radial_D4.0mm_H7.0mm_P1.50mm"
+			(at 175.5648 267.97 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 176.53 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 176.53 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "d3e90efe-6fd0-47e1-8e2b-26c90024cd2d")
+		)
+		(pin "1"
+			(uuid "2aef8ac1-63f0-4f10-a41d-5a95dc651f11")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "C5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 176.53 116.84 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "13076532-177a-43b3-a6ad-3a37148dcd95")
+		(property "Reference" "C2"
+			(at 180.34 115.5699 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "0.1mF"
+			(at 180.34 118.1099 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Capacitor_THT:C_Radial_D4.0mm_H7.0mm_P1.50mm"
+			(at 175.5648 113.03 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 176.53 116.84 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 176.53 116.84 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "10dbec78-a604-44ae-a16e-5737855d6174")
+		)
+		(pin "1"
+			(uuid "5b7acc16-2368-4e95-a673-107f4359a9b2")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "C2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 210.82 205.74 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "18b7217b-a46b-497b-90af-8f97a8440707")
+		(property "Reference" "J9"
+			(at 210.82 196.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "D Motor Output"
+			(at 210.82 199.39 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 210.82 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 210.82 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 210.82 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "97354b94-e561-46b7-ab5c-fa53f4f23c8f")
+		)
+		(pin "1"
+			(uuid "3e29fec9-2a53-4219-8f93-2a3c7fa77258")
+		)
+		(pin "2"
+			(uuid "c349e8c2-3456-41b0-8694-4d97e472a903")
+		)
+		(pin "3"
+			(uuid "bf1f9c57-664c-4633-a6ed-f70f2f380be6")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J9")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 198.12 154.94 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "1d79cf84-8b6a-4320-8bab-1490408200d4")
+		(property "Reference" "J6"
+			(at 198.12 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "F Motor Input"
+			(at 198.12 163.83 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 198.12 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 198.12 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 198.12 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "16fdd3f9-35bc-4626-a0aa-4414db3130d3")
+		)
+		(pin "1"
+			(uuid "e7e8395f-3002-48b9-9421-71c8633d4788")
+		)
+		(pin "2"
+			(uuid "a90acb5e-184b-437b-8fce-d1d86b7a5d49")
+		)
+		(pin "3"
+			(uuid "f3ab2ad8-c8be-40c3-9c83-ce78f1a5a27a")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 198.12 309.88 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "24b7a8b7-0c3a-48f4-8c7e-b5bb5ca09634")
+		(property "Reference" "J11"
+			(at 198.12 300.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "B Motor Input"
+			(at 198.12 318.77 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 198.12 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 198.12 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 198.12 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "7bd48acc-83c5-40ac-a6a0-5032dd82b5cd")
+		)
+		(pin "1"
+			(uuid "b3c50bf4-b16b-45e9-b813-481a804ab578")
+		)
+		(pin "2"
+			(uuid "ed910e3b-241e-42e3-af54-e7242cb8b878")
+		)
+		(pin "3"
+			(uuid "f56c9129-a8e6-4e33-a308-c4214bd2a853")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J11")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Motor:Stepper_Motor_bipolar")
+		(at 240.03 208.28 0)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "360f733f-f0b6-48ca-9b7b-d695fd3a5c79")
+		(property "Reference" "M4"
+			(at 245.11 206.159 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Stepper_Motor_bipolar"
+			(at 245.11 208.699 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 240.284 208.534 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
+			(at 240.284 208.534 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "4-wire bipolar stepper motor"
+			(at 240.03 208.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "27c7cdf1-8c0d-43ba-89a4-637b0e717e01")
+		)
+		(pin "2"
+			(uuid "aaa1aa0d-d697-4a0d-ae6b-1a601c0e3abe")
+		)
+		(pin "3"
+			(uuid "82a351f4-afce-46d5-ba1c-1fff88230b72")
+		)
+		(pin "4"
+			(uuid "5dbfcdd2-5fad-439b-8dbd-732da2289233")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "M4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "TMC2208_SILENTSTEPSTICK:TMC2208_SILENTSTEPSTICK")
+		(at 149.86 205.74 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "370a291c-2dac-4bf0-a5ba-c74815d15185")
+		(property "Reference" "U4"
+			(at 149.86 182.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TMC2208_SILENTSTEPSTICK"
+			(at 149.86 185.42 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TMC2208_SILENTSTEPSTICK:MODULE_TMC2208_SILENTSTEPSTICK"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MF" "Trinamic Motion"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Description_1" "\nTMC2208 Motor Controller/Driver, Stepper Power Management Evaluation Board\n"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Package" "None"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Price" "None"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Check_prices" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=eda"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "SnapEDA_Link" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=snap"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MP" "TMC2208 SILENTSTEPSTICK"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Availability" "In Stock"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MANUFACTURER" "Trinamic Motion"
+			(at 149.86 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(pin "JP3_1"
+			(uuid "4fd983b1-6f21-462c-856f-97a8fbd44513")
+		)
+		(pin "VREF"
+			(uuid "1cc87ad0-c8da-42b9-8c95-f229a04cb87d")
+		)
+		(pin "JP3_2"
+			(uuid "56c91674-d515-4ce5-96c5-417da9e4f391")
+		)
+		(pin "JP2_5"
+			(uuid "c6f2ecdd-517f-4527-9f30-c116a87e4e84")
+		)
+		(pin "JP2_4"
+			(uuid "39c6dd9f-7115-4176-b582-a93e4e2b4bad")
+		)
+		(pin "JP2_6"
+			(uuid "9f310974-5cd6-45ce-8f3b-62fbcd9fb3dc")
+		)
+		(pin "JP2_7"
+			(uuid "f2933a58-714a-4a31-a0e1-b0b2d445e324")
+		)
+		(pin "JP2_8"
+			(uuid "4e6f6ec3-5973-4d6c-af55-408d6f5665a1")
+		)
+		(pin "JP1_4"
+			(uuid "35116cdf-79f2-40ea-bb68-5ab3731fc4e3")
+		)
+		(pin "JP1_7"
+			(uuid "1630667b-bdc1-45b2-83bd-55ce3c80a915")
+		)
+		(pin "JP1_5"
+			(uuid "e342c741-bbe5-4405-8306-3f80257327a8")
+		)
+		(pin "JP2_2"
+			(uuid "7e32ef9a-cb25-42bf-b0f3-f7849c958392")
+		)
+		(pin "JP1_1"
+			(uuid "45c95a26-4e80-4f80-bc1f-8d728b9d9202")
+		)
+		(pin "JP2_3"
+			(uuid "c469d773-1904-412f-a5eb-ffed67e6a47c")
+		)
+		(pin "JP1_2"
+			(uuid "794a1877-e687-4d7d-bb3d-85072e21b664")
+		)
+		(pin "JP2_1"
+			(uuid "595f024e-6050-46d6-ab88-216b36e84f1c")
+		)
+		(pin "JP1_6"
+			(uuid "3d6275d1-43ec-48f7-9b05-35e8506db13c")
+		)
+		(pin "JP1_8"
+			(uuid "6e52cfa5-7e2a-4257-9755-aff8f623e5ea")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "U4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 176.53 219.71 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "3910cf11-cfb4-401e-b43d-23e2f5379b74")
+		(property "Reference" "C4"
+			(at 180.34 218.4399 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "0.1mF"
+			(at 180.34 220.9799 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Capacitor_THT:C_Radial_D4.0mm_H7.0mm_P1.50mm"
+			(at 175.5648 215.9 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 176.53 219.71 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 176.53 219.71 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "e4918e5f-ee9b-4b78-aa65-d1807889331c")
+		)
+		(pin "1"
+			(uuid "eb4f5797-de73-4f60-8aa5-bf7f5b01cfcf")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "C4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:LED")
+		(at 82.55 29.21 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "48d872f7-12c2-4ff5-bc13-9ebdb5bb1908")
+		(property "Reference" "D1"
+			(at 84.1375 35.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "LED"
+			(at 84.1375 33.02 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "LED_THT:LED_D5.0mm"
+			(at 82.55 29.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 82.55 29.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Light emitting diode"
+			(at 82.55 29.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "c984269c-add5-4505-a42d-d2aa443628f3")
+		)
+		(pin "1"
+			(uuid "4b9f9fa5-7408-4a17-a1f1-d6e707b7c704")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "D1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 198.12 257.81 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "4d8220e5-201e-443e-8d7d-28b111293331")
+		(property "Reference" "J10"
+			(at 198.12 248.92 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "L Motor Input"
+			(at 198.12 266.7 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 198.12 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 198.12 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 198.12 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "61835c9d-52ad-42c8-95d9-e99070fbc219")
+		)
+		(pin "1"
+			(uuid "8067bdcf-b4e3-47ea-8d92-6bcc1654c056")
+		)
+		(pin "2"
+			(uuid "145147f2-7563-42f9-b770-94e3964e3abc")
+		)
+		(pin "3"
+			(uuid "5040dd8d-af8e-49d8-b270-4ab5ab1a2bde")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J10")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 210.82 154.94 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(uuid "558b5fe7-f6d8-446d-afe4-b6490b92c3e4")
+		(property "Reference" "J8"
+			(at 210.82 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "F Motor Output"
+			(at 210.82 148.59 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 210.82 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 210.82 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 210.82 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "82655ec4-16fc-4687-a491-03e2232a0e49")
+		)
+		(pin "1"
+			(uuid "783c8d16-3c53-4ec9-856e-21b76a57837d")
+		)
+		(pin "2"
+			(uuid "d45b14ef-7456-458d-a9a9-26c1c8ab3f79")
+		)
+		(pin "3"
+			(uuid "2eca5f13-5ad8-4350-83cb-b0591cb8c35a")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Motor:Stepper_Motor_bipolar")
+		(at 240.03 157.48 0)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "5610844a-7e2c-4c16-95b9-667c57890d90")
+		(property "Reference" "M3"
+			(at 245.11 155.359 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Stepper_Motor_bipolar"
+			(at 245.11 157.899 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 240.284 157.734 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
+			(at 240.284 157.734 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "4-wire bipolar stepper motor"
+			(at 240.03 157.48 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "277c9a88-ebcc-4a70-a35d-b0b7da9ffe56")
+		)
+		(pin "2"
+			(uuid "b443d4c9-851a-446d-bef5-f1cc6fca8c1b")
+		)
+		(pin "3"
+			(uuid "58f00915-8b61-423f-9e09-d2a3af85365c")
+		)
+		(pin "4"
+			(uuid "c5c82471-1970-43dc-af94-041bfee2461e")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "M3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x02")
+		(at 57.15 20.32 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "5d126000-de2d-416f-a726-26d68e048a8e")
+		(property "Reference" "J1"
+			(at 57.15 11.43 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "Power Input	"
+			(at 57.15 16.51 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 57.15 20.32 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 57.15 20.32 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 57.15 20.32 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "3e1d0b68-989e-42a2-a9d9-b36d402116b2")
+		)
+		(pin "2"
+			(uuid "c69826f5-bcf3-425f-a7f1-88c94f2e9579")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 176.53 168.91 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "716585d1-2ed2-464a-a21a-7c4fdf90c7e4")
+		(property "Reference" "C3"
+			(at 180.34 167.6399 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "0.1mF"
+			(at 180.34 170.1799 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Capacitor_THT:C_Radial_D4.0mm_H7.0mm_P1.50mm"
+			(at 175.5648 165.1 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 176.53 168.91 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 176.53 168.91 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "60f19abc-c645-498c-aa90-7195b60c5e71")
+		)
+		(pin "1"
+			(uuid "ba60b3be-a6ea-412b-b514-0524a8e0ff26")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "C3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 176.53 374.65 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "73cbcdfa-c5f1-40b1-81b2-e2b6a2df96fc")
+		(property "Reference" "C7"
+			(at 180.34 373.3799 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "0.1mF"
+			(at 180.34 375.9199 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Capacitor_THT:C_Radial_D4.0mm_H7.0mm_P1.50mm"
+			(at 175.5648 370.84 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 176.53 374.65 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 176.53 374.65 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "445170c2-785a-473b-ba78-ff8d648d55a7")
+		)
+		(pin "1"
+			(uuid "40ba885e-7dfd-4ee3-8b9b-6eabf720169a")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "C7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 73.66 29.21 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "749d1280-bd21-4694-8cdc-a39232116b88")
+		(property "Reference" "R1"
+			(at 73.66 35.56 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "22kR"
+			(at 73.66 33.02 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal"
+			(at 73.66 27.432 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 73.66 29.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 73.66 29.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "8235a7db-404c-4a90-bd49-2f255ed33b15")
+		)
+		(pin "2"
+			(uuid "60d2575c-ea48-4c00-91ae-cace67cdc350")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "R1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "TMC2208_SILENTSTEPSTICK:TMC2208_SILENTSTEPSTICK")
+		(at 149.86 52.07 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "7819eb85-caf6-4a6b-b4af-b8fe962908d9")
+		(property "Reference" "U1"
+			(at 149.86 29.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TMC2208_SILENTSTEPSTICK"
+			(at 149.86 31.75 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TMC2208_SILENTSTEPSTICK:MODULE_TMC2208_SILENTSTEPSTICK"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MF" "Trinamic Motion"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Description_1" "\nTMC2208 Motor Controller/Driver, Stepper Power Management Evaluation Board\n"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Package" "None"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Price" "None"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Check_prices" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=eda"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "SnapEDA_Link" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=snap"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MP" "TMC2208 SILENTSTEPSTICK"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Availability" "In Stock"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MANUFACTURER" "Trinamic Motion"
+			(at 149.86 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(pin "JP3_1"
+			(uuid "32dda235-663d-44b2-a466-9d74ef1fede1")
+		)
+		(pin "VREF"
+			(uuid "47feaa78-7508-49f6-b9ab-fc5e5438401a")
+		)
+		(pin "JP3_2"
+			(uuid "e81c9227-7665-4070-b2cb-4400a8ee3eb9")
+		)
+		(pin "JP2_5"
+			(uuid "8555b9c0-2d9c-420e-b6dd-477ee9fc38ce")
+		)
+		(pin "JP2_4"
+			(uuid "3ea9f4e6-c528-44cf-a444-2fbfa69805db")
+		)
+		(pin "JP2_6"
+			(uuid "2220d0aa-aa7b-4d14-907f-c2f0bf8d6e45")
+		)
+		(pin "JP2_7"
+			(uuid "fd209c37-f51a-49da-9bd6-f415f3d67aad")
+		)
+		(pin "JP2_8"
+			(uuid "502af4a3-a573-4c51-b959-3b5d9a19dbdf")
+		)
+		(pin "JP1_4"
+			(uuid "4c2737a3-5a89-4172-b8d3-718745677f4e")
+		)
+		(pin "JP1_7"
+			(uuid "802bb8e3-acd5-4c6c-a136-fe3848cdee30")
+		)
+		(pin "JP1_5"
+			(uuid "7bc920b8-84a1-4016-81b7-cc2f4a50817e")
+		)
+		(pin "JP2_2"
+			(uuid "9cfc169e-1b27-466c-9971-4ace150e94e3")
+		)
+		(pin "JP1_1"
+			(uuid "8acd0d85-02b1-431b-8b43-bd4e1e7a67e7")
+		)
+		(pin "JP2_3"
+			(uuid "b8e7f0a6-9837-47f6-8700-14cb0e075d8e")
+		)
+		(pin "JP1_2"
+			(uuid "8cddbc68-0d6a-4d2d-9736-19f22c90fa5d")
+		)
+		(pin "JP2_1"
+			(uuid "6f360130-b699-4874-9b0c-73aa9e0db7c3")
+		)
+		(pin "JP1_6"
+			(uuid "d0d220fb-18b1-41ad-89e1-37c7202297f0")
+		)
+		(pin "JP1_8"
+			(uuid "3b83b838-126b-461e-bf3b-27cf93d251cd")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "U1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Motor:Stepper_Motor_bipolar")
+		(at 240.03 54.61 0)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "7dbfa286-2f3d-4737-b378-b4207f957fa3")
+		(property "Reference" "M1"
+			(at 245.11 52.489 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Stepper_Motor_bipolar"
+			(at 245.11 55.029 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 240.284 54.864 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
+			(at 240.284 54.864 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "4-wire bipolar stepper motor"
+			(at 240.03 54.61 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "c7119e5f-8faa-496d-83ab-fad7481a040a")
+		)
+		(pin "2"
+			(uuid "de972f50-8991-4d11-93bf-0be583dcd53f")
+		)
+		(pin "3"
+			(uuid "5d53b573-eca8-4972-b64a-39c34b78cb24")
+		)
+		(pin "4"
+			(uuid "946a14a3-5f59-4fb6-9e58-d42fa06b5f5a")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "M1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "TMC2208_SILENTSTEPSTICK:TMC2208_SILENTSTEPSTICK")
+		(at 149.86 154.94 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "8045adf0-f84e-422d-81d0-351d1c4e9da3")
+		(property "Reference" "U3"
+			(at 149.86 132.08 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TMC2208_SILENTSTEPSTICK"
+			(at 149.86 134.62 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TMC2208_SILENTSTEPSTICK:MODULE_TMC2208_SILENTSTEPSTICK"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MF" "Trinamic Motion"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Description_1" "\nTMC2208 Motor Controller/Driver, Stepper Power Management Evaluation Board\n"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Package" "None"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Price" "None"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Check_prices" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=eda"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "SnapEDA_Link" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=snap"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MP" "TMC2208 SILENTSTEPSTICK"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Availability" "In Stock"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MANUFACTURER" "Trinamic Motion"
+			(at 149.86 154.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(pin "JP3_1"
+			(uuid "e2b1d56d-9430-470b-a15e-f531b742972c")
+		)
+		(pin "VREF"
+			(uuid "a5d33e29-3366-404b-8eda-5d9a8f866275")
+		)
+		(pin "JP3_2"
+			(uuid "fdae9d08-c16b-4e9e-a5db-6047f3512bd6")
+		)
+		(pin "JP2_5"
+			(uuid "aa4ce661-aeeb-444c-8cc9-e31d2422a381")
+		)
+		(pin "JP2_4"
+			(uuid "98ec3a00-767d-430b-b53a-117a87050906")
+		)
+		(pin "JP2_6"
+			(uuid "f32eafd9-370b-46f6-b56e-c0d828ec5704")
+		)
+		(pin "JP2_7"
+			(uuid "45656203-4b41-48fc-b2a2-fd69d2139bc6")
+		)
+		(pin "JP2_8"
+			(uuid "ec580a26-e5a6-4b08-87bc-9de1ca72275e")
+		)
+		(pin "JP1_4"
+			(uuid "ea0568e6-d466-4e1d-aa78-321845e4d83a")
+		)
+		(pin "JP1_7"
+			(uuid "53a1d93f-a8f8-4083-a34f-e793e6428a70")
+		)
+		(pin "JP1_5"
+			(uuid "c1f16b7a-8aef-48a7-a6e2-a357f0ade2d1")
+		)
+		(pin "JP2_2"
+			(uuid "b0cd4dd2-5306-418d-ad40-2b63985166a5")
+		)
+		(pin "JP1_1"
+			(uuid "e1fee47d-1a3f-40ff-b1df-7a0ac2997fa7")
+		)
+		(pin "JP2_3"
+			(uuid "8bfb6ee2-bc4c-4e8d-aae0-8d2000c95ba0")
+		)
+		(pin "JP1_2"
+			(uuid "ce2644cc-f078-41f9-a074-096f93bab923")
+		)
+		(pin "JP2_1"
+			(uuid "a67e8a1e-5bd5-48b8-add5-8d7a6b36b800")
+		)
+		(pin "JP1_6"
+			(uuid "879e08d2-8e1f-4d1d-8dc6-c0110f39cfdd")
+		)
+		(pin "JP1_8"
+			(uuid "576dcf45-46ad-4d98-a07a-3614d04b5eae")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "U3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:LED")
+		(at 100.33 27.94 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "8f1fa716-e337-4c82-8793-0cf0bbdc27d0")
+		(property "Reference" "D2"
+			(at 106.68 26.3525 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "LED"
+			(at 104.14 26.3525 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "LED_THT:LED_D5.0mm"
+			(at 100.33 27.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 100.33 27.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Light emitting diode"
+			(at 100.33 27.94 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "89ede523-56d9-4a51-ac71-b592391a31d5")
+		)
+		(pin "1"
+			(uuid "d58ea8af-eff7-4588-85ed-4094aa4f3e15")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "D2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "TMC2208_SILENTSTEPSTICK:TMC2208_SILENTSTEPSTICK")
+		(at 149.86 360.68 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "944ac691-76a9-49ff-a70e-51d0f51e5f6b")
+		(property "Reference" "U7"
+			(at 149.86 337.82 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TMC2208_SILENTSTEPSTICK"
+			(at 149.86 340.36 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TMC2208_SILENTSTEPSTICK:MODULE_TMC2208_SILENTSTEPSTICK"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MF" "Trinamic Motion"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Description_1" "\nTMC2208 Motor Controller/Driver, Stepper Power Management Evaluation Board\n"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Package" "None"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Price" "None"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Check_prices" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=eda"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "SnapEDA_Link" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=snap"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MP" "TMC2208 SILENTSTEPSTICK"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Availability" "In Stock"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MANUFACTURER" "Trinamic Motion"
+			(at 149.86 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(pin "JP3_1"
+			(uuid "69c71f61-27be-4fc1-9565-f127bc3d4e99")
+		)
+		(pin "VREF"
+			(uuid "9fee1929-8a1e-4ac0-8961-e25add35549d")
+		)
+		(pin "JP3_2"
+			(uuid "94516fa6-7bbb-4ddb-bfe3-c4569e891d93")
+		)
+		(pin "JP2_5"
+			(uuid "43a4fc7f-4c44-4e52-b3ae-8071adf2d336")
+		)
+		(pin "JP2_4"
+			(uuid "de0f4b74-2f67-41a5-a71c-027b6551fe45")
+		)
+		(pin "JP2_6"
+			(uuid "7794eec4-80c3-499c-ae33-5a0f2fb52f1e")
+		)
+		(pin "JP2_7"
+			(uuid "fdf1fea1-150a-477c-bcc4-49e6288857c9")
+		)
+		(pin "JP2_8"
+			(uuid "80a730de-b050-41f7-afa8-2321b813feef")
+		)
+		(pin "JP1_4"
+			(uuid "6ea714a3-8e4d-4c23-ac81-a5fca6f84731")
+		)
+		(pin "JP1_7"
+			(uuid "0bd67219-65d7-4eeb-ba71-0b6c8c57a551")
+		)
+		(pin "JP1_5"
+			(uuid "d0335cb3-3da3-486d-8136-1cb3f3c2d14a")
+		)
+		(pin "JP2_2"
+			(uuid "3f20c207-f6af-4a3f-9ba0-dc71b65068c7")
+		)
+		(pin "JP1_1"
+			(uuid "07b46f4a-59b8-4db8-85cb-13c3224f29da")
+		)
+		(pin "JP2_3"
+			(uuid "a2ba693e-851e-420d-b535-6942f03aaf0a")
+		)
+		(pin "JP1_2"
+			(uuid "c94d4c5c-c49b-4ea1-892d-7ce51154b958")
+		)
+		(pin "JP2_1"
+			(uuid "2ce3f44e-2759-4246-8583-2c6eda1e4ffa")
+		)
+		(pin "JP1_6"
+			(uuid "2af73489-b810-432f-be1b-c7bc700e8d65")
+		)
+		(pin "JP1_8"
+			(uuid "14376c02-7035-45c7-acb2-2f4d039cab44")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "U7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 176.53 63.5 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "96f6360e-b06f-4859-9e2e-c2fb1c1cf22d")
+		(property "Reference" "C1"
+			(at 180.34 62.2299 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "0.1mF"
+			(at 180.34 64.7699 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Capacitor_THT:C_Radial_D4.0mm_H7.0mm_P1.50mm"
+			(at 175.5648 59.69 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 176.53 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 176.53 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "7c818feb-28cf-4a51-8f78-a18c85e6d65c")
+		)
+		(pin "1"
+			(uuid "9696fa9a-fb92-45f9-b600-076a8bcea9c2")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "C1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 210.82 309.88 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "99586a05-f407-4bba-91be-d6f1eef6f43b")
+		(property "Reference" "J14"
+			(at 210.82 300.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "B Motor Output"
+			(at 210.82 303.53 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 210.82 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 210.82 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 210.82 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "f5d5f425-98cf-4c3e-b658-b36439131b09")
+		)
+		(pin "1"
+			(uuid "8daf9c05-0966-4e66-b2de-63c2f286fcc4")
+		)
+		(pin "2"
+			(uuid "3c82b51f-c547-49e9-93aa-f41f9eca2896")
+		)
+		(pin "3"
+			(uuid "17bb418b-7e21-4d81-bdbc-e936a7235443")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J14")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 198.12 102.87 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "a3ccd9b0-2e71-41db-97ce-ab2fdeb833d2")
+		(property "Reference" "J4"
+			(at 198.12 93.98 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "R Motor Input"
+			(at 198.12 111.76 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 198.12 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 198.12 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 198.12 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "2e97d315-c463-4797-b5af-1f156890fea8")
+		)
+		(pin "1"
+			(uuid "55d1f0f5-1c38-4a56-a8ff-58286725ad93")
+		)
+		(pin "2"
+			(uuid "2162c178-6aaf-48c9-8120-90a01ffef645")
+		)
+		(pin "3"
+			(uuid "aaa9095b-3f6a-4dff-80cb-ff43df02c5fa")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Motor:Stepper_Motor_bipolar")
+		(at 240.03 105.41 0)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "a86ca6dc-76ba-4d05-9b86-dd1d4fad392b")
+		(property "Reference" "M2"
+			(at 245.11 103.289 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Stepper_Motor_bipolar"
+			(at 245.11 105.829 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 240.284 105.664 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
+			(at 240.284 105.664 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "4-wire bipolar stepper motor"
+			(at 240.03 105.41 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "072cd6bf-ed9e-405b-b7ae-cf0ff52b07af")
+		)
+		(pin "2"
+			(uuid "30a06e8e-0d7b-471a-954d-3ed398554b24")
+		)
+		(pin "3"
+			(uuid "8c7a0cb2-3942-48da-baf6-d94f3fc4407e")
+		)
+		(pin "4"
+			(uuid "7b07174b-75fb-4980-af96-2bec5a12e472")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "M2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 176.53 323.85 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b06a2acb-d077-4d41-be9d-0e67c32378a2")
+		(property "Reference" "C6"
+			(at 180.34 322.5799 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "0.1mF"
+			(at 180.34 325.1199 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Capacitor_THT:C_Radial_D4.0mm_H7.0mm_P1.50mm"
+			(at 175.5648 320.04 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 176.53 323.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 176.53 323.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "2077f026-8051-4cfa-81c5-556183096de1")
+		)
+		(pin "1"
+			(uuid "9a335d75-5dfb-471e-80a6-882520c03f2a")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "C6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 210.82 360.68 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b30c6b29-d5e2-4ee4-b4b6-eab05f3ad44a")
+		(property "Reference" "J15"
+			(at 210.82 351.79 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "Ring Motor Output"
+			(at 210.82 354.33 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 210.82 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 210.82 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 210.82 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "7e5abc9a-1d5a-4e10-a222-6deca561f1f8")
+		)
+		(pin "1"
+			(uuid "4050b105-c622-47f0-8a4e-51276ab73735")
+		)
+		(pin "2"
+			(uuid "91605beb-f299-47a9-9719-2fa9312bffb2")
+		)
+		(pin "3"
+			(uuid "692b41e6-25cc-4111-95e0-40770e92e54e")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J15")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "TMC2208_SILENTSTEPSTICK:TMC2208_SILENTSTEPSTICK")
+		(at 149.86 257.81 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b6691236-946b-48ea-be71-971305e67008")
+		(property "Reference" "U5"
+			(at 149.86 234.95 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TMC2208_SILENTSTEPSTICK"
+			(at 149.86 237.49 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TMC2208_SILENTSTEPSTICK:MODULE_TMC2208_SILENTSTEPSTICK"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MF" "Trinamic Motion"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Description_1" "\nTMC2208 Motor Controller/Driver, Stepper Power Management Evaluation Board\n"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Package" "None"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Price" "None"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Check_prices" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=eda"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "SnapEDA_Link" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=snap"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MP" "TMC2208 SILENTSTEPSTICK"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Availability" "In Stock"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MANUFACTURER" "Trinamic Motion"
+			(at 149.86 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(pin "JP3_1"
+			(uuid "986b0bd2-a003-412a-b0e6-50988f921e5f")
+		)
+		(pin "VREF"
+			(uuid "cbd63b67-9553-4ed9-8627-41e6e91d1bec")
+		)
+		(pin "JP3_2"
+			(uuid "949208a1-877d-4bbd-b3f2-c022fe27bb04")
+		)
+		(pin "JP2_5"
+			(uuid "c99b24be-4317-4708-951f-c879d0b3bb78")
+		)
+		(pin "JP2_4"
+			(uuid "4adf586a-9328-4d5e-90d3-c9501914bda8")
+		)
+		(pin "JP2_6"
+			(uuid "035f9bba-ae80-43f4-a154-128364359a3f")
+		)
+		(pin "JP2_7"
+			(uuid "8de8f271-b6e9-4cb5-a924-03b0966083c3")
+		)
+		(pin "JP2_8"
+			(uuid "4deab041-9a3c-402a-8816-9603d03b7b0a")
+		)
+		(pin "JP1_4"
+			(uuid "df938863-8cb7-4399-a393-5fbdff71e925")
+		)
+		(pin "JP1_7"
+			(uuid "55a234a0-ad46-400d-96f7-3ed12d26dcee")
+		)
+		(pin "JP1_5"
+			(uuid "e41d1c7f-ff16-4e04-8cfe-023b385ddfb8")
+		)
+		(pin "JP2_2"
+			(uuid "0b2a44a7-9681-4f6d-bad3-2d92cc97e266")
+		)
+		(pin "JP1_1"
+			(uuid "98d7b6ba-8605-4d13-a589-f1188b0dea36")
+		)
+		(pin "JP2_3"
+			(uuid "6e3f13df-12de-4d29-9fe6-2167cd275f2a")
+		)
+		(pin "JP1_2"
+			(uuid "749909c6-b02c-4cb5-b6f4-ac820c1e5b46")
+		)
+		(pin "JP2_1"
+			(uuid "366e2678-8818-49cf-ac47-aac1828e1f7a")
+		)
+		(pin "JP1_6"
+			(uuid "8da2319b-3a77-4af4-ba0b-44c6377db19a")
+		)
+		(pin "JP1_8"
+			(uuid "9041ec01-a4b4-454f-98c2-2bc769ebba24")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "U5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 210.82 52.07 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "c04433f8-1eae-44d3-a0a7-5430bc0f2add")
+		(property "Reference" "J3"
+			(at 210.82 43.18 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "U Motor Output"
+			(at 210.82 45.72 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 210.82 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 210.82 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 210.82 52.07 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "3bf15307-5653-4cd2-927d-07d0c200d879")
+		)
+		(pin "1"
+			(uuid "251ac983-a54c-41fc-b93f-595778072cdb")
+		)
+		(pin "2"
+			(uuid "7291e7dc-92e0-4f42-a099-984ef4ca03ec")
+		)
+		(pin "3"
+			(uuid "0a2e2403-7047-4774-9ce4-5342e925c2c3")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x08")
+		(at 53.34 81.28 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "cc5fa46a-5c9b-4db5-ab96-f512b4ad40dd")
+		(property "Reference" "J17"
+			(at 53.34 72.39 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "Driver Input 2"
+			(at 53.34 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 53.34 81.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 53.34 81.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x08, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 53.34 81.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "a8c2994e-3d8c-47db-a6b2-2fc2677a432d")
+		)
+		(pin "1"
+			(uuid "b0d78920-99a5-4a3c-ab0f-f9e0d54874f8")
+		)
+		(pin "2"
+			(uuid "24b2e149-dc15-4970-922c-22998f47ca9e")
+		)
+		(pin "3"
+			(uuid "8643a58d-ea91-41af-ba2f-efcfc6a9176d")
+		)
+		(pin "5"
+			(uuid "a46ba962-b923-4fd5-8d48-e96c7a84f9be")
+		)
+		(pin "6"
+			(uuid "a3f3bf35-96e5-41db-8e0a-e31fda575e28")
+		)
+		(pin "7"
+			(uuid "7a4916c4-81b5-4ab9-bf04-db9ff46ba0a5")
+		)
+		(pin "8"
+			(uuid "fcd2fd73-cdfe-42a4-9458-a5dbdcd26319")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J17")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "TMC2208_SILENTSTEPSTICK:TMC2208_SILENTSTEPSTICK")
+		(at 149.86 309.88 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "cf81fe08-a211-4985-a164-36955192489c")
+		(property "Reference" "U6"
+			(at 149.86 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TMC2208_SILENTSTEPSTICK"
+			(at 149.86 289.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TMC2208_SILENTSTEPSTICK:MODULE_TMC2208_SILENTSTEPSTICK"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MF" "Trinamic Motion"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Description_1" "\nTMC2208 Motor Controller/Driver, Stepper Power Management Evaluation Board\n"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Package" "None"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Price" "None"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Check_prices" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=eda"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "SnapEDA_Link" "https://www.snapeda.com/parts/TMC2208%20SILENTSTEPSTICK/Trinamic+Motion+Control+GmbH/view-part/?ref=snap"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MP" "TMC2208 SILENTSTEPSTICK"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "Availability" "In Stock"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MANUFACTURER" "Trinamic Motion"
+			(at 149.86 309.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(pin "JP3_1"
+			(uuid "ae578225-aa6d-4431-acdb-66018c372cf1")
+		)
+		(pin "VREF"
+			(uuid "9271498d-2935-4d24-9d98-685e806e5fe6")
+		)
+		(pin "JP3_2"
+			(uuid "8d9a4d2e-e8f9-486c-aaf1-9ab931e1f9f2")
+		)
+		(pin "JP2_5"
+			(uuid "814161fc-170c-4742-81c9-99e133713e51")
+		)
+		(pin "JP2_4"
+			(uuid "301f9ecd-aabf-4a1a-9bea-969f3a6c2897")
+		)
+		(pin "JP2_6"
+			(uuid "f0e2bc9b-8227-4fa3-9676-aeed3c6fb672")
+		)
+		(pin "JP2_7"
+			(uuid "3b612fc2-05a6-44b3-9fc7-f4b41a7cad41")
+		)
+		(pin "JP2_8"
+			(uuid "b430958c-c478-4789-9471-7cde42e07614")
+		)
+		(pin "JP1_4"
+			(uuid "f4b8943f-d3d1-4417-98ea-e1913f72982d")
+		)
+		(pin "JP1_7"
+			(uuid "c34bd86c-7fcf-4c62-9fb5-e3309677cdd0")
+		)
+		(pin "JP1_5"
+			(uuid "debda1a9-206c-4c3c-81de-70f114ef7c5b")
+		)
+		(pin "JP2_2"
+			(uuid "d721d634-d045-4e03-8906-8e28c4645656")
+		)
+		(pin "JP1_1"
+			(uuid "22a2bc81-d1ab-4e4a-bdab-da6442c8ee89")
+		)
+		(pin "JP2_3"
+			(uuid "2ea3e719-61c0-45be-a0e2-6e15214ab915")
+		)
+		(pin "JP1_2"
+			(uuid "97e0c83b-cc53-401e-aacb-d2cb021923fa")
+		)
+		(pin "JP2_1"
+			(uuid "fd4b27f0-d5cc-465e-9b6b-4a96868fb47e")
+		)
+		(pin "JP1_6"
+			(uuid "495b5b92-8d40-4d55-a5b9-27a499b0872b")
+		)
+		(pin "JP1_8"
+			(uuid "8c51a136-00b4-4930-bbad-cc07b2216c7c")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "U6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 210.82 257.81 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "d2f93068-0b28-46dd-a141-41baca904dd2")
+		(property "Reference" "J13"
+			(at 210.82 248.92 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "L Motor Output"
+			(at 210.82 251.46 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 210.82 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 210.82 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 210.82 257.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "d16801f5-9204-4d6b-9375-2c1d749cd4ba")
+		)
+		(pin "1"
+			(uuid "6168de17-f994-44ba-a252-e84bd97bbfe5")
+		)
+		(pin "2"
+			(uuid "e6fcf2e1-8d31-4fd6-9ac0-e31aa77c1fdb")
+		)
+		(pin "3"
+			(uuid "dacc0ce6-f8d9-42f1-af34-6cefe77e0feb")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J13")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_name "Conn_01x08_1")
+		(lib_id "Connector_Generic:Conn_01x08")
+		(at 53.34 46.99 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "d490d119-6569-4048-b7b0-38368651d1f9")
+		(property "Reference" "J16"
+			(at 53.34 38.1 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "Driver Input 1"
+			(at 53.34 35.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 53.34 46.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 53.34 46.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x08, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 53.34 46.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "21cf64b7-7872-49ff-89cc-3fba8f1bcaab")
+		)
+		(pin "1"
+			(uuid "6b3d10e1-2c72-4212-81e6-82a934ffb813")
+		)
+		(pin "2"
+			(uuid "b2059b82-3840-41ae-8231-5bd93527625d")
+		)
+		(pin "3"
+			(uuid "60e53e46-61b3-4af0-a238-3fc852197b24")
+		)
+		(pin "5"
+			(uuid "e7d8acb7-73b6-4ea0-a109-2126cb695879")
+		)
+		(pin "6"
+			(uuid "a90b0e11-9c1e-4d7d-ad73-af0b3ef3a7d0")
+		)
+		(pin "7"
+			(uuid "30b0bb73-7ae0-44cc-9ee8-c01bf5d78a77")
+		)
+		(pin "8"
+			(uuid "8bd088be-5de7-4630-8a9f-1b65e75b1765")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J16")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 198.12 360.68 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "d57be14a-42ec-4cbe-b06b-0de5b767f0cf")
+		(property "Reference" "J12"
+			(at 198.12 351.79 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "Ring Motor Input"
+			(at 198.12 369.57 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 198.12 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 198.12 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 198.12 360.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "dff58d5c-8730-4e8d-844c-0dd48b68c477")
+		)
+		(pin "1"
+			(uuid "02455688-8a02-499d-80cf-2e787a7a1b1b")
+		)
+		(pin "2"
+			(uuid "dc08d14b-b4cb-4f0e-8456-66b3448694a2")
+		)
+		(pin "3"
+			(uuid "857a0c59-302d-4746-91de-a13973ebf7c8")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J12")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Motor:Stepper_Motor_bipolar")
+		(at 240.03 363.22 0)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "da06ac37-20fe-4796-8bb2-89034ed258f0")
+		(property "Reference" "M7"
+			(at 245.11 361.099 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Stepper_Motor_bipolar"
+			(at 245.11 363.639 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 240.284 363.474 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
+			(at 240.284 363.474 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "4-wire bipolar stepper motor"
+			(at 240.03 363.22 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "c1b83143-ac70-4ad0-8b66-de1685c2e6fb")
+		)
+		(pin "2"
+			(uuid "916a8f33-cbb6-4907-baab-68e298395295")
+		)
+		(pin "3"
+			(uuid "c4c3610a-e29d-4f57-b159-f22fa6939592")
+		)
+		(pin "4"
+			(uuid "e6653410-9c9c-440d-9cd3-7ecbd3648307")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "M7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Motor:Stepper_Motor_bipolar")
+		(at 240.03 312.42 0)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "e697ada8-ccf0-482d-b630-0108b8fbc4af")
+		(property "Reference" "M6"
+			(at 245.11 310.299 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Stepper_Motor_bipolar"
+			(at 245.11 312.839 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 240.284 312.674 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "http://www.infineon.com/dgdl/Application-Note-TLE8110EE_driving_UniPolarStepperMotor_V1.1.pdf?fileId=db3a30431be39b97011be5d0aa0a00b0"
+			(at 240.284 312.674 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "4-wire bipolar stepper motor"
+			(at 240.03 312.42 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "d8f5317e-7707-4081-955e-0349ac1849b9")
+		)
+		(pin "2"
+			(uuid "2356a82d-0d6b-4ba7-acbf-7bf3c0f318a5")
+		)
+		(pin "3"
+			(uuid "1dedf2ea-54a2-48d7-b212-bb493558037a")
+		)
+		(pin "4"
+			(uuid "98eab517-4ab2-44c7-a039-7e2067fb7725")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "M6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 198.12 205.74 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "e7c5c42c-5aae-4835-9c1e-472a37336942")
+		(property "Reference" "J7"
+			(at 198.12 196.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "D Motor Input"
+			(at 198.12 214.63 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 198.12 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 198.12 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 198.12 205.74 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "6fa766f5-3407-4584-a1cc-43699de2f158")
+		)
+		(pin "1"
+			(uuid "150a6da3-caf1-41a1-9016-e60e21dfd71b")
+		)
+		(pin "2"
+			(uuid "88e3d829-e6d6-4cff-82cc-0acc8f13b345")
+		)
+		(pin "3"
+			(uuid "0261fdeb-10ee-43a7-b45e-ae2ae615c5a6")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x04")
+		(at 210.82 102.87 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "fedffe89-8822-4f33-9f30-376fb1723324")
+		(property "Reference" "J5"
+			(at 210.82 93.98 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "R Motor Output"
+			(at 210.82 96.52 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
+			(at 210.82 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 210.82 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 210.82 102.87 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "4"
+			(uuid "1931a27a-9e64-4f30-a85b-3c60e3e072c2")
+		)
+		(pin "1"
+			(uuid "ed2efc76-09a8-4cd3-89e9-cc2c0f9a4f5f")
+		)
+		(pin "2"
+			(uuid "f320b91c-75b9-4d51-bcdd-fd3f2409456b")
+		)
+		(pin "3"
+			(uuid "39c78288-5804-4484-beff-c60bc93bb9e8")
+		)
+		(instances
+			(project "Motor Board"
+				(path "/86e99f28-168c-43be-9ce7-30322976128a"
+					(reference "J5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+)
