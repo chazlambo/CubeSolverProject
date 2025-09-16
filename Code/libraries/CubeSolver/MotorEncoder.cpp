@@ -38,7 +38,7 @@ int MotorEncoder::begin() {
     }
 
     // Begin Encoder Mux
-    if(!encoderMux.begin()){
+    if(!encoderMux->begin()){
         return 3;
     }
     else {

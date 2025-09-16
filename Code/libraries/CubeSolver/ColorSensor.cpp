@@ -46,7 +46,7 @@ int ColorSensor::begin() {
         }
 
         // Begin Mux
-        if(!multiplexers[i].begin()){
+        if(!multiplexers[i]->begin()){
             return 20 + i;
         } 
     }

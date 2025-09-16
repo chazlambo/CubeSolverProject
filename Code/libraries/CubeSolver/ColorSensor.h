@@ -54,7 +54,7 @@ private:
     int flagValue = 122;
 
     int colorDistance(const int rgbw1[4], const int rgbw2[4]);
-    int readSensor(int sensorIdx);
+    void readSensor(int sensorIdx);
 
     // Color Helper Function
     int colorIndex(char color);
