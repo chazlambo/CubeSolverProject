@@ -16,7 +16,7 @@ public:
 
     MotorEncoder(int channel,
                  Adafruit_TCA9548A* encoderMux,
-                 int ENC_ADDR = 0x36
+                 int ENC_ADDR = 0x36,
                  int eepromFlagAddr,
                  int eepromAddr[4]);
 

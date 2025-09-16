@@ -1,5 +1,6 @@
 #include "ColorSensor.h"
 
+
 ColorSensor::ColorSensor(Adafruit_TCA9548A* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4])
 : ledPin(LEDPIN), eepromFlagAddr(eepromFlagAddress) {
 
@@ -25,6 +26,7 @@ int ColorSensor::begin() {
     // Begins color sensor object
     // Returns: 
     //  0 - Success
+    //  1 - Failed to being VEML color sensor
     //  1X - Multiplexer X not found on I2C wire
     //  2X - Multiplexer X failed to begin
 
@@ -39,54 +41,51 @@ int ColorSensor::begin() {
 
     for (int i = 0; i < 2; i++){
         // Check if MUX is found on I2C Wire
-        if(!multiplexers[i].isConnected){
+        if(!multiplexers[i]->isConnected){
             return 10 + i;
         }
 
         // Begin Mux
-        if(!encoderMux.begin()){
+        if(!multiplexers[i].begin()){
             return 20 + i;
         } 
     }
 
+    // Initialize VEML6040
+    if (!veml.begin()) {
+        return 1;
+    }
+    veml.setConfiguration(integrationTime);  // Set integration time
+
     return 0;
 }
 
-int ColorSensor::readADC(int index) {
-    return adcs[index]->analogRead(pins[index]);
+void ColorSensor::readSensor(int sensorIdx) {
+    // Look up which multiplexer and channel this sensor is on
+    int muxIdx = muxOrder[sensorIdx];
+    int chan   = channelOrder[sensorIdx];
+
+    // Disable all channels in both muxes (just in case)
+    multiplexers[0]->disableAll();
+    multiplexers[1]->disableAll();
+
+    // Tell the multiplexer to enable only this channel
+    multiplexers[muxIdx]->selectChannel(chan);
+
+    // Give the mux a moment to settle before attempting to read
+    delayMicroseconds(50);
+
+    currentRGBW[0] = veml.getRed();
+    currentRGBW[1] = veml.getGreen();
+    currentRGBW[2] = veml.getBlue();
+    currentRGBW[3] = veml.getWhite();
+
+    // Disable all channels in both muxes (just in case)
+    multiplexers[muxIdx]->disableAll();
 }
 
-void ColorSensor::setLED(char color) {
-    // Determine state to set LEDs
-    int state[3] = {LOW, LOW, LOW};
-
-    switch(color) {
-        case 'R':
-            state[0] = HIGH;
-            break;
-
-        case 'G':
-            state[1] = HIGH;
-            break;
-
-        case 'B':
-            state[2] = HIGH;
-            break;
-
-        case 'W':
-            state[0] = HIGH;
-            state[1] = HIGH;
-            state[2] = HIGH;
-            break;
-    
-        case '0':   // Handle off input by doing nothing
-            break;
-    }
-
-    // Set the state for LEDs
-    for (int i = 0; i < 3; i++) {
-        digitalWrite(ledPins[i], state[i]);
-    }
+void ColorSensor::setLED(bool ledState) {
+    digitalWrite(ledPin, ledState);
 }
 
 void ColorSensor::scanFace() {
@@ -102,31 +101,25 @@ void ColorSensor::scanFace() {
         {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)}
       };
       
-    int channel = 0;
+    // Turn on LED
+    setLED(true);
 
-    // Scan each channel numScans times
+    // Scan numScans times
     for (int i = 0; i < numScans; ++i) {
-        // Reset channel variable
-        channel = 0;
-        for (char ch : {'R', 'G', 'B', 'W'}) {
-            // Set LEDs to specified color
-            setLED(ch);
-            delay(scanDelay);
+        for (int j = 0; j < 9; ++j) {
+            readSensor(j);  // fills currentRGBW[0..3]
 
-            // Add value to filter
-            for (int j = 0; j < 9; ++j) {
-                int reading = readADC(j);
-                filter[j][channel].add(reading);
+            // Push each channel into the corresponding filter
+            for (int k = 0; k < 4; ++k) {
+                filter[j][k].add(currentRGBW[k]);
             }
-
-            // Update channel variable
-            channel++;
         }
     }
 
-    setLED(0);  // Turn off LEDs
+    // Turn off LED
+    setLED(false);
 
-    // Average scan values and save
+    // Save median values into scanVals
     for (int j = 0; j < 9; ++j) {
         for (int k = 0; k < 4; ++k) {
             scanVals[j][k] = filter[j][k].getMedian();

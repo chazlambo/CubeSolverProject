@@ -33,7 +33,7 @@ int MotorEncoder::begin() {
     }
 
     // Check if MUX is found on I2C Wire
-    if(!encoderMux.isConnected){
+    if(!encoderMux->isConnected(){
         return 2;
     }
 

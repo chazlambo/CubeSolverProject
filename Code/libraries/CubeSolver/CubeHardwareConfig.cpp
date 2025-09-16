@@ -28,16 +28,20 @@ int colorSensor2EEPROMAddress;
 // Create Motor Encoder Multiplexer
 const int ENC_MUX_ADDR = 0x70;
 const int ENC_MUX_RST = 30;
-Adafruit_TCA9548A encoderMux(ENC_MUX_ADR);
+Adafruit_TCA9548A encoderMux(ENC_MUX_ADDR);
+
+// Get channels for motors
+// {U, R, F, D, L, B, RING}
+int encoderChannels[] = {0, 1, 2, 3, 4, 5, 6};
 
 // Create MotorEncoder Objects
-MotorEncoder motU(0, motorCalFlagAddress, motorCalAddresses[0], &encoderMux);
-MotorEncoder motR(1, motorCalFlagAddress, motorCalAddresses[1], &encoderMux);
-MotorEncoder motF(2, motorCalFlagAddress, motorCalAddresses[2], &encoderMux);
-MotorEncoder motD(3, motorCalFlagAddress, motorCalAddresses[3], &encoderMux);
-MotorEncoder motL(4, motorCalFlagAddress, motorCalAddresses[4], &encoderMux);
-MotorEncoder motB(5, motorCalFlagAddress, motorCalAddresses[5], &encoderMux);
-MotorEncoder motRing(6, motorCalFlagAddress, motorCalAddresses[6], &encoderMux);
+MotorEncoder motU(encoderChannels[0], encoderMux, motorCalFlagAddress, motorCalAddresses[0], &encoderMux);
+MotorEncoder motR(encoderChannels[1], encoderMux, motorCalFlagAddress, motorCalAddresses[1], &encoderMux);
+MotorEncoder motF(encoderChannels[2], encoderMux, motorCalFlagAddress, motorCalAddresses[2], &encoderMux);
+MotorEncoder motD(encoderChannels[3], encoderMux, motorCalFlagAddress, motorCalAddresses[3], &encoderMux);
+MotorEncoder motL(encoderChannels[4], encoderMux, motorCalFlagAddress, motorCalAddresses[4], &encoderMux);
+MotorEncoder motB(encoderChannels[5], encoderMux, motorCalFlagAddress, motorCalAddresses[5], &encoderMux);
+MotorEncoder motRing(encoderChannels[6], encoderMux, motorCalFlagAddress, motorCalAddresses[6], &encoderMux);
 MotorEncoder* MotorEncoders[] = {&motU, &motR, &motF, &motD, &motL, &motB, &motRing};
 
 // ================ Motor Setup ================
@@ -141,11 +145,11 @@ const int C2_MUX2_ADDR = 0x77;
 // Create Color Sensor Multiplexer Objects
 Adafruit_TCA9548A color1Mux1(C1_MUX1_ADDR);
 Adafruit_TCA9548A color1Mux2(C1_MUX2_ADDR);
-Adafruit_TCA9548A* color1Muxes[] = {color1Mux1, color1Mux2};
+Adafruit_TCA9548A* color1Muxes[] = {&color1Mux1, &color1Mux2};
 
 Adafruit_TCA9548A color2Mux1(C2_MUX1_ADDR);
 Adafruit_TCA9548A color2Mux2(C2_MUX2_ADDR);
-Adafruit_TCA9548A* color2Muxes[] = {color2Mux1, color2Mux2};
+Adafruit_TCA9548A* color2Muxes[] = {&color2Mux1, &color2Mux2};
 
 
 // Initialize LED Pins for each Color Sensor

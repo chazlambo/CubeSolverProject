@@ -40,6 +40,9 @@ extern const int ENC_MUX_ADDR;
 extern const int ENC_MUX_RST;
 extern Adafruit_TCA9548A encoderMux;
 
+// Mux channels for each encoder {U, R, F, D, L, B, RING}
+int encoderChannels[7];
+
 // Create Motor Encoder Objects
 extern MotorEncoder motU, motR, motF, motD, motL, motB, motRing;
 extern MotorEncoder* MotorEncoders[7];
