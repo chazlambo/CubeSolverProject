@@ -2,15 +2,15 @@
 #define ColorSensor_h
 
 #include <Arduino.h>
-#include <Adafruit_PCF8591.h>
+#include <Adafruit_TCA9548A.h>
 #include <EEPROM.h>
 #include <RunningMedian.h>
 
 class ColorSensor {
 public:
-    ColorSensor(Adafruit_PCF8591* adcArray[9], const int pinArray[9], const int ledPins[3], int eepromFlagAddress, int eepromAddresses[9][7][4]);
+    ColorSensor(Adafruit_TCA9548A* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4]);
 
-    void begin();
+    int begin();
 
     // Scan Functions
     void setLED(char color);
@@ -31,9 +31,10 @@ public:
     char getColor(int sensorIdx, const int rgbw[4]);
 
 private:
-    Adafruit_PCF8591* adcs[9]; // ADC object per sensor
-    int pins[9];               // ADC pin (0-3) for each sensor
-    int ledPins[3];            // R, G, B output pins for the board
+    Adafruit_TCA9548A* multiplexers[2]; // The two muxes on each boards
+    int ledPin;                         // LED output pin for the board
+    int muxOrder[9];                    // Map from cube face square to mux {UL, UM, UR, ML, MM, MR, DL, DM, DR}
+    int channelOrder[9];                // Map from cube face square to I2C channel {UL, UM, UR, ML, MM, MR, DL, DM, DR}
 
     // Calibration values saved on EEPROM
     int calVals[9][7][4];

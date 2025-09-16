@@ -1,7 +1,7 @@
 #include "MotorEncoder.h"
 
-MotorEncoder::MotorEncoder(int channel, int eepromFlagAddr, int eepromAddr[4], Adafruit_TCA9548A* tca, int as5600Addr)
-    : channel(channel), as5600Addr(as5600Addr), tca(tca), eepromFlagAddr(eepromFlagAddr) {
+MotorEncoder::MotorEncoder(int channel, Adafruit_TCA9548A* encoderMux, int ENC_ADDR , int eepromFlagAddr, int eepromAddr[4])
+    : channel(channel), encoderMux(encoderMux), eepromFlagAddr(eepromFlagAddr), ENC_ADDR(ENC_ADDR) {
     
     for (int i = 0; i < 4; i++){
         this->eepromAddr[i] = eepromAddr[i];
@@ -13,7 +13,10 @@ int MotorEncoder::begin() {
     // Returns: 
     //  0 - Success
     //  1 - Invalid EEPROM Address
+    //  2 - Can't find encoder multiplexer on I2C Wire
+    //  3 - Encoder Mux failed to begin
     //  1X - Load calibration failed
+    
     
     // Validate EEPROM
     for (int i = 0; i < 4; i++) {
@@ -29,25 +32,38 @@ int MotorEncoder::begin() {
         return loadError + 10;
     }
 
+    // Check if MUX is found on I2C Wire
+    if(!encoderMux.isConnected){
+        return 2;
+    }
+
+    // Begin Encoder Mux
+    if(!encoderMux.begin()){
+        return 3;
+    }
+    else {
+        encoderMux.disableAllChannels();
+    }
+
     // Success
     return 0;
 }
 
 bool MotorEncoder::selectMux() {
-    if (!tca) {
+    if (!encoderMux) {
         return false;
     }
 
-    bool result = tca->enableChannel(channel);
+    bool result = encoderMux->enableChannel(channel);
     return result;
 }
 
 bool MotorEncoder::deselectMux() {
-    if (!tca) {
+    if (!encoderMux) {
         return false;
     }
 
-    bool result = tca->disableChannel(channel);
+    bool result = encoderMux->disableChannel(channel);
     return result;
 }
 

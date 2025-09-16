@@ -1,39 +1,55 @@
 #include "ColorSensor.h"
 
-ColorSensor::ColorSensor(Adafruit_PCF8591* adcArray[9], const int pinArray[9], const int ledPinsIn[3], int eepromFlagAddress, int eepromAddresses[9][7][4]) {
-    // Set pin values and EEPROM addresses
-    for (int i = 0; i < 9; ++i) {
-        adcs[i] = adcArray[i];
-        pins[i] = pinArray[i];
+ColorSensor::ColorSensor(Adafruit_TCA9548A* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4])
+: ledPin(LEDPIN), eepromFlagAddr(eepromFlagAddress) {
 
-        for (int j = 0; j < 7; j++){
-            for (int k = 0; k < 4; k++){
-                eepromAddr[i][j][k] = eepromAddresses[i][j][k];
+    // Assign muxes
+    for (int i = 0; i < 2; i++) {
+        this->multiplexers[i] = multiplexers[i];
+    }
+
+    for (int i = 0; i < 9; i++) {
+        // Assign mux and channel order vectors
+        this->muxOrder[i]     = muxOrder[i];
+        this->channelOrder[i] = channelOrder[i];
+        for (int j = 0; j < 7; j++) {
+            for (int k = 0; k < 4; k++) {
+                this->eepromAddr[i][j][k] = eepromAddresses[i][j][k];
             }
         }
     }
-
-    // Set LED pin values
-    for (int i = 0; i < 3; ++i) {
-        ledPins[i] = ledPinsIn[i];
-    }
-
-    // Set EEPROM Flag Address
-    eepromFlagAddr = eepromFlagAddress;
     
 }
 
-void ColorSensor::begin() {
-    // Initialize LED pins
-    for (int i = 0; i < 3; ++i) {
-        pinMode(ledPins[i], OUTPUT);
-        digitalWrite(ledPins[i], LOW); // Turn off by default
-    }
+int ColorSensor::begin() {
+    // Begins color sensor object
+    // Returns: 
+    //  0 - Success
+    //  1X - Multiplexer X not found on I2C wire
+    //  2X - Multiplexer X failed to begin
+
+    // Initialize LED pin
+    pinMode(ledPin, OUTPUT);
+    digitalWrite(ledPin, LOW);
 
     // Check if calibration can be loaded, otherwise reset to zero
     if (!loadCalibration()) {
         resetCalibration();
     }
+
+    for (int i = 0; i < 2; i++){
+        // Check if MUX is found on I2C Wire
+        if(!multiplexers[i].isConnected){
+            return 10 + i;
+        }
+
+        // Begin Mux
+        if(!encoderMux.begin()){
+            return 20 + i;
+        } 
+    }
+
+    return 0;
 }
 
 int ColorSensor::readADC(int index) {

@@ -2,13 +2,13 @@
 
 // Constructor 
 CubeMotors::CubeMotors(int enpin, int step_pins[7], int dir_pins[7], int ringStateEEPROMAddress)
-    :    upStepper(1, step_pins[0], dir_pins[0]),
-      rightStepper(1, step_pins[1], dir_pins[1]),
-      frontStepper(1, step_pins[2], dir_pins[2]),
-       downStepper(1, step_pins[3], dir_pins[3]),
-       backStepper(1, step_pins[4], dir_pins[4]),
-       leftStepper(1, step_pins[5], dir_pins[5]),
-       ringStepper(1, step_pins[6], dir_pins[6]) {
+      :upStepper(1, step_pins[0], dir_pins[0]),
+    rightStepper(1, step_pins[1], dir_pins[1]),
+    frontStepper(1, step_pins[2], dir_pins[2]),
+     downStepper(1, step_pins[3], dir_pins[3]),
+     leftStepper(1, step_pins[4], dir_pins[4]),
+     backStepper(1, step_pins[5], dir_pins[5]),
+     ringStepper(1, step_pins[6], dir_pins[6]) {
 
     EN_PIN = enpin;
     for (int i = 0; i < 7; i++) {

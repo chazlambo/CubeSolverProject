@@ -49,8 +49,8 @@ private:
     AccelStepper rightStepper;
     AccelStepper frontStepper;
     AccelStepper downStepper;
-    AccelStepper backStepper;
     AccelStepper leftStepper;
+    AccelStepper backStepper;
     AccelStepper ringStepper;
     MultiStepper multiStep;
 

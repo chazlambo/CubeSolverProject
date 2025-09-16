@@ -29,19 +29,16 @@ extern const int baudRate;
 // ================ Power Setup ================
 extern const int POWPIN;    
 
-// ================ I2C Multiplexer Setup ================
-extern Adafruit_TCA9548A encoderMux;
-extern Adafruit_TCA9548A color1Mux1;
-extern Adafruit_TCA9548A color1Mux2;
-extern Adafruit_TCA9548A color2Mux1;
-extern Adafruit_TCA9548A color2Mux2;
-
-
 // ================ Motor Encoder Setup ================
 
 // Initialize EEPROM Addresses
 extern int motorCalFlagAddress;
 extern int motorCalAddresses[7][4];
+
+// Create Motor Encoder Mux Object
+extern const int ENC_MUX_ADDR;
+extern const int ENC_MUX_RST;
+extern Adafruit_TCA9548A encoderMux;
 
 // Create Motor Encoder Objects
 extern MotorEncoder motU, motR, motF, motD, motL, motB, motRing;
@@ -51,8 +48,8 @@ extern MotorEncoder* MotorEncoders[7];
 
 // Pin Definitions
 extern const int ENPIN;
-extern const int DIR1, STEP1, DIR2, STEP2, DIR3, STEP3;
-extern const int DIR4, STEP4, DIR5, STEP5, DIR6, STEP6, DIR7, STEP7;
+extern const int DIR_U, DIR_R, DIR_F, DIR_D, DIR_L, DIR_B, DIR_RING;
+extern const int STEP_U, STEP_R, STEP_F, STEP_D, STEP_L, STEP_B, STEP_RING;
 extern int STEPPINS[7];
 extern int DIRPINS[7];
 
@@ -78,9 +75,27 @@ extern CubeServo topServo, botServo;
 
 // ================ Color Sensor Setup ================
 
-// Pins
-extern int ledPins1[3], ledPins2[3];
-extern int sensorPins1[9], sensorPins2[9];
+// I2C Multiplexer
+extern const int C1_MUX1_ADDR;
+extern const int C1_MUX2_ADDR;
+extern const int C2_MUX1_ADDR;
+extern const int C2_MUX2_ADDR;
+
+extern Adafruit_TCA9548A color1Mux1;
+extern Adafruit_TCA9548A color1Mux2;
+extern Adafruit_TCA9548A* color1Muxes[2];
+
+extern Adafruit_TCA9548A color2Mux1;
+extern Adafruit_TCA9548A color2Mux2;
+extern Adafruit_TCA9548A* color2Muxes[2];
+
+// Sensor Read Order {UL, UM, UR, ML, MM, MR, DL, DM, DR}
+extern int colorSensorMuxOrder[9];
+extern int colorSensorChannelOrder[9];
+
+// LED Pins
+extern const int colorSensorLED1;
+extern const int colorSensorLED2;
 
 // Initialize EEPROM
 extern int colorSensor1EEPROMFlag, colorSensor2EEPROMFlag;

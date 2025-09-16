@@ -21,12 +21,14 @@ int colorSensor2EEPROMAddress;
  const int baudRate = 115200;
 
  // ================ Power Setup ================
- const int POWPIN = 23;  
+ const int POWPIN = 32;  
 
 // ================ Motor Encoder Setup ================
 
 // Create Motor Encoder Multiplexer
-Adafruit_TCA9548A encoderMux;
+const int ENC_MUX_ADDR = 0x70;
+const int ENC_MUX_RST = 30;
+Adafruit_TCA9548A encoderMux(ENC_MUX_ADR);
 
 // Create MotorEncoder Objects
 MotorEncoder motU(0, motorCalFlagAddress, motorCalAddresses[0], &encoderMux);
@@ -41,31 +43,33 @@ MotorEncoder* MotorEncoders[] = {&motU, &motR, &motF, &motD, &motL, &motB, &motR
 // ================ Motor Setup ================
 
 // Pin Definitions
-const int ENPIN = 0;
-const int DIR1 = 1;
-const int STEP1 = 2;
-const int DIR2 = 3;
-const int STEP2 = 4;
-const int DIR3 = 5;
-const int STEP3 = 6;
-const int DIR4 = 25;
-const int STEP4 = 26;
-const int DIR5 = 27;
-const int STEP5 = 28;
-const int DIR6 = 29;
-const int STEP6 = 30;
-const int DIR7 = 31;
-const int STEP7 = 32;
-int STEPPINS[] = {STEP1, STEP2, STEP3, STEP4, STEP5, STEP6, STEP7};
-int DIRPINS[] = {DIR1, DIR2, DIR3, DIR4, DIR5, DIR6, DIR7};
+const int ENPIN = 26;
+
+const int STEP_U = 0;
+const int DIR_U  = 1;
+const int STEP_R = 2;
+const int DIR_R  = 3;
+const int STEP_F = 4;
+const int DIR_F  = 5;
+const int STEP_D = 6;
+const int DIR_D  = 7;
+const int STEP_L = 8;
+const int DIR_L  = 9;
+const int STEP_B = 24;
+const int DIR_B  = 25;
+const int STEP_RING = 28;
+const int DIR_RING = 29;
+
+int STEPPINS[] = {STEP_U, STEP_R, STEP_F, STEP_D, STEP_L, STEP_B, STEP_RING};
+int DIRPINS[] = {DIR_U, DIR_R, DIR_F, DIR_D, DIR_L, DIR_B, DIR_RING};
 
 // Create motor object
 CubeMotors cubeMotors(ENPIN, STEPPINS, DIRPINS, ringStateEEPROMAddress);
 
 // ================ Servo Setup ================
 // Servo Pins
-const int TOPSERVO = 22;
-const int BOTSERVO = 14;
+const int TOPSERVO = 23;
+const int BOTSERVO = 22;
 
 // Top Servo Variables
 unsigned int topExtPos = 235;
@@ -82,53 +86,71 @@ CubeServo topServo(TOPSERVO, topServoEEPROMAddress, topRetPos, topExtPos, topSwe
 CubeServo botServo(BOTSERVO, botServoEEPROMAddress, botRetPos, botExtPos, botSweepDelay); 
 
 // ================ Color Sensor Setup ================
+//
+// Color Sensor 1:
+//
+// Silkscreen Labeling:                         I2C-Mux-SCL/SDA:                            Corresponding Cube Face Square:      
+// +==========+==========+==========+           +==========+==========+==========+          +==========+==========+==========+ 
+// |          |          |          |           |          |          |          |          |          |          |          |
+// |    1     |    2     |    3     |           | I2C-1-2  | I2C-1-1  | I2C-1-0  |          |    UR    |    UM    |    UL    |
+// |          |          |          |           |          |          |          |          |          |          |          |
+// +==========+==========+==========+           +==========+==========+==========+          +==========+==========+==========+
+// |          |          |          |           |          |          |          |          |          |          |          |
+// |    4     |    5     |    6     |           | I2C-2-0  | I2C-1-4  | I2C-1-3  |          |    MR    |    MM    |    ML    |
+// |          |          |          |           |          |          |          |          |          |          |          |
+// +==========+==========+==========+           +==========+==========+==========+          +==========+==========+==========+
+// |          |          |          |           |          |          |          |          |          |          |          |
+// |    7     |    8     |    9     |           | I2C-2-3  | I2C-2-2  | I2C-2-1  |          |    DR    |    DM    |    DL    |
+// |          |          |          |           |          |          |          |          |          |          |          |
+// +==========+==========+==========+           +==========+==========+==========+          +==========+==========+==========+
+// 
+// Top left Corner for Scan: 3
+// ===========================================================================================================================
+//
+// Color Sensor 2:
+//
+// Silkscreen Labeling:                         I2C-Mux-SCL/SDA:                            Corresponding Cube Face Square:      
+// +==========+==========+==========+           +==========+==========+==========+          +==========+==========+==========+ 
+// |          |          |          |           |          |          |          |          |          |          |          |
+// |    9     |    8     |    7     |           | I2C-2-1  | I2C-2-2  | I2C-2-3  |          |    DL    |    DM    |    DR    |
+// |          |          |          |           |          |          |          |          |          |          |          |
+// +==========+==========+==========+           +==========+==========+==========+          +==========+==========+==========+
+// |          |          |          |           |          |          |          |          |          |          |          |
+// |    6     |    5     |    4     |           | I2C-1-3  | I2C-1-4  | I2C-2-0  |          |    ML    |    MM    |    MR    |
+// |          |          |          |           |          |          |          |          |          |          |          |
+// +==========+==========+==========+           +==========+==========+==========+          +==========+==========+==========+
+// |          |          |          |           |          |          |          |          |          |          |          |
+// |    3     |    2     |    1     |           | I2C-1-0  | I2C-1-1  | I2C-1-2  |          |    UL    |    UM    |    UR    |
+// |          |          |          |           |          |          |          |          |          |          |          |
+// +==========+==========+==========+           +==========+==========+==========+          +==========+==========+==========+
+//
+// Top Left Corner for Scan: 3 
+// Result: Can scan sensors in same order even though the 2nd sensor is flipped because we're also flipping the reading.
+// ===========================================================================================================================
+                                                                                            
+// Sensor Read Order        {UL, UM, UR, ML, MM, MR, DL, DM, DR}
+int colorSensorMuxOrder[] =     { 1,  1,  1,  1,  1,  2,  2,  2,  2};   // Maps multiplexer to cube face squares
+int colorSensorChannelOrder[] = { 0,  1,  2,  3,  4,  0,  1,  2,  3};   // Maps mux channel to cube face squares
 
-// Color Sensor Pin Table
-// +======+======+======+======+======+======+
-// |      |      |  A0  |  A1  |  A2  |  A3  |
-// +======+======+======+======+======+======+
-// | 0x48 | ADC1 | C1-3 | C1-2 | C1-1 | C1-6 |
-// +------+------+------+------+------+------+
-// | 0x49 | ADC2 | C1-5 | C1-4 | C1-9 | C1-8 |
-// +------+------+------+------+------+------+
-// | 0x4A | ADC3 | C1-7 | M-F  | M-R  | M-U  |
-// +------+------+------+------+------+------+
-// | 0x4B | ADC4 | C2-1 | C2-2 | C2-3 | C2-4 |
-// +------+------+------+------+------+------+
-// | 0x4C | ADC5 | C2-6 | C2-7 | C2-8 | C2-9 |
-// +------+------+------+------+------+------+
-// | 0x4D | ADC6 | M-D  | M-L  | M-B  | C2-5 |
-// +------+------+------+------+------+------+
+// Set Color Sensor Mux Addresses
+const int C1_MUX1_ADDR = 0x74;
+const int C1_MUX2_ADDR = 0x75;
+const int C2_MUX1_ADDR = 0x76;
+const int C2_MUX2_ADDR = 0x77;
 
-// Initialize array of ADC pointers for each Color Sensor
-Adafruit_PCF8591* adcPtrs1[9] = { 
-    ADC[0], ADC[0], ADC[0], 
-    ADC[1], ADC[1], ADC[0], 
-    ADC[2], ADC[1], ADC[1]
-};
+// Create Color Sensor Multiplexer Objects
+Adafruit_TCA9548A color1Mux1(C1_MUX1_ADDR);
+Adafruit_TCA9548A color1Mux2(C1_MUX2_ADDR);
+Adafruit_TCA9548A* color1Muxes[] = {color1Mux1, color1Mux2};
 
-Adafruit_PCF8591* adcPtrs2[9] = { 
-    ADC[3], ADC[3], ADC[3], 
-    ADC[3], ADC[5], ADC[4], 
-    ADC[4], ADC[4], ADC[4]
-};
+Adafruit_TCA9548A color2Mux1(C2_MUX1_ADDR);
+Adafruit_TCA9548A color2Mux2(C2_MUX2_ADDR);
+Adafruit_TCA9548A* color2Muxes[] = {color2Mux1, color2Mux2};
+
 
 // Initialize LED Pins for each Color Sensor
-int ledPins1[3] = { 34, 33, 35 };  // R, G, B for Color Sensor 1
-int ledPins2[3] = { 37, 36, 38 };  // R, G, B for Color Sensor 2
-
-// Initialize Sensor Pins for each Color Sensor
-int sensorPins1[9] = { 
-    2, 1, 0,  // C1-1, C1-2, C1-3
-    1, 0, 3,  // C1-4, C1-5, C1-6
-    0, 3, 2   // C1-7, C1-8, C1-9
-};
-
-int sensorPins2[9] = { 
-    0, 1, 2,  // C2-1, C2-2, C2-3
-    3, 3, 0,  // C2-4, C2-5, C2-6
-    1, 2, 3   // C2-7, C2-8, C2-9
-};
+const int colorSensorLED1 = 41;   // White LED pin for color sensor 1
+const int colorSensorLED2 = 40;   // White LED pin for color sensor 2
 
 // Color Sensor EEPROM
 int colorSensor1EEPROMFlag;
@@ -137,13 +159,13 @@ int colorSensor1EEPROMAddresses[9][7][4];
 int colorSensor2EEPROMAddresses[9][7][4];
 
 // Create ColorSensor Objects
-ColorSensor colorSensor1(adcPtrs1, sensorPins1, ledPins1, colorSensor1EEPROMFlag, colorSensor1EEPROMAddresses);
-ColorSensor colorSensor2(adcPtrs2, sensorPins2, ledPins2, colorSensor2EEPROMFlag, colorSensor2EEPROMAddresses);
+ColorSensor colorSensor1(color1Muxes, colorSensorLED1, colorSensorMuxOrder, colorSensorChannelOrder, colorSensor1EEPROMFlag, colorSensor1EEPROMAddresses);
+ColorSensor colorSensor2(color2Muxes, colorSensorLED2, colorSensorMuxOrder, colorSensorChannelOrder, colorSensor2EEPROMFlag, colorSensor2EEPROMAddresses);
 
 // ================ Rotary Encoder Setup ================
 RotaryEncoder menuEncoder;
 
-// Functions
+// ================ EEPROM Initialization Function ================
 void initializeEEPROMLayout(int startAddress) {
     int addr = startAddress;
 
