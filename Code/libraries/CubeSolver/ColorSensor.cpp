@@ -1,7 +1,7 @@
 #include "ColorSensor.h"
 
 
-ColorSensor::ColorSensor(Adafruit_TCA9548A* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4])
+ColorSensor::ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4])
 : ledPin(LEDPIN), eepromFlagAddr(eepromFlagAddress) {
 
     // Assign muxes
@@ -41,7 +41,7 @@ int ColorSensor::begin() {
 
     for (int i = 0; i < 2; i++){
         // Check if MUX is found on I2C Wire
-        if(!multiplexers[i]->isConnected){
+        if(!multiplexers[i]->isConnected()){
             return 10 + i;
         }
 
@@ -66,8 +66,8 @@ void ColorSensor::readSensor(int sensorIdx) {
     int chan   = channelOrder[sensorIdx];
 
     // Disable all channels in both muxes (just in case)
-    multiplexers[0]->disableAll();
-    multiplexers[1]->disableAll();
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
 
     // Tell the multiplexer to enable only this channel
     multiplexers[muxIdx]->selectChannel(chan);
@@ -81,7 +81,7 @@ void ColorSensor::readSensor(int sensorIdx) {
     currentRGBW[3] = veml.getWhite();
 
     // Disable all channels in both muxes (just in case)
-    multiplexers[muxIdx]->disableAll();
+    multiplexers[muxIdx]->setChannelMask(0x00);
 }
 
 void ColorSensor::setLED(bool ledState) {

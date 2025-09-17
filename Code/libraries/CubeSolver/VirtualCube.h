@@ -79,8 +79,6 @@ private:
     void rotOrientZ(char orientArr[], char cubeArr[]);
     int rotOrientAll(char tempCubeArr[]);
 
-    // Move functions
-    int executeMove(const String &moveString);
     int rotU(int turns);
     int rotR(int turns);
     int rotF(int turns);

@@ -984,25 +984,25 @@ int VirtualCube::solveCube(String moves[], int maxMoves){
   //  1 - String moves[]: String that will be populated with moves to solve
   //  2 - int maxMoves: Maximum number of moves allowed before exiting and failing
   // Outputs:
-  //  0 - Success
-  //  1 - Cube is not ready
-  //  2 - Solution not found
+  // >=0 - Number of moves
+  //  -1 - Cube is not ready
+  //  -2 - Solution not found
 
     // Solve using Kociemba
     const char* sol;
-    sol = kociemba::solve(myCube.cubeArray);
+    sol = kociemba::solve(cubeArray);
     if (sol == nullptr) {
       return 2;
     }
 
     // Break solution string into substrings of moves
-    int moveCount = splitString(sol, ' ', moves);
+    int moveCount = splitSolveString(sol, ' ', moves);
 
 
     if (!cubeReady) return 1;  // Make sure the cube has been built
 
 
-    return 0;  // Success
+    return moveCount;  // Success
 }
 
 int VirtualCube::rotOrientAll(char tempCubeArray[]) {

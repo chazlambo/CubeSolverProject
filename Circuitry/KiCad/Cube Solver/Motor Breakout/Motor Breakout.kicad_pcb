@@ -1450,7 +1450,7 @@
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.SilkS")
-			(uuid "2bed49bf-041e-4bda-ad7b-28299c8dfebd")
+			(uuid "b98cf6d1-bcea-4e66-8bbc-b1391bc95cc9")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1461,7 +1461,7 @@
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
-			(uuid "baf68697-7efe-4875-89d4-83b4e556881f")
+			(uuid "93616bde-c61f-46b1-956d-54b4d19ff79f")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1509,7 +1509,7 @@
 			(size 4 4)
 			(drill 4)
 			(layers "F&B.Cu" "*.Mask")
-			(uuid "74ad5514-391c-465b-9315-01116dc24f38")
+			(uuid "b4061e96-bef7-45e4-813f-693539151b1f")
 		)
 	)
 	(footprint "Capacitor_THT:C_Radial_D5.0mm_H11.0mm_P2.00mm"
@@ -1665,7 +1665,7 @@
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.SilkS")
-			(uuid "2bed49bf-041e-4bda-ad7b-28299c8dfebd")
+			(uuid "644dc850-ecc0-4622-a360-1c1aced057b6")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1676,7 +1676,7 @@
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
-			(uuid "baf68697-7efe-4875-89d4-83b4e556881f")
+			(uuid "c5d329c2-3d31-4437-8350-83a29505824d")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1724,7 +1724,7 @@
 			(size 4 4)
 			(drill 4)
 			(layers "F&B.Cu" "*.Mask")
-			(uuid "74ad5514-391c-465b-9315-01116dc24f38")
+			(uuid "dd8260fb-d522-4772-9271-b68c2f827602")
 		)
 	)
 	(footprint ""
@@ -1735,7 +1735,7 @@
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.SilkS")
-			(uuid "2bed49bf-041e-4bda-ad7b-28299c8dfebd")
+			(uuid "8115cf9f-2961-40ba-932d-9bdf1b82a76a")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1746,7 +1746,7 @@
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
-			(uuid "baf68697-7efe-4875-89d4-83b4e556881f")
+			(uuid "c5097650-a8a5-4a7a-824d-0ebc72b108bb")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1794,7 +1794,7 @@
 			(size 4 4)
 			(drill 4)
 			(layers "F&B.Cu" "*.Mask")
-			(uuid "74ad5514-391c-465b-9315-01116dc24f38")
+			(uuid "39e63129-b9ce-4746-9c5d-c484c3311ad1")
 		)
 	)
 	(footprint "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
@@ -3794,7 +3794,7 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "3.3V GND SCL SDA"
+	(gr_text "3.3V GND SDA SCL"
 		(at 113.6 38.8 0)
 		(layer "F.SilkS")
 		(uuid "d9b2fcec-616f-49fc-abf7-661065eae666")

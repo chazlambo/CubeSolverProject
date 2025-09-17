@@ -4,21 +4,21 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <EEPROM.h>
-#include <Adafruit_TCA9548A.h>
+#include <TCA9548.h>
 
 class MotorEncoder {
 public:
     // channel: TCA9548A channel [0-7]
     // eepromFlagAddr: byte address for "calibrated" flag (value = 177)
     // eepromAddr[4]: starting addresses for four 16-bit calibration values
-    // encoderMux: shared Adafruit_TCA9548A
+    // encoderMux: shared TCA9548A
     // ENC_ADDR: I2C address of AS5600 (default 0x36)
 
     MotorEncoder(int channel,
-                 Adafruit_TCA9548A* encoderMux,
-                 int ENC_ADDR = 0x36,
+                 TCA9548* encoderMux,
                  int eepromFlagAddr,
-                 int eepromAddr[4]);
+                 int eepromAddr[4],
+                 int ENC_ADDR = 0x36);
 
     int       begin();                       
     int       scan();                        // returns raw 12-bit angle [0-4095]
@@ -34,7 +34,7 @@ public:
 private:
     int channel;
     int ENC_ADDR;
-    Adafruit_TCA9548A* encoderMux;
+    TCA9548* encoderMux;
 
     // EEPROM & state
     static constexpr int kFlagValue = 177;  // Arbitrary calibration flag value 

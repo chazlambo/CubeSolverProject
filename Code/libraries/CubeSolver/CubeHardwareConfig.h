@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <Wire.h>
-#include <Adafruit_TCA9548A.h>
+#include <TCA9548.h>
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <PWMServo.h>
@@ -38,10 +38,11 @@ extern int motorCalAddresses[7][4];
 // Create Motor Encoder Mux Object
 extern const int ENC_MUX_ADDR;
 extern const int ENC_MUX_RST;
-extern Adafruit_TCA9548A encoderMux;
+extern const int ENCODER_ADDR;
+extern TCA9548 encoderMux;
 
 // Mux channels for each encoder {U, R, F, D, L, B, RING}
-int encoderChannels[7];
+extern int encoderChannels[7];
 
 // Create Motor Encoder Objects
 extern MotorEncoder motU, motR, motF, motD, motL, motB, motRing;
@@ -84,13 +85,13 @@ extern const int C1_MUX2_ADDR;
 extern const int C2_MUX1_ADDR;
 extern const int C2_MUX2_ADDR;
 
-extern Adafruit_TCA9548A color1Mux1;
-extern Adafruit_TCA9548A color1Mux2;
-extern Adafruit_TCA9548A* color1Muxes[2];
+extern TCA9548 color1Mux1;
+extern TCA9548 color1Mux2;
+extern TCA9548* color1Muxes[2];
 
-extern Adafruit_TCA9548A color2Mux1;
-extern Adafruit_TCA9548A color2Mux2;
-extern Adafruit_TCA9548A* color2Muxes[2];
+extern TCA9548 color2Mux1;
+extern TCA9548 color2Mux2;
+extern TCA9548* color2Muxes[2];
 
 // Sensor Read Order {UL, UM, UR, ML, MM, MR, DL, DM, DR}
 extern int colorSensorMuxOrder[9];

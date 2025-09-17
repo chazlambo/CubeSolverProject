@@ -26,22 +26,23 @@ int colorSensor2EEPROMAddress;
 // ================ Motor Encoder Setup ================
 
 // Create Motor Encoder Multiplexer
-const int ENC_MUX_ADDR = 0x70;
-const int ENC_MUX_RST = 30;
-Adafruit_TCA9548A encoderMux(ENC_MUX_ADDR);
+const int ENC_MUX_ADDR = 0x70;  // I2C address of encoder multiplexer
+const int ENC_MUX_RST = 30;     // Pin for encoder mux reset
+const int ENCODER_ADDR = 0x36;  // I2C address of AS5600 magnetic encoders
+TCA9548 encoderMux(ENC_MUX_ADDR);
 
 // Get channels for motors
 // {U, R, F, D, L, B, RING}
 int encoderChannels[] = {0, 1, 2, 3, 4, 5, 6};
 
 // Create MotorEncoder Objects
-MotorEncoder motU(encoderChannels[0], encoderMux, motorCalFlagAddress, motorCalAddresses[0], &encoderMux);
-MotorEncoder motR(encoderChannels[1], encoderMux, motorCalFlagAddress, motorCalAddresses[1], &encoderMux);
-MotorEncoder motF(encoderChannels[2], encoderMux, motorCalFlagAddress, motorCalAddresses[2], &encoderMux);
-MotorEncoder motD(encoderChannels[3], encoderMux, motorCalFlagAddress, motorCalAddresses[3], &encoderMux);
-MotorEncoder motL(encoderChannels[4], encoderMux, motorCalFlagAddress, motorCalAddresses[4], &encoderMux);
-MotorEncoder motB(encoderChannels[5], encoderMux, motorCalFlagAddress, motorCalAddresses[5], &encoderMux);
-MotorEncoder motRing(encoderChannels[6], encoderMux, motorCalFlagAddress, motorCalAddresses[6], &encoderMux);
+MotorEncoder motU(encoderChannels[0], &encoderMux, motorCalFlagAddress, motorCalAddresses[0]);
+MotorEncoder motR(encoderChannels[1], &encoderMux, motorCalFlagAddress, motorCalAddresses[1]);
+MotorEncoder motF(encoderChannels[2], &encoderMux, motorCalFlagAddress, motorCalAddresses[2]);
+MotorEncoder motD(encoderChannels[3], &encoderMux, motorCalFlagAddress, motorCalAddresses[3]);
+MotorEncoder motL(encoderChannels[4], &encoderMux, motorCalFlagAddress, motorCalAddresses[4]);
+MotorEncoder motB(encoderChannels[5], &encoderMux, motorCalFlagAddress, motorCalAddresses[5]);
+MotorEncoder motRing(encoderChannels[6], &encoderMux, motorCalFlagAddress, motorCalAddresses[6]);
 MotorEncoder* MotorEncoders[] = {&motU, &motR, &motF, &motD, &motL, &motB, &motRing};
 
 // ================ Motor Setup ================
@@ -143,13 +144,13 @@ const int C2_MUX1_ADDR = 0x76;
 const int C2_MUX2_ADDR = 0x77;
 
 // Create Color Sensor Multiplexer Objects
-Adafruit_TCA9548A color1Mux1(C1_MUX1_ADDR);
-Adafruit_TCA9548A color1Mux2(C1_MUX2_ADDR);
-Adafruit_TCA9548A* color1Muxes[] = {&color1Mux1, &color1Mux2};
+TCA9548 color1Mux1(C1_MUX1_ADDR);
+TCA9548 color1Mux2(C1_MUX2_ADDR);
+TCA9548* color1Muxes[] = {&color1Mux1, &color1Mux2};
 
-Adafruit_TCA9548A color2Mux1(C2_MUX1_ADDR);
-Adafruit_TCA9548A color2Mux2(C2_MUX2_ADDR);
-Adafruit_TCA9548A* color2Muxes[] = {&color2Mux1, &color2Mux2};
+TCA9548 color2Mux1(C2_MUX1_ADDR);
+TCA9548 color2Mux2(C2_MUX2_ADDR);
+TCA9548* color2Muxes[] = {&color2Mux1, &color2Mux2};
 
 
 // Initialize LED Pins for each Color Sensor

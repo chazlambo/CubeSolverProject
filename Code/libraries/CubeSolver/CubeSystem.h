@@ -69,7 +69,7 @@ private:
 
     // Solution String
     int solutionLength = 0;
-    int maxMoves = 50;
+    static const int maxMoves = 50;
     String solveMoves[maxMoves];
     
 };

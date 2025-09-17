@@ -9,6 +9,15 @@ void CubeSystem::begin() {
 
     // Power Setup
     pinMode(POWPIN, INPUT);
+    Serial.println("Waiting for power.");
+    bool powerCheck = 0;
+
+    while (!powerCheck){
+        powerCheck = digitalRead(POWPIN);
+        delay(20);
+    }
+    
+    Serial.println("Power detected.");
 
     // I2C Setup
     Wire.begin();
@@ -535,8 +544,8 @@ bool CubeSystem::checkAlignment()
 void CubeSystem::clearSolution(){
     // Resets the class solution string
     solutionLength = 0;
-    for (int i = 0; i < kMaxSolutionMoves; ++i) {
-        solution[i] = "";
+    for (int i = 0; i < maxMoves; ++i) {
+        solveMoves[i] = "";
     }
 }
 
@@ -550,14 +559,13 @@ int CubeSystem::solveVirtual(){
     clearSolution();
 
     // Solve Cube
-    int status = virtualCube.solveCube(solveMoves, maxMoves);
-    if(status){
+    int solveOutput = virtualCube.solveCube(solveMoves, maxMoves);
+    if(solveOutput < 0){
         clearSolution();
-        return 10 + status;
+        return 10 + solveOutput;
     }
 
-    // Get number of moves
-    solutionLength = moves.size();
+    solutionLength = solveOutput;
 
     return 0;
 }
@@ -581,9 +589,9 @@ int CubeSystem::executeSolve(){
     }
 
     // Execute each move
-    for (int i = 0; i < moveCount; i++) {
+    for (int i = 0; i < solutionLength; i++) {
         int e = 0;
-        e = executeMove(moves[i], 1, 1);
+        e = executeMove(solveMoves[i], 1, 1);
         if (e) return 100+e;
     }
     

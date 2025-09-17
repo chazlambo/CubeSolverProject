@@ -2,14 +2,14 @@
 #define ColorSensor_h
 
 #include <Arduino.h>
-#include <Adafruit_TCA9548A.h>
+#include <TCA9548.h>
 #include <veml6040.h>
 #include <EEPROM.h>
 #include <RunningMedian.h>
 
 class ColorSensor {
 public:
-    ColorSensor(Adafruit_TCA9548A* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4]);
+    ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4]);
 
     int begin();
 
@@ -32,7 +32,7 @@ public:
     char getColor(int sensorIdx, const int rgbw[4]);
 
 private:
-    Adafruit_TCA9548A* multiplexers[2]; // The two muxes on each boards
+    TCA9548* multiplexers[2]; // The two muxes on each boards
     VEML6040 veml;                      // Color sensor object
     int ledPin;                         // LED output pin for the board
     int muxOrder[9];                    // Map from cube face square to mux {UL, UM, UR, ML, MM, MR, DL, DM, DR}

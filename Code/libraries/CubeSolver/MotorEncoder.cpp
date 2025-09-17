@@ -1,6 +1,6 @@
 #include "MotorEncoder.h"
 
-MotorEncoder::MotorEncoder(int channel, Adafruit_TCA9548A* encoderMux, int ENC_ADDR , int eepromFlagAddr, int eepromAddr[4])
+MotorEncoder::MotorEncoder(int channel, TCA9548* encoderMux, int eepromFlagAddr, int eepromAddr[4], int ENC_ADDR)
     : channel(channel), encoderMux(encoderMux), eepromFlagAddr(eepromFlagAddr), ENC_ADDR(ENC_ADDR) {
     
     for (int i = 0; i < 4; i++){
@@ -33,7 +33,7 @@ int MotorEncoder::begin() {
     }
 
     // Check if MUX is found on I2C Wire
-    if(!encoderMux->isConnected(){
+    if(!encoderMux->isConnected()){
         return 2;
     }
 
@@ -42,7 +42,7 @@ int MotorEncoder::begin() {
         return 3;
     }
     else {
-        encoderMux.disableAllChannels();
+        encoderMux->setChannelMask(0x00);
     }
 
     // Success
@@ -53,8 +53,8 @@ bool MotorEncoder::selectMux() {
     if (!encoderMux) {
         return false;
     }
-
-    bool result = encoderMux->enableChannel(channel);
+    encoderMux->setChannelMask(0x00);
+    bool result = encoderMux->selectChannel(channel);
     return result;
 }
 
@@ -73,14 +73,14 @@ int MotorEncoder::scan() {
     //   -1 : Failed to select TCA9548A mux channel
     //   -2 : I2C write to AS5600 failed (e.g. disconnected device)
     //   -3 : I2C read from AS5600 failed (wrong address, bus issue)
-
+    
     // Attempt to select the correct channel on the TCA9548A mux
     if (!selectMux()) {
         return -1;
     }
 
     // Request angle register from AS5600 (starts at 0x0E)
-    Wire.beginTransmission(as5600Addr);
+    Wire.beginTransmission(ENC_ADDR);
     Wire.write(0x0E);  // ANGLE MSB register
     if (Wire.endTransmission(false) != 0) {  // Repeated start, no stop
         deselectMux();
@@ -88,7 +88,7 @@ int MotorEncoder::scan() {
     }
 
     // Request 2 bytes: MSB (0x0E) and LSB (0x0F)
-    int n = Wire.requestFrom((int)as5600Addr, 2);
+    int n = Wire.requestFrom((int)ENC_ADDR, 2);
     if (n != 2) {
         deselectMux();
         return -3;
