@@ -33,17 +33,17 @@ int MotorEncoder::begin() {
     }
 
     // Check if MUX is found on I2C Wire
-    if(!encoderMux->isConnected()){
-        return 2;
-    }
+    // if(!encoderMux->isConnected()){
+    //     return 2;
+    // }
 
     // Begin Encoder Mux
-    if(!encoderMux->begin()){
-        return 3;
-    }
-    else {
-        encoderMux->setChannelMask(0x00);
-    }
+    //if(!encoderMux->begin()){
+    //     return 3;
+    // }
+    // else {
+    //     encoderMux->setChannelMask(0x00);
+    // }
 
     // Success
     return 0;
