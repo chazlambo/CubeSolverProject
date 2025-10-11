@@ -94,8 +94,8 @@ int MotorEncoder::scan() {
         return -3;
     }
 
-    int msb = Wire.read();
-    int lsb = Wire.read();
+    uint16_t msb = Wire.read();
+    uint16_t lsb = Wire.read();
     deselectMux();
 
     // Combine MSB and LSB into full 12-bit angle (upper 4 MSB bits ignored)

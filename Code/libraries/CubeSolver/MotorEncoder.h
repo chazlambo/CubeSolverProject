@@ -40,7 +40,7 @@ private:
     static constexpr int kFlagValue = 177;  // Arbitrary calibration flag value 
     int eepromFlagAddr;
     int eepromAddr[4];                      // Addresses for int values
-    int value = 0;                          // Most recent scan value
+    uint16_t value = 0;                     // Most recent scan value
     int calibration[4] = {0, 0, 0, 0};      // Valid after successful load/calibration
 
     // Helpers
