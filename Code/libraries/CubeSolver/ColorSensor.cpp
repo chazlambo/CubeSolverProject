@@ -1,8 +1,8 @@
 #include "ColorSensor.h"
 
 
-ColorSensor::ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4])
-: ledPin(LEDPIN), eepromFlagAddr(eepromFlagAddress) {
+ColorSensor::ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int& eepromFlagAddress, int (&eepromAddresses)[9][7][4])
+: ledPin(LEDPIN), eepromFlagAddr(eepromFlagAddress), eepromAddrRef(eepromAddresses){
 
     // Assign muxes
     for (int i = 0; i < 2; i++) {
@@ -13,14 +13,7 @@ ColorSensor::ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrde
         // Assign mux and channel order vectors
         this->muxOrder[i]     = muxOrder[i];
         this->channelOrder[i] = channelOrder[i];
-        for (int j = 0; j < 7; j++) {
-            for (int k = 0; k < 4; k++) {
-                this->eepromAddr[i][j][k] = eepromAddresses[i][j][k];
-            }
-        }
     }
-
-
     
 }
 
@@ -31,6 +24,16 @@ int ColorSensor::begin() {
     //  1 - Failed to being VEML color sensor
     //  1X - Multiplexer X not found on I2C wire
     //  2X - Multiplexer X failed to begin
+    //  3X - VEML Sensor X failed to begin
+
+    // Copy EEPROM addresses now that they are for sure initialized
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 7; j++) {
+            for (int k = 0; k < 4; k++) {
+                this->eepromAddr[i][j][k] = eepromAddrRef[i][j][k];
+            }
+        }
+    }
 
     // Initialize LED pin
     pinMode(ledPin, OUTPUT);
@@ -69,9 +72,6 @@ int ColorSensor::begin() {
         // Enable only this sensor's channel
         multiplexers[muxIdx]->selectChannel(chan);
         
-        // Small delay for mux to settle
-        delay(10);
-        
         // Initialize this VEML sensor
         if (!veml.begin()) {
             // Disable all channels before returning error
@@ -92,6 +92,30 @@ int ColorSensor::begin() {
 }
 
 void ColorSensor::readSensor(int sensorIdx) {
+    // Look up which multiplexer and channel this sensor is on
+    int muxIdx = muxOrder[sensorIdx] - 1;
+    int chan   = channelOrder[sensorIdx];
+
+    // Disable all channels in both muxes (just in case)
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
+
+    // Tell the multiplexer to enable only this channel
+    multiplexers[muxIdx]->selectChannel(chan);
+
+    // Assign values
+    currentRGBW[0] = veml.getRed();
+    currentRGBW[1] = veml.getGreen();
+    currentRGBW[2] = veml.getBlue();
+    currentRGBW[3] = veml.getWhite();
+
+    // Disable all channels in both muxes (just in case)
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
+}
+
+void ColorSensor::scanSingle(int sensorIdx) {
+    // Turns on LED to scan
     // Turn on illumination LED
     digitalWrite(ledPin, HIGH);
 
@@ -118,8 +142,9 @@ void ColorSensor::readSensor(int sensorIdx) {
     // Turn off LED after reading
     digitalWrite(ledPin, LOW);
 
-    // Disable all channels in both muxes (just in case)
-    multiplexers[muxIdx]->setChannelMask(0x00);
+    // Disable all channels in both muxes
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
 }
 
 void ColorSensor::setLED(bool ledState) {
@@ -129,7 +154,7 @@ void ColorSensor::setLED(bool ledState) {
 void ColorSensor::scanFace() {
     RunningMedian filter[9][4] = {
         {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
-        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
+        {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans),},
         {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
         {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
         {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
@@ -137,33 +162,56 @@ void ColorSensor::scanFace() {
         {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
         {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)},
         {RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans), RunningMedian(numScans)}
-      };
-      
-    // Turn on LED
+    };
+
     setLED(true);
 
-    // Scan numScans times
     for (int i = 0; i < numScans; ++i) {
+        // --- Dummy read all sensors first to trigger integration ---
         for (int j = 0; j < 9; ++j) {
-            readSensor(j);  // fills currentRGBW[0..3]
+            int muxIdx = muxOrder[j] - 1;
+            int chan   = channelOrder[j];
+            multiplexers[0]->setChannelMask(0x00);
+            multiplexers[1]->setChannelMask(0x00);
+            multiplexers[muxIdx]->selectChannel(chan);
 
-            // Push each channel into the corresponding filter
+            veml.getRed(); veml.getGreen(); veml.getBlue(); veml.getWhite();  // trigger integration
+        }
+
+        // --- Wait once for integration ---
+        delay(waitTime * 3);
+
+        // --- Now read all sensors once they've integrated ---
+        for (int j = 0; j < 9; ++j) {
+            int muxIdx = muxOrder[j] - 1;
+            int chan   = channelOrder[j];
+            multiplexers[0]->setChannelMask(0x00);
+            multiplexers[1]->setChannelMask(0x00);
+            multiplexers[muxIdx]->selectChannel(chan);
+
+            currentRGBW[0] = veml.getRed();
+            currentRGBW[1] = veml.getGreen();
+            currentRGBW[2] = veml.getBlue();
+            currentRGBW[3] = veml.getWhite();
+
             for (int k = 0; k < 4; ++k) {
                 filter[j][k].add(currentRGBW[k]);
             }
         }
     }
 
-    // Turn off LED
     setLED(false);
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
 
-    // Save median values into scanVals
+    // Save medians
     for (int j = 0; j < 9; ++j) {
         for (int k = 0; k < 4; ++k) {
             scanVals[j][k] = filter[j][k].getMedian();
         }
     }
 }
+
 
 void ColorSensor::getFaceColors(char output[9]){
     for(int i = 0; i < 9; i++) {
@@ -254,7 +302,7 @@ int ColorSensor::setColorCal(int sensorIdx, char color, const int rgbw[4]) {
 
     // Check valid RGBW values
     for (int i = 0; i < 4; i++) {
-        if(rgbw[i] < 0 || rgbw[i] > 255) {
+        if(rgbw[i] < 0 || rgbw[i] > maxColorVal) {
             return 3;
         }
     }
@@ -326,7 +374,9 @@ bool ColorSensor::saveCalibration() {
     }
     
     EEPROM.put(eepromFlagAddr, flagValue);
-    return true;
+
+    // Load the calibration after saving it
+    return loadCalibration();
 }
 
 void ColorSensor::resetCalibration() {

@@ -29,7 +29,7 @@ void loop() {
   switch (state) {
     case 1:  // Prompt user to begin calibration
       if (!startPrintBool) {
-        Serial.println("\nPlace a solved cube into the device and press any key to begin color calibration.");
+        Serial.println("\nPlace a solved cube into the device and press any key to begin color calibration. (Red left, green back)");
         startPrintBool = true;
       }
 

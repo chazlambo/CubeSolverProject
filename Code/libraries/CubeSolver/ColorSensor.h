@@ -9,12 +9,13 @@
 
 class ColorSensor {
 public:
-    ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int eepromFlagAddress, int eepromAddresses[9][7][4]);
+    ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int& eepromFlagAddress, int (&eepromAddresses)[9][7][4]);
 
     int begin();
 
     // Scan Functions
     void setLED(bool ledState);
+    void scanSingle(int sensorIdx);
     void scanFace();
     void getFaceColors(char output[9]);
     const int* getScanValRow(int idx);
@@ -47,14 +48,15 @@ public:
     int scanVals[9][4];
     int numScans = 1;
     int integrationTime = VEML6040_IT_80MS; // Integration time (40MS, 80MS, 160MS, 320MS, 640MS, 1280MS) (Time per scan per sensor)
-    int waitTime = 80;                     // Set to integration time * 2.5
+    int waitTime = 200;                     // Set to integration time * 2.5
     int colorTol = 20;
+    int maxColorVal = 65535;
 
     // EEPROM Variables
-    int eepromFlagAddr;
-    int eepromAddr[9][7][4];
+    int& eepromFlagAddr;                // Reference to flag address
+    int (&eepromAddrRef)[9][7][4];     // Reference to source array
+    int eepromAddr[9][7][4];           // Local copy of addresses
     int flagValue = 122;
-
     int colorDistance(const int rgbw1[4], const int rgbw2[4]);
     void readSensor(int sensorIdx);
 

@@ -275,30 +275,30 @@ int CubeSystem::homeMotors() {
             pos[i] = cubeMotors.getPos(i);
 
             // Move motor if not within threshold of calibrated value
-            if (abs(currentVal - targetVal) > threshold) {
+            // Track consecutive alignment stability for each motor
+            static int stableCount[6] = {0, 0, 0, 0, 0, 0};
+
+            // Compute wraparound-safe difference
+            int diff = abs(currentVal - targetVal);
+            if (diff > 2048) diff = 4096 - diff;
+
+            // Check if within tolerance
+            if (diff <= motorAlignmentTol) {
+                stableCount[i]++;
+            } else {
+                stableCount[i] = 0;
+            }
+
+            // If not stable long enough, continue stepping
+            if (stableCount[i] < 3) {
                 aligned = false;
 
-                // If Upper Motor
-                if (i == 0) { // Reverse direction for upper motor
-                    if(currentVal > targetVal) {
-                        pos[i] -= stepSize;
-                    }
-                    else {
-                        pos[i] += stepSize;
-                    }
-                }
-
-                // If any other motor
-                else {
-                    if(currentVal > targetVal) {
-                        pos[i] += stepSize;
-                    }
-                    else {
-                        pos[i] -= stepSize;
-                    }
-                }
-            }
-        }
+                if (currentVal > targetVal)
+                    pos[i] += stepSize;
+                else
+                    pos[i] -= stepSize;
+            }       
+        }        
 
         // Apply new positions
         cubeMotors.moveTo(pos);

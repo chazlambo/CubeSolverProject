@@ -102,13 +102,13 @@ void loop() {
       break;
 
     case 16:
-      Serial.println("Moving: ROT1");
-      Cube.executeMove("ROT1", alignCheck);
+      Serial.println("Moving: ROTX");
+      Cube.executeMove("ROTX", alignCheck);
       break;
 
     case 17:
-      Serial.println("Moving: ROT2");
-      Cube.executeMove("ROT2", alignCheck);
+      Serial.println("Moving: ROTZ");
+      Cube.executeMove("ROTZ", alignCheck);
       break;
 
     default:

@@ -86,7 +86,7 @@ void loop() {
                     ? ((muxIdx == 0) ? C1_MUX1_ADDR : C1_MUX2_ADDR)
                     : ((muxIdx == 0) ? C2_MUX1_ADDR : C2_MUX2_ADDR);
 
-    cs->readSensor(activeSensor);
+    cs->scanSingle(activeSensor);
     int* rgbw = cs->currentRGBW;
 
     Serial.print("  ");

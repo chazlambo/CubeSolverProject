@@ -3,19 +3,22 @@
 // ================ EEPROM Setup ================
 const int startAddress = 0;
 
-// Early EEPROM layout setup
-struct _EEPROMInit {
-    _EEPROMInit() { initializeEEPROMLayout(startAddress); }
-  } _earlyInit;
-
+// Declare variables
 int motorCalFlagAddress;
 int motorCalStartAddress;
 int motorCalAddresses[7][4];
 int ringStateEEPROMAddress;
 int topServoEEPROMAddress;
 int botServoEEPROMAddress;
-int colorSensor1EEPROMAddress;
-int colorSensor2EEPROMAddress;
+int colorSensor1EEPROMFlag;
+int colorSensor2EEPROMFlag;
+int colorSensor1EEPROMAddresses[9][7][4];
+int colorSensor2EEPROMAddresses[9][7][4];
+
+// Initialize EEPROM layout IMMEDIATELY (before any objects are created)
+struct _EEPROMInit {
+    _EEPROMInit() { initializeEEPROMLayout(startAddress); }
+} _earlyInit;
 
 // ================ Serial Communication Setup ================
  const int baudRate = 115200;
@@ -157,16 +160,20 @@ TCA9548* color2Muxes[] = {&color2Mux1, &color2Mux2};
 const int colorSensorLED1 = 41;   // White LED pin for color sensor 1
 const int colorSensorLED2 = 40;   // White LED pin for color sensor 2
 
-// Color Sensor EEPROM
-int colorSensor1EEPROMFlag;
-int colorSensor2EEPROMFlag;
-int colorSensor1EEPROMAddresses[9][7][4];
-int colorSensor2EEPROMAddresses[9][7][4];
+// // Color Sensor EEPROM
+// int colorSensor1EEPROMFlag;
+// int colorSensor2EEPROMFlag;
+// int colorSensor1EEPROMAddresses[9][7][4];
+// int colorSensor2EEPROMAddresses[9][7][4];
 
 // Create ColorSensor Objects
-ColorSensor colorSensor1(color1Muxes, colorSensorLED1, colorSensorMuxOrder, colorSensorChannelOrder, colorSensor1EEPROMFlag, colorSensor1EEPROMAddresses);
-ColorSensor colorSensor2(color2Muxes, colorSensorLED2, colorSensorMuxOrder, colorSensorChannelOrder, colorSensor2EEPROMFlag, colorSensor2EEPROMAddresses);
-
+ColorSensor colorSensor1(color1Muxes, colorSensorLED1, colorSensorMuxOrder, 
+                         colorSensorChannelOrder, colorSensor1EEPROMFlag, 
+                         colorSensor1EEPROMAddresses);
+                         
+ColorSensor colorSensor2(color2Muxes, colorSensorLED2, colorSensorMuxOrder, 
+                         colorSensorChannelOrder, colorSensor2EEPROMFlag, 
+                         colorSensor2EEPROMAddresses);
 // ================ Rotary Encoder Setup ================
 RotaryEncoder menuEncoder;
 

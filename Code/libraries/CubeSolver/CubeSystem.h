@@ -63,9 +63,9 @@ private:
     // Motor Home Variables
     int threshold = 1;
     int stepSize = 1;
-    unsigned long timeout = 5000;
+    unsigned long timeout = 1000;
     int motorHomeState;
-    int motorAlignmentTol = 6;
+    int motorAlignmentTol = 10;
 
     // Solution String
     int solutionLength = 0;
