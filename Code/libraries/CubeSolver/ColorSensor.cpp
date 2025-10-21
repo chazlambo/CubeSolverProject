@@ -19,6 +19,8 @@ ColorSensor::ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrde
             }
         }
     }
+
+
     
 }
 
@@ -49,20 +51,52 @@ int ColorSensor::begin() {
         if(!multiplexers[i]->begin()){
             return 20 + i;
         } 
+
+        // Close all channels on muxes
+        multiplexers[i]->setChannelMask(0x00);
     }
 
-    // Initialize VEML6040
-    if (!veml.begin()) {
-        return 1;
+    // Initialize VEML sensors
+    for (int sensorIdx = 0; sensorIdx < 9; sensorIdx++) {
+        // Select the channel for this sensor
+        int muxIdx = muxOrder[sensorIdx] - 1;
+        int chan = channelOrder[sensorIdx];
+        
+        // Disable all channels first
+        multiplexers[0]->setChannelMask(0x00);
+        multiplexers[1]->setChannelMask(0x00);
+        
+        // Enable only this sensor's channel
+        multiplexers[muxIdx]->selectChannel(chan);
+        
+        // Small delay for mux to settle
+        delay(10);
+        
+        // Initialize this VEML sensor
+        if (!veml.begin()) {
+            // Disable all channels before returning error
+            multiplexers[0]->setChannelMask(0x00);
+            multiplexers[1]->setChannelMask(0x00);
+            return 30 + sensorIdx;  // Returns 30-38 for sensor 0-8 failure
+        }
+        
+        // Configure this sensor
+        veml.setConfiguration(integrationTime);
     }
-    veml.setConfiguration(integrationTime);  // Set integration time
+    
+    // Disable all channels after initialization
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
 
     return 0;
 }
 
 void ColorSensor::readSensor(int sensorIdx) {
+    // Turn on illumination LED
+    digitalWrite(ledPin, HIGH);
+
     // Look up which multiplexer and channel this sensor is on
-    int muxIdx = muxOrder[sensorIdx];
+    int muxIdx = muxOrder[sensorIdx] - 1;
     int chan   = channelOrder[sensorIdx];
 
     // Disable all channels in both muxes (just in case)
@@ -72,13 +106,17 @@ void ColorSensor::readSensor(int sensorIdx) {
     // Tell the multiplexer to enable only this channel
     multiplexers[muxIdx]->selectChannel(chan);
 
-    // Give the mux a moment to settle before attempting to read
-    delayMicroseconds(50);
+    // Give the mux a moment to settle and veml to integrate
+    veml.getRed(); veml.getGreen(); veml.getBlue(); veml.getWhite(); // Dummy read
+    delay(waitTime*3);
 
     currentRGBW[0] = veml.getRed();
     currentRGBW[1] = veml.getGreen();
     currentRGBW[2] = veml.getBlue();
     currentRGBW[3] = veml.getWhite();
+
+    // Turn off LED after reading
+    digitalWrite(ledPin, LOW);
 
     // Disable all channels in both muxes (just in case)
     multiplexers[muxIdx]->setChannelMask(0x00);

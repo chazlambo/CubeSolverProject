@@ -197,12 +197,14 @@ void CubeMotors::executeMove(String moveString) {
 void CubeMotors::initStepper(MultiStepper &multiStepper, AccelStepper &newStepper) {
     newStepper.setCurrentPosition(0);
     newStepper.setMaxSpeed(stepSpeed);
+    newStepper.setPinsInverted(true, false);    // Reverse direction
     multiStepper.addStepper(newStepper);
 }
 
 void CubeMotors::initRingStepper(AccelStepper &ringStep) {// Initialize Ring Position
   ringStep.setMaxSpeed(ringStepSpeed);
   ringStep.setAcceleration(ringStepAccel);
+  ringStep.setPinsInverted(true, false);    // Reverse direction
 
   // Read saved state from EEPROM
   ringState = EEPROM.read(ringStateEEPROMAddress);

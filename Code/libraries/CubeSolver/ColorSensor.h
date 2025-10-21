@@ -31,7 +31,8 @@ public:
     // Parse Color
     char getColor(int sensorIdx, const int rgbw[4]);
 
-private:
+// make private
+public:
     TCA9548* multiplexers[2]; // The two muxes on each boards
     VEML6040 veml;                      // Color sensor object
     int ledPin;                         // LED output pin for the board
@@ -46,6 +47,7 @@ private:
     int scanVals[9][4];
     int numScans = 1;
     int integrationTime = VEML6040_IT_80MS; // Integration time (40MS, 80MS, 160MS, 320MS, 640MS, 1280MS) (Time per scan per sensor)
+    int waitTime = 80;                     // Set to integration time * 2.5
     int colorTol = 20;
 
     // EEPROM Variables
