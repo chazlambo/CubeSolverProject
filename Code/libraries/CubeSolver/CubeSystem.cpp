@@ -305,7 +305,7 @@ int CubeSystem::homeMotors() {
 
         // Add function timeout
         t_home = millis();
-        if(t_home - t_home_start > timeout) {
+        if(t_home - t_home_start > alignmentTimeout) {
             return 2;
         }
     }
