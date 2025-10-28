@@ -226,28 +226,19 @@ const int *ColorSensor::getScanValRow(int idx)
 
 float ColorSensor::colorDistance(const int rgbw1[4], const int rgbw2[4]) {
     // Simple Euclidean distance in 4D space (R,G,B,W)
-    // float sumSq = 0;
+    float sumSq = 0;
+
     // for (int i = 0; i < 4; i++) {
     //     int diff = rgbw1[i] - rgbw2[i];
     //     sumSq += diff * diff;
     // }
-    // return sqrt(sumSq);
 
-    // Normalize by W channel
-    // Avoid division by zero
-    if (rgbw1[3] == 0 || rgbw2[3] == 0) {
-        return 99999.0;
-    }
-    
-    // Normalize by W channel
-    float sumSq = 0;
     for (int i = 0; i < 3; i++) {
-        float norm1 = (float)rgbw1[i] / (float)rgbw1[3];
-        float norm2 = (float)rgbw2[i] / (float)rgbw2[3];
+        float norm1 = float(rgbw1[i]) / rgbw1[3];
+        float norm2 = float(rgbw2[i]) / rgbw2[3];
         float diff = norm1 - norm2;
         sumSq += diff * diff;
     }
-
     return sqrt(sumSq);
 }
 

@@ -402,10 +402,10 @@ int CubeSystem::calibrateColorSensors(){
 
     // Order of faces being scanned in step 3
     const char topFaces[4][2] = {
-        {'G', 'Y'}, // Green Left, Yellow Back
-        {'W', 'G'}, // White Left, Green Back
-        {'B', 'W'}, // Blue Left, White Back
-        {'Y', 'B'}  // Yellow Left, Blue Back
+        {'Y', 'O'}, // Yellow Left, Orange Back
+        {'R', 'Y'}, // Red Left, Yellow Back
+        {'W', 'R'}, // White Left, Red Back
+        {'O', 'W'}  // Orange Left, White Back
     };
     
     // Scan the four side faces

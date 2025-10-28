@@ -9,83 +9,8 @@ int state = 0;
 bool startPrintBool = false;
 bool endPrintBool = false;
 
-void printColorSeparationAnalysis(ColorSensor* sensor, int sensorNum) {
-  const char colorChars[7] = {'R', 'G', 'B', 'Y', 'O', 'W', 'E'};
-  
-  Serial.print("\n=== Color Separation Analysis: Sensor ");
-  Serial.print(sensorNum);
-  Serial.println(" ===\n");
-  
-  // Print distance matrix between all color pairs
-  Serial.println("Distance Matrix (lower = more similar):");
-  Serial.print("     ");
-  for (int j = 0; j < 7; j++) {
-    Serial.print("   ");
-    Serial.print(colorChars[j]);
-    Serial.print("  ");
-  }
-  Serial.println();
-  
-  float minMargin = 999.0;
-  char minColor1 = 'X';
-  char minColor2 = 'X';
-  
-  for (int i = 0; i < 9; i++) {
-    for (int c1 = 0; c1 < 7; c1++) {
-      Serial.print(colorChars[c1]);
-      Serial.print("  ");
-      
-      for (int c2 = 0; c2 < 7; c2++) {
-        if (c1 == c2) {
-          Serial.print("  -   ");
-        } else {
-          int calVals1[4], calVals2[4];
-          for (int k = 0; k < 4; k++) {
-            calVals1[k] = sensor->getColorCal(i, colorChars[c1], k);
-            calVals2[k] = sensor->getColorCal(i, colorChars[c2], k);
-          }
-          
-          float dist = sensor->colorDistance(calVals1, calVals2);
-          
-          // Track minimum margin (but only for upper triangle to avoid duplicates)
-          if (c2 > c1 && dist < minMargin) {
-            minMargin = dist;
-            minColor1 = colorChars[c1];
-            minColor2 = colorChars[c2];
-          }
-          
-          Serial.print(dist, 2);
-          Serial.print(" ");
-        }
-      }
-      Serial.println();
-    }
-    
-    Serial.print("\nMinimum margin for sensor ");
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.print(minMargin, 4);
-    Serial.print(" (between ");
-    Serial.print(minColor1);
-    Serial.print(" and ");
-    Serial.print(minColor2);
-    Serial.println(")");
-    
-    if (minMargin < 0.05) {
-      Serial.println("*** WARNING: Very poor color separation! Recalibration recommended. ***");
-    } else if (minMargin < 0.10) {
-      Serial.println("** CAUTION: Marginal color separation. May cause errors. **");
-    } else if (minMargin < 0.15) {
-      Serial.println("* NOTE: Adequate separation but could be improved. *");
-    } else {
-      Serial.println("✓ Good color separation.");
-    }
-    Serial.println();
-    
-    // Reset for next sensor
-    minMargin = 999.0;
-  }
-}
+bool printMargin = true;
+
 
 void setup() {
 // Begin Cube System
@@ -166,7 +91,9 @@ void loop() {
         }
 
         // Add color separation analysis for sensor 1
-        printColorSeparationAnalysis(&colorSensor1, 1);
+        if(printMargin){
+          printColorSeparationAnalysis(&colorSensor1, 1);
+        }
 
         Serial.println("Color Sensor 2");
         for (int i = 0; i < 9; i++) {
@@ -199,7 +126,10 @@ void loop() {
         }
 
         // Add color separation analysis for sensor 2
-        printColorSeparationAnalysis(&colorSensor2, 2);
+        if(printMargin){
+          printColorSeparationAnalysis(&colorSensor2, 2);
+        }
+        
 
         endPrintBool = true;
 
@@ -212,5 +142,83 @@ void loop() {
       delay(1000);
       state = 1;
       break;
+  }
+}
+
+void printColorSeparationAnalysis(ColorSensor* sensor, int sensorNum) {
+  const char colorChars[7] = {'R', 'G', 'B', 'Y', 'O', 'W', 'E'};
+  
+  Serial.print("\n=== Color Separation Analysis: Sensor ");
+  Serial.print(sensorNum);
+  Serial.println(" ===\n");
+  
+  // Print distance matrix between all color pairs
+  Serial.println("Distance Matrix (lower = more similar):");
+  Serial.print("     ");
+  for (int j = 0; j < 7; j++) {
+    Serial.print("   ");
+    Serial.print(colorChars[j]);
+    Serial.print("  ");
+  }
+  Serial.println();
+  
+  float minMargin = 999.0;
+  char minColor1 = 'X';
+  char minColor2 = 'X';
+  
+  for (int i = 0; i < 9; i++) {
+    for (int c1 = 0; c1 < 7; c1++) {
+      Serial.print(colorChars[c1]);
+      Serial.print("  ");
+      
+      for (int c2 = 0; c2 < 7; c2++) {
+        if (c1 == c2) {
+          Serial.print("  -   ");
+        } else {
+          int calVals1[4], calVals2[4];
+          for (int k = 0; k < 4; k++) {
+            calVals1[k] = sensor->getColorCal(i, colorChars[c1], k);
+            calVals2[k] = sensor->getColorCal(i, colorChars[c2], k);
+          }
+          
+          float dist = sensor->colorDistance(calVals1, calVals2);
+          
+          // Track minimum margin (but only for upper triangle to avoid duplicates)
+          if (c2 > c1 && dist < minMargin) {
+            minMargin = dist;
+            minColor1 = colorChars[c1];
+            minColor2 = colorChars[c2];
+          }
+          
+          Serial.print(dist, 2);
+          Serial.print(" ");
+        }
+      }
+      Serial.println();
+    }
+    
+    Serial.print("\nMinimum margin for sensor ");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.print(minMargin, 4);
+    Serial.print(" (between ");
+    Serial.print(minColor1);
+    Serial.print(" and ");
+    Serial.print(minColor2);
+    Serial.println(")");
+    
+    if (minMargin < 0.05) {
+      Serial.println("*** WARNING: Very poor color separation! Recalibration recommended. ***");
+    } else if (minMargin < 0.10) {
+      Serial.println("** CAUTION: Marginal color separation. May cause errors. **");
+    } else if (minMargin < 0.15) {
+      Serial.println("* NOTE: Adequate separation but could be improved. *");
+    } else {
+      Serial.println("✓ Good color separation.");
+    }
+    Serial.println();
+    
+    // Reset for next sensor
+    minMargin = 999.0;
   }
 }

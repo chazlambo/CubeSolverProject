@@ -94,6 +94,7 @@ void displaySensorResults(ColorSensor* sensor, int sensorIdx) {
   char closestColor = 'U';
   char secondClosestColor = 'U';
   int closestCalVals[4] = {0, 0, 0, 0};
+  int secondClosestCalVals[4] = {0, 0, 0, 0};  // Added line
   const char colorChars[7] = {'R', 'G', 'B', 'Y', 'O', 'W', 'E'};
   
   for (int c = 0; c < 7; c++) {
@@ -108,6 +109,9 @@ void displaySensorResults(ColorSensor* sensor, int sensorIdx) {
       // New closest - push old closest to second place
       secondMinDist = minDist;
       secondClosestColor = closestColor;
+      for (int k = 0; k < 4; k++) {
+        secondClosestCalVals[k] = closestCalVals[k];
+      }
       minDist = dist;
       closestColor = colorChars[c];
       // Save the calibration values for closest color
@@ -118,6 +122,9 @@ void displaySensorResults(ColorSensor* sensor, int sensorIdx) {
       // New second closest
       secondMinDist = dist;
       secondClosestColor = colorChars[c];
+      for (int k = 0; k < 4; k++) {
+        secondClosestCalVals[k] = calVals[k];
+      }
     }
   }
 
@@ -167,6 +174,16 @@ void displaySensorResults(ColorSensor* sensor, int sensorIdx) {
   Serial.print(secondMinDist - minDist, 4);  // Print 4 decimal places
   Serial.println(")");
   
+  // Print calibrated values for 2nd closest color
+  Serial.print("  2nd Calibrated RGBW: R=");
+  Serial.print(secondClosestCalVals[0]);
+  Serial.print(", G=");
+  Serial.print(secondClosestCalVals[1]);
+  Serial.print(", B=");
+  Serial.print(secondClosestCalVals[2]);
+  Serial.print(", W=");
+  Serial.println(secondClosestCalVals[3]);
+
   // Print RGBW values
   Serial.print("  RGBW Values:     R=");
   Serial.print(scanVals[0]);
