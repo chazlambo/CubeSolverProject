@@ -47,9 +47,9 @@ public:
     int currentRGBW[4];
     int scanVals[9][4];
     int numScans = 1;
-    int integrationTime = VEML6040_IT_640MS; // Integration time (40MS, 80MS, 160MS, 320MS, 640MS, 1280MS) (Time per scan per sensor)
-    int waitTime = 800;                     // Set to integration time * 2.5
-    float colorTol = 1;
+    int integrationTime = VEML6040_IT_160MS; // Integration time (40MS, 80MS, 160MS, 320MS, 640MS, 1280MS) (Time per scan per sensor)
+    int waitTime = 300;                     // Set to integration time * 2.5
+    float colorTol = 0.15;
     int maxColorVal = 65535;
 
     // EEPROM Variables

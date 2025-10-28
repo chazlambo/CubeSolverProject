@@ -67,6 +67,10 @@ public:
     // Movement functions
     int executeMove(const String &moveString);
 
+    // TODO: DEBUG REMOVE LATER
+    void printUnorientedCubeArray();
+    void printCubeArray();
+
 private:    
     void resetOrientation();
     void resetColor();

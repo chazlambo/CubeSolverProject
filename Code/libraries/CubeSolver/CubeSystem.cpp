@@ -95,16 +95,7 @@ int CubeSystem::scanCube(){
 
         // Determine face left of the sensor (for orientation)
         char left1 = face2;     // Sensor 2 is to the left of Sensor 1
-        char left2;             // Left 2 is opposite of sensor 1 
-        switch (face1) {
-            case 'R': left2 = 'O'; break;
-            case 'O': left2 = 'R'; break;
-            case 'W': left2 = 'Y'; break;
-            case 'Y': left2 = 'W'; break;
-            case 'G': left2 = 'B'; break;
-            case 'B': left2 = 'G'; break;
-            default:  left2 = 'X';  // Invalid
-        }
+        char left2 = face1;     // Sensor 2 is read upside down, making sensor 1 to the left of it
 
         // TODO: DEBUG (REMOVE LATER)
         Serial.print("left1: "); Serial.println(left1);
@@ -139,33 +130,54 @@ int CubeSystem::scanCube(){
         // Rotate the cube to next scanning orientation
         if (i < 2) {
             botServoExtend();
-            delay(200);
-            executeMove("ROTZ");
+            delay(servoDelay);
             ringMiddle();
             botServoPartial();
-            delay(200);
+            delay(servoDelay);
             executeMove("ROTX");
             botServoExtend();
-            delay(200);
-            ringPartial();
+            delay(servoDelay);
+            ringRetract();  // Used to be partial?
+            executeMove("ROTZ");
             botServoRetract();
-            delay(200);
+            delay(servoDelay);
         }
     }
 
     // Set Orientation of Cube
-    char leftColor = lastface1;
-    char backColor = lastface2;
-    int e = virtualCube.setOrientation(leftColor, backColor);
-    if (e)   return 30 + e;
+    char rightColor = lastface2;
+    char backColor  = lastface1;
+
+    // The cube’s left face is opposite the right face
+    char leftColor;
+    switch (rightColor) {
+    case 'R': leftColor = 'O'; break;
+    case 'O': leftColor = 'R'; break;
+    case 'G': leftColor = 'B'; break;
+    case 'B': leftColor = 'G'; break;
+    case 'W': leftColor = 'Y'; break;
+    case 'Y': leftColor = 'W'; break;
+    default:  leftColor = 'U'; // Invalid fallback
+    }
 
     // Build Unoriented Cube Array
-    e = virtualCube.buildUnorientedCubeArray();
+    int e = virtualCube.buildUnorientedCubeArray();
     if (e)   return 40 + e;
+
+    // Pass corrected orientation to virtual cube
+    e = virtualCube.setOrientation(leftColor, backColor);
+    if (e)   return 30 + e;
 
     // Build Cube Array
     e = virtualCube.buildCubeArray();
     if (e)   return 50 + e;
+
+    // TODO: DEBUG (REMOVE LATER)
+    Serial.println("=== UNORIENTED CUBE ARRAY ===");
+    virtualCube.printUnorientedCubeArray();
+    
+    Serial.println("=== ORIENTED CUBE ARRAY ===");
+    virtualCube.printCubeArray();
 
     return 0; // Success
 }
@@ -291,7 +303,7 @@ int CubeSystem::homeMotors() {
             }
 
             // If not stable long enough, continue stepping
-            if (stableCount[i] < 3) {
+            if (stableCount[i] < stableReq) {
                 aligned = false;
 
                 if (currentVal > targetVal)
@@ -490,7 +502,7 @@ void CubeSystem::ringMiddle() {
 
 void CubeSystem::ringRetract() {
     cubeMotors.ringMove(0);
-}
+}   
 
 int CubeSystem::executeMove(const String &move, bool moveVirtual, bool align){
     // Function to execute any turn of the cube
@@ -567,7 +579,7 @@ int CubeSystem::solveVirtual(){
     int solveOutput = virtualCube.solveCube(solveMoves, maxMoves);
     if(solveOutput < 0){
         clearSolution();
-        return 10 + solveOutput;
+        return 10 - solveOutput;
     }
 
     solutionLength = solveOutput;

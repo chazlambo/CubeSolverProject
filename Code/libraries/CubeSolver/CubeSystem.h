@@ -63,9 +63,13 @@ private:
     // Motor Home Variables
     int threshold = 20;
     int stepSize = 1;
+    int stableReq = 1;
     unsigned long alignmentTimeout = 1000;
     int motorHomeState;
-    int motorAlignmentTol = 10;
+    int motorAlignmentTol = 20;
+
+    // Cube Solve Variables
+    int servoDelay = 200;
 
     // Solution String
     int solutionLength = 0;

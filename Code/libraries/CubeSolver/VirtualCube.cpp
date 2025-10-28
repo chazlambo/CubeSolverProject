@@ -2061,3 +2061,20 @@ int VirtualCube::executeMove(const String &move) {
   return 0;
 }
 
+
+// TODO: DEBUG REMOVE LATER
+void VirtualCube::printUnorientedCubeArray() {
+    Serial.print("Unoriented (URFDLB): ");
+    for (int i = 0; i < 54; i++) {
+        Serial.print(unorientedCubeArray[i]);
+    }
+    Serial.println();
+}
+
+void VirtualCube::printCubeArray() {
+    Serial.print("Oriented (URFDLB): ");
+    for (int i = 0; i < 54; i++) {
+        Serial.print(cubeArray[i]);
+    }
+    Serial.println();
+}
