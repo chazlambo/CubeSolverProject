@@ -46,10 +46,10 @@ public:
     // Scan values
     int currentRGBW[4];
     int scanVals[9][4];
-    int numScans = 1;
+    int numScans = 3;
     int integrationTime = VEML6040_IT_80MS; // Integration time (40MS, 80MS, 160MS, 320MS, 640MS, 1280MS) (Time per scan per sensor)
     int waitTime = 200;                     // Set to integration time * 2.5
-    int colorTol = 20;
+    float colorTol = 0.5;
     int maxColorVal = 65535;
 
     // EEPROM Variables
@@ -57,7 +57,7 @@ public:
     int (&eepromAddrRef)[9][7][4];     // Reference to source array
     int eepromAddr[9][7][4];           // Local copy of addresses
     int flagValue = 122;
-    int colorDistance(const int rgbw1[4], const int rgbw2[4]);
+    float colorDistance(const int rgbw1[4], const int rgbw2[4]);
     void readSensor(int sensorIdx);
 
     // Color Helper Function

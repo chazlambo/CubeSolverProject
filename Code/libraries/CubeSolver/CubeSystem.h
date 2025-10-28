@@ -61,9 +61,9 @@ private:
     VirtualCube virtualCube;
 
     // Motor Home Variables
-    int threshold = 1;
+    int threshold = 20;
     int stepSize = 1;
-    unsigned long alignmentTimeout = 5000;
+    unsigned long alignmentTimeout = 1000;
     int motorHomeState;
     int motorAlignmentTol = 10;
 

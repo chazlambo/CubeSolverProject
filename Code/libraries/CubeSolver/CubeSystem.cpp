@@ -269,6 +269,7 @@ int CubeSystem::homeMotors() {
                     minDiff = diff;
                     targetVal = calVal;
                 }
+
             }
 
             // Get position values
@@ -340,6 +341,10 @@ int CubeSystem::calibrateColorSensors(){
         {'O', 'B'}, // Orange Left, Blue Back
         {'G', 'O'}  // Green Left, Orange Back
     };
+
+    // Center cube in chamber
+    botServoPartial();
+    botServoRetract();
 
     // Scan the four side faces
     for (int rot = 0; rot < 4; rot++) {

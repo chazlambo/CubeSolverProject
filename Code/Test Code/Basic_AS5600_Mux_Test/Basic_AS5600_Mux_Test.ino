@@ -3,7 +3,7 @@
 
 #define AS5600_ADDR 0x36
 #define TCA_ADDR    0x70
-#define TCA_CHANNEL 0 // U, R, F, D, L, B, RING (0-6)
+#define TCA_CHANNEL 3 // U, R, F, D, L, B, RING (0-6)
 
 TCA9548 mux(TCA_ADDR);
 
