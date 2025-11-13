@@ -389,9 +389,9 @@ int CubeSystem::calibrateColorSensors(){
     // Rotate cube 
     botServoExtend();
     ringMiddle();
-    delay(500);
+    delay(servoDelay);
     botServoRetract();
-    delay(500);
+    delay(servoDelay);
 
     // Scan and set color calibration values for empty face
     colorSensor1.scanFace();
@@ -404,10 +404,10 @@ int CubeSystem::calibrateColorSensors(){
     // Rotate cube about x-axis and retract
     executeMove("ROTX");
     botServoExtend();
-    delay(500);
+    delay(servoDelay);
     ringRetract();
     botServoRetract();
-    delay(500);
+    delay(servoDelay);
 
     // ------------ STEP 3 ------------
     // Scan remaining top/bottom faces
@@ -435,11 +435,11 @@ int CubeSystem::calibrateColorSensors(){
         if (rot < 3) {
             botServoExtend();
             //topServoExtend();
-            delay(500);
+            delay(servoDelay);
             executeMove("ROTZ");
             //topServoRetract();
             botServoRetract();
-            delay(500);
+            delay(servoDelay);
         }
     }
 

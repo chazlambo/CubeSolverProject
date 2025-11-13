@@ -46,9 +46,10 @@ void setup() {
   // Extend/grip sequence (adjust if your mechanism prefers a different order)
   Cube.botServoExtend();   // bottom support out
   delay(100);
+  Cube.ringExtend();       // ring out to contact
   Cube.topServoExtend();   // top clamp down
   delay(100);
-  Cube.ringExtend();       // ring out to contact
+  
 
    // ---- Solve Cube ----
   waitForAnyKey("Ready to solve. Press any key to start.");

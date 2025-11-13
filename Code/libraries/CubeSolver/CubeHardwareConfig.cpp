@@ -80,7 +80,7 @@ const int TOPSERVO = 23;
 const int BOTSERVO = 22;
 
 // Top Servo Variables
-unsigned int topExtPos = 235;
+unsigned int topExtPos = 224;   //224?
 unsigned int topRetPos = 0;
 int topSweepDelay = 15;
 
