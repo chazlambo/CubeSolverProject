@@ -17,8 +17,6 @@ void CubeSystem::begin() {
         delay(20);
     }
     
-    Serial.println("Power detected.");
-
     // I2C Setup
     Wire.begin();
 
