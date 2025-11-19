@@ -32,7 +32,7 @@ void loop() {
   switch (state) {
     case 1:  // Prompt user to begin calibration
       if (!startPrintBool) {
-        Serial.println("\nPlace a solved cube into the device and press any key to begin color calibration. (Red left, green back)");
+        Serial.println("\nPlace a solved cube into the device and press any key to begin color calibration. (Red back, green right)");
         startPrintBool = true;
       }
 
@@ -214,7 +214,7 @@ void printColorSeparationAnalysis(ColorSensor* sensor, int sensorNum) {
     } else if (minMargin < 0.15) {
       Serial.println("* NOTE: Adequate separation but could be improved. *");
     } else {
-      Serial.println("✓ Good color separation.");
+      Serial.println("Good color separation.");
     }
     Serial.println();
     

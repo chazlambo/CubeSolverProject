@@ -1,30 +1,34 @@
 #include "RotaryEncoder.h"
 
-RotaryEncoder::RotaryEncoder(uint8_t address)
-    : i2cAddress(address), lastPosition(0) {}
+RotaryEncoder::RotaryEncoder(TwoWire* wireBus)
+: ss(wireBus), wire(wireBus), i2cAddr(0x49) {}
 
-void RotaryEncoder::begin() {
-    ano.begin(i2cAddress);
+bool RotaryEncoder::begin(uint8_t addr) {
+    i2cAddr = addr;
 
-    // Initialize ANO pins
-    ano.pinMode(SWITCH_SELECT, INPUT_PULLUP);
-    ano.pinMode(SWITCH_UP,     INPUT_PULLUP);
-    ano.pinMode(SWITCH_LEFT,   INPUT_PULLUP);
-    ano.pinMode(SWITCH_DOWN,   INPUT_PULLUP);
-    ano.pinMode(SWITCH_RIGHT,  INPUT_PULLUP);
+    wire->begin();
+    wire->setClock(100000);
+    delay(5);
 
-    // Get starting encoder position
-    lastPosition = ano.getEncoderPosition();
+    if (!ss.begin(i2cAddr)) {
+        return false;
+    }
 
-    // Enable Interrupts
-    ano.enableEncoderInterrupt();
-    ano.setGPIOInterrupts((uint32_t)1 << SWITCH_UP, 1);
+    ss.pinMode(PIN_UP,     INPUT_PULLUP);
+    ss.pinMode(PIN_DOWN,   INPUT_PULLUP);
+    ss.pinMode(PIN_LEFT,   INPUT_PULLUP);
+    ss.pinMode(PIN_RIGHT,  INPUT_PULLUP);
+    ss.pinMode(PIN_SELECT, INPUT_PULLUP);
+
+    return true;
 }
 
 int32_t RotaryEncoder::getPosition() {
-    return ano.getEncoderPosition();
+    return ss.getEncoderPosition();
 }
 
-bool RotaryEncoder::isPressed(uint8_t button) {
-    return !ano.digitalRead(button);
-}
+bool RotaryEncoder::upPressed()     { return !ss.digitalRead(PIN_UP); }
+bool RotaryEncoder::downPressed()   { return !ss.digitalRead(PIN_DOWN); }
+bool RotaryEncoder::leftPressed()   { return !ss.digitalRead(PIN_LEFT); }
+bool RotaryEncoder::rightPressed()  { return !ss.digitalRead(PIN_RIGHT); }
+bool RotaryEncoder::selectPressed() { return !ss.digitalRead(PIN_SELECT); }

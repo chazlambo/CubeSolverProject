@@ -175,7 +175,8 @@ ColorSensor colorSensor2(color2Muxes, colorSensorLED2, colorSensorMuxOrder,
                          colorSensorChannelOrder, colorSensor2EEPROMFlag, 
                          colorSensor2EEPROMAddresses);
 // ================ Rotary Encoder Setup ================
-RotaryEncoder menuEncoder;
+RotaryEncoder menuEncoder(&Wire1);
+
 
 // ================ EEPROM Initialization Function ================
 void initializeEEPROMLayout(int startAddress) {

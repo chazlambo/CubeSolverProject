@@ -56,7 +56,7 @@ private:
 public:
     int numMotors = 6;
 
-private:
+public:
     // Virtual Cube
     VirtualCube virtualCube;
 

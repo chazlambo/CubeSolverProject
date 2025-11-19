@@ -65,8 +65,8 @@ private:
     int turnStep = 100;
 
     int stepSpeed = 1000;
-    int defaultStepDelay = 100;
-    int rotStepDelay = 500;
+    int defaultStepDelay = 20; // 100?
+    int rotStepDelay = 60;
 
     bool motEnableState = false;
 

@@ -8,17 +8,20 @@ void CubeSystem::begin() {
     Serial.begin(baudRate);
 
     // Power Setup
-    pinMode(POWPIN, INPUT);
-    Serial.println("Waiting for power.");
-    bool powerCheck = 0;
+    // pinMode(POWPIN, INPUT);
+    // Serial.println("Waiting for power.");
+    // bool powerCheck = 0;
 
-    while (!powerCheck){
-        powerCheck = digitalRead(POWPIN);
-        delay(20);
-    }
+    // while (!powerCheck){
+    //     powerCheck = digitalRead(POWPIN);
+    //     delay(20);
+    // }
     
-    // I2C Setup
+    // I2C Setup for color sensors and motor encoders
+    // Wire (I2C0) uses pins: 18 (SDA0), 19 (SCL0)
     Wire.begin();
+    Wire.setClock(100000);  // 100kHz for stability
+    Serial.println("Wire (I2C0) initialized on pins 18/19 at 100kHz");
 
 
     // Motor Setup
@@ -42,8 +45,8 @@ void CubeSystem::begin() {
         }
     }
 
-    // Begin Rotary Encoder
-    // menuEncoder.begin();
+    // Begin Rotary Encoder on Wire1 (separate I2C bus)
+    menuEncoder.begin();
 
     // Motor Initialization
     motorHomeState = -1;
@@ -146,7 +149,7 @@ int CubeSystem::scanCube(){
     char rightColor = lastface2;
     char backColor  = lastface1;
 
-    // The cube’s left face is opposite the right face
+    // The cube's left face is opposite the right face
     char leftColor;
     switch (rightColor) {
     case 'R': leftColor = 'O'; break;
@@ -212,7 +215,7 @@ int CubeSystem::calibrateMotorRotations(){
     }
     executeMove("ALL"); // Return to original position
 
-    // Sort and rearrange each motor’s vector
+    // Sort and rearrange each motor's vector
     for (int i = 0; i < numMotors; i++) {
         // Sort ascending
         std::sort(rawVals[i], rawVals[i] + 4); // Sorts each motors calibrated values

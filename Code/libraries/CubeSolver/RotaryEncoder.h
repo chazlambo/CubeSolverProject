@@ -1,27 +1,34 @@
-#ifndef RotaryEncoder_h
-#define RotaryEncoder_h
+#ifndef ROTARYENCODER_H
+#define ROTARYENCODER_H
 
 #include <Arduino.h>
+#include <Wire.h>
 #include <Adafruit_seesaw.h>
 
 class RotaryEncoder {
 public:
-    RotaryEncoder(uint8_t address = 0x4E);
+    RotaryEncoder(TwoWire* wireBus = &Wire);
 
-    void begin();
-    int32_t getPosition();
-    bool isPressed(uint8_t button);  // button: 1 = select, 2 = up, etc.
+    bool begin(uint8_t addr = 0x49);
+
+    int32_t getPosition();                // Returns current encoder count
+    bool upPressed();
+    bool downPressed();
+    bool leftPressed();
+    bool rightPressed();
+    bool selectPressed();
 
 private:
-    Adafruit_seesaw ano;
-    uint8_t i2cAddress;
-    int32_t lastPosition;
+    Adafruit_seesaw ss;
+    TwoWire* wire;
+    uint8_t i2cAddr;
 
-    static constexpr uint8_t SWITCH_SELECT = 1;
-    static constexpr uint8_t SWITCH_UP     = 2;
-    static constexpr uint8_t SWITCH_LEFT   = 3;
-    static constexpr uint8_t SWITCH_DOWN   = 4;
-    static constexpr uint8_t SWITCH_RIGHT  = 5;
+    // Button IDs for ANO encoder wheel breakout
+    static constexpr int PIN_SELECT = 1;
+    static constexpr int PIN_UP     = 2;
+    static constexpr int PIN_LEFT   = 3;
+    static constexpr int PIN_DOWN   = 4;
+    static constexpr int PIN_RIGHT  = 5;
 };
 
 #endif
