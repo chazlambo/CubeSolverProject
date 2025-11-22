@@ -208,6 +208,7 @@ int CubeSystem::calibrateMotorRotations(){
     // Rotate and scan 3 more times
     for (int step = 1; step < 4; step++) {
         executeMove("ALL");
+        delay(200);
 
         for (int i = 0; i < numMotors; i++) {
             rawVals[i][step] = MotorEncoders[i]->scan();
