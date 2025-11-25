@@ -241,7 +241,7 @@ int CubeSystem::calibrateMotorRotations(){
     return 0;
 }
 
-int CubeSystem::homeMotors() {
+int CubeSystem::homeMotors(bool continueMove) {
     // Homes motors
     //
     // Outputs:
@@ -255,18 +255,36 @@ int CubeSystem::homeMotors() {
     unsigned long t_home = millis();
     long pos[6];    // Temporary position vector
 
+
     // Retrieve calibrated values and check if calibrated
     if (!getMotorCalibration()) {
         return 1;
     }
 
+    // Clear startCalIndex if not being used
+    if (!continueMove) {
+        for (int i = 0; i < 6; i++) startCalIndex[i] = -9999;
+    }
+
+    // Initialize motor positions
+    for (int i = 0; i < numMotors; i++) {
+        pos[i] = cubeMotors.getPos(i);
+    }
+
     // Start loop
     cubeMotors.enableMotors();
+
+    // Align motors
     while (!aligned) {
         aligned = true;
 
         // Check each motor
         for (int i = 0; i < numMotors; i++) {
+
+            // Skip if motor didn't move
+            if (continueMove && !motorMoved[i]) {
+                continue;
+            }
 
             // Update encoder values
             int currentVal = MotorEncoders[i]->scan();
@@ -274,7 +292,15 @@ int CubeSystem::homeMotors() {
             // Find the closest of the 4 calibration values to move to
             int minDiff = 4096;
             int targetVal = MotorEncoders[i]->getCalibration(0);
+
+
+            // Loop through each of the 4 aligned positions
             for (int j = 0; j < 4; j++) {
+
+                if (continueMove && motorMoved[i] && j == startCalIndex[i]) {
+                    continue;
+                }
+
                 int calVal = MotorEncoders[i]->getCalibration(j);
                 int diff = abs(currentVal - calVal);
                 if (diff > 2048) diff = 4096  - diff;  // Account for wraparound
@@ -286,12 +312,10 @@ int CubeSystem::homeMotors() {
 
             }
 
-            // Get position values
-            pos[i] = cubeMotors.getPos(i);
 
             // Move motor if not within threshold of calibrated value
             // Track consecutive alignment stability for each motor
-            static int stableCount[6] = {0, 0, 0, 0, 0, 0};
+            int stableCount[6] = {0, 0, 0, 0, 0, 0};
 
             // Compute wraparound-safe difference
             int diff = abs(currentVal - targetVal);
@@ -516,6 +540,66 @@ int CubeSystem::executeMove(const String &move, bool moveVirtual, bool align){
     //  1X - Virtual move failed (X is error thrown by virtual move)
     //  2X - Home motors failed
 
+    // Determine which index we are starting at
+    for (int i = 0; i < numMotors; i++) {
+        int cur = MotorEncoders[i]->scan();
+
+        int bestIdx = 0;
+        int bestDiff = 9999;
+
+        for (int j = 0; j < 4; j++) {
+            int cal = MotorEncoders[i]->getCalibration(j);
+            int diff = abs(cur - cal);
+            if (diff > 2048) diff = 4096 - diff;
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestIdx = j;
+            }
+        }
+
+        startCalIndex[i] = bestIdx;
+    }
+
+    // Reset motorMoved flags
+    for (int i = 0; i < 6; i++) {
+        motorMoved[i] = false;
+    }
+
+    // Mark motors that this move affects
+    if (move == "U" || move == "U'" || move == "U2")
+        motorMoved[0] = true;
+
+    else if (move == "R" || move == "R'" || move == "R2")
+        motorMoved[1] = true;
+
+    else if (move == "F" || move == "F'" || move == "F2")
+        motorMoved[2] = true;
+
+    else if (move == "D" || move == "D'" || move == "D2")
+        motorMoved[3] = true;
+
+    else if (move == "L" || move == "L'" || move == "L2")
+        motorMoved[4] = true;
+
+    else if (move == "B" || move == "B'" || move == "B2")
+        motorMoved[5] = true;
+
+    // Whole cube rotations
+    else if (move == "ROTX") {
+        motorMoved[4] = true;   // L
+        motorMoved[1] = true;   // R (inverse)
+    }
+
+    else if (move == "ROTZ") {
+        motorMoved[0] = true;   // U
+        motorMoved[3] = true;   // D (inverse)
+    }
+
+    else if (move == "ALL") {
+        for (int i = 0; i < 6; i++)
+            motorMoved[i] = true;
+    }
+
     // Turn real cube side
     cubeMotors.executeMove(move);
 
@@ -529,7 +613,7 @@ int CubeSystem::executeMove(const String &move, bool moveVirtual, bool align){
     // If alignment is active and motor is misaligned
     result = 0;
     if(align && !checkAlignment()){
-        result = homeMotors();
+        result = homeMotors(true);
         if(result) return 20+result;
     }
 
@@ -559,6 +643,8 @@ bool CubeSystem::checkAlignment()
 
     return true;
 }
+
+
 
 void CubeSystem::clearSolution(){
     // Resets the class solution string

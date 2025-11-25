@@ -15,7 +15,7 @@ public:
     // Motor Calibration Functions
     bool getMotorCalibration();     // Checks EEPROM for calibration flag
     int calibrateMotorRotations();  // Sets all motor calibration values based on current position
-    int homeMotors();               // Homes all 6 stepper motors
+    int homeMotors(bool continueMove = false); // Homes all 6 stepper motors
 
     // Color Sensor Calibration Functions
     bool getColorCalibration();     // Checks EEPROM for calibration flag
@@ -66,7 +66,9 @@ public:
     int stableReq = 1;
     unsigned long alignmentTimeout = 1000;
     int motorHomeState;
-    int motorAlignmentTol = 20;
+    int motorAlignmentTol = 10;
+    int startCalIndex[6] = {0,0,0,0,0,0};
+    bool motorMoved[6] = {false, false, false, false, false, false};
 
     // Cube Solve Variables
     int servoDelay = 200;
@@ -79,3 +81,5 @@ public:
 };
 
 #endif
+
+

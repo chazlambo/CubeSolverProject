@@ -129,6 +129,7 @@ void CubeMotors::resetMotorPos(){
 }
 
 void CubeMotors::executeMove(String moveString) {
+
     int stepDelay = defaultStepDelay;
 
     CubeMove move = parseMove(moveString);

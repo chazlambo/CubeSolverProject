@@ -62,10 +62,11 @@ private:
 
     // Position and State Variables
     long pos[6] = {0, 0, 0, 0, 0, 0};
+    int expectedCalIndex[6] = {0,0,0,0,0,0};
     int turnStep = 100;
 
     int stepSpeed = 1000;
-    int defaultStepDelay = 20; // 100?
+    int defaultStepDelay = 200; // 100?
     int rotStepDelay = 60;
 
     bool motEnableState = false;

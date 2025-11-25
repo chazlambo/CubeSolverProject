@@ -85,7 +85,7 @@ unsigned int topRetPos = 0;
 int topSweepDelay = 15;
 
 // Bottom Servo Variables
-unsigned int botExtPos = 262;
+unsigned int botExtPos = 260;
 unsigned int botRetPos = 0;
 int botSweepDelay = 15;
 
