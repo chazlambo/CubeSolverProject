@@ -174,9 +174,14 @@ ColorSensor colorSensor1(color1Muxes, colorSensorLED1, colorSensorMuxOrder,
 ColorSensor colorSensor2(color2Muxes, colorSensorLED2, colorSensorMuxOrder, 
                          colorSensorChannelOrder, colorSensor2EEPROMFlag, 
                          colorSensor2EEPROMAddresses);
+
 // ================ Rotary Encoder Setup ================
 RotaryEncoder menuEncoder(&Wire1);
 
+// ================ Display Setup ================
+CubeDisplay cubeDisplay(DISPLAY_SCK, DISPLAY_MISO, DISPLAY_MOSI, 
+                        DISPLAY_DC, DISPLAY_CS, DISPLAY_RESET,
+                        DISPLAY_TOUCH_CS, DISPLAY_TOUCH_IRQ);
 
 // ================ EEPROM Initialization Function ================
 void initializeEEPROMLayout(int startAddress) {

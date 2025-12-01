@@ -19,6 +19,7 @@
 #include "ColorSensor.h"
 #include "RotaryEncoder.h"
 #include "VirtualCube.h"
+#include "CubeDisplay.h"
 
 //================ EEPROM Setup ================
 void initializeEEPROMLayout(int startAddress = 0);
@@ -110,5 +111,19 @@ extern ColorSensor colorSensor1, colorSensor2;
 
 // ================ Rotary Encoder Setup ================
 extern RotaryEncoder menuEncoder;
+
+// ================ Display Setup ================
+// Display Pin Definitions
+#define DISPLAY_SCK      13
+#define DISPLAY_MISO     12
+#define DISPLAY_MOSI     11
+#define DISPLAY_DC       10
+#define DISPLAY_CS       14
+#define DISPLAY_RESET    15
+#define DISPLAY_TOUCH_CS 255
+#define DISPLAY_TOUCH_IRQ 255
+
+// Display Object
+extern CubeDisplay cubeDisplay;
 
 #endif

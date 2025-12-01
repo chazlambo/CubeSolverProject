@@ -15,7 +15,7 @@ public:
     // Motor Calibration Functions
     bool getMotorCalibration();     // Checks EEPROM for calibration flag
     int calibrateMotorRotations();  // Sets all motor calibration values based on current position
-    int homeMotors(bool continueMove = false); // Homes all 6 stepper motors
+    int homeMotors();               // Homes all 6 stepper motors
 
     // Color Sensor Calibration Functions
     bool getColorCalibration();     // Checks EEPROM for calibration flag
@@ -23,7 +23,9 @@ public:
 
     // Move Functions
     int executeMove(const String& move, bool moveVirtual = false, bool align = false);
-    bool checkAlignment();
+    int alignMotors();              // Re-aligns motors after a move (faster, selective)
+    bool checkAlignment();          // Check if motors are currently aligned
+    int alignMotorsInternal(bool selectiveAlign);
 
     // Main Solving Functions
     void clearSolution();
@@ -50,11 +52,21 @@ public:
     void ringMiddle();
     void ringRetract();
 
+    // Display Functions
+    void displayBegin(uint32_t spiSpeed = 10000000);
+    void displaySetMessage(const char* msg);
+    void displaySetStatus(const char* msg);
+    void displayClearStatus();
+    void displayUpdate();
+    void displayWaitForSelect(const char* msg);
+    bool displayReady();
+
 private:
     bool powerCheck();
 
 public:
     int numMotors = 6;
+    bool displayInitialized = false;
 
 public:
     // Virtual Cube

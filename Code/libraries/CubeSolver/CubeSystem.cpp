@@ -645,6 +645,48 @@ bool CubeSystem::checkAlignment()
 }
 
 
+void CubeSystem::displayBegin(uint32_t spiSpeed) {
+    displayInitialized = cubeDisplay.begin(spiSpeed);
+    if (displayInitialized) {
+        Serial.println("CubeSystem: Display initialized");
+    } else {
+        Serial.println("CubeSystem: Display initialization failed!");
+    }
+}
+
+void CubeSystem::displaySetMessage(const char* msg) {
+    if (displayInitialized) {
+        cubeDisplay.setMessage(msg);
+    }
+}
+
+void CubeSystem::displaySetStatus(const char* msg) {
+    if (displayInitialized) {
+        cubeDisplay.setStatus(msg);
+    }
+}
+
+void CubeSystem::displayClearStatus() {
+    if (displayInitialized) {
+        cubeDisplay.clearStatus();
+    }
+}
+
+void CubeSystem::displayUpdate() {
+    if (displayInitialized) {
+        cubeDisplay.update();
+    }
+}
+
+void CubeSystem::displayWaitForSelect(const char* msg) {
+    if (displayInitialized) {
+        cubeDisplay.waitForSelect(msg);
+    }
+}
+
+bool CubeSystem::displayReady() {
+    return displayInitialized;
+}
 
 void CubeSystem::clearSolution(){
     // Resets the class solution string
