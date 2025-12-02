@@ -23,6 +23,7 @@ public:
 
     // Move Functions
     int executeMove(const String& move, bool moveVirtual = false, bool align = false);
+    bool backoutMove(int targetPositions[6]);
     int alignMotors();              // Re-aligns motors after a move (faster, selective)
     bool checkAlignment();          // Check if motors are currently aligned
     int alignMotorsInternal(bool selectiveAlign);
@@ -73,12 +74,12 @@ public:
     VirtualCube virtualCube;
 
     // Motor Home Variables
-    int threshold = 20;
     int stepSize = 1;
-    int stableReq = 1;
-    unsigned long alignmentTimeout = 1000;
+    int stableReq = 3;
+    unsigned long homeTimeout = 1000;       // Timeout for full homing
+    unsigned long alignTimeout = 500;       // Timeout for quick alignment
     int motorHomeState;
-    int motorAlignmentTol = 10;
+    int motorAlignmentTol = 20;             // Alignment threshold (20)
     int startCalIndex[6] = {0,0,0,0,0,0};
     bool motorMoved[6] = {false, false, false, false, false, false};
 

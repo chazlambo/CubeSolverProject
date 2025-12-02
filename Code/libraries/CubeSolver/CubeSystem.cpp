@@ -23,6 +23,9 @@ void CubeSystem::begin() {
     Wire.setClock(100000);  // 100kHz for stability
     Serial.println("Wire (I2C0) initialized on pins 18/19 at 100kHz");
 
+    // Display Setup
+    displayInitialized = cubeDisplay.begin(10000000);
+
 
     // Motor Setup
     cubeMotors.begin();
@@ -53,6 +56,7 @@ void CubeSystem::begin() {
     if(getMotorCalibration()){
         homeMotors();
     }
+
 }
 
 int CubeSystem::scanCube(){
@@ -241,48 +245,38 @@ int CubeSystem::calibrateMotorRotations(){
     return 0;
 }
 
-int CubeSystem::homeMotors(bool continueMove) {
-    // Homes motors
+int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
+    // Internal alignment function used by both homeMotors() and alignMotors()
+    // 
+    // selectiveAlign = false: Align all motors (full homing)
+    // selectiveAlign = true:  Only align motors marked in motorMoved[]
     //
     // Outputs:
     //      0 - Success
-    //      1 - Motors not calibrated
     //      2 - Did not reach threshold in time
 
-    // Initialize variables
     bool aligned = false;
-    unsigned long t_home_start = millis();
-    unsigned long t_home = millis();
-    long pos[6];    // Temporary position vector
-
-
-    // Retrieve calibrated values and check if calibrated
-    if (!getMotorCalibration()) {
-        return 1;
-    }
-
-    // Clear startCalIndex if not being used
-    if (!continueMove) {
-        for (int i = 0; i < 6; i++) startCalIndex[i] = -9999;
-    }
+    unsigned long t_start = millis();
+    unsigned long timeout = selectiveAlign ? alignTimeout : homeTimeout;
+    long pos[6];
 
     // Initialize motor positions
     for (int i = 0; i < numMotors; i++) {
         pos[i] = cubeMotors.getPos(i);
     }
 
-    // Start loop
+    // Enable motors
     cubeMotors.enableMotors();
 
-    // Align motors
+    // Alignment loop
     while (!aligned) {
         aligned = true;
 
         // Check each motor
         for (int i = 0; i < numMotors; i++) {
 
-            // Skip if motor didn't move
-            if (continueMove && !motorMoved[i]) {
+            // Skip if selective alignment and motor didn't move
+            if (selectiveAlign && !motorMoved[i]) {
                 continue;
             }
 
@@ -293,67 +287,115 @@ int CubeSystem::homeMotors(bool continueMove) {
             int minDiff = 4096;
             int targetVal = MotorEncoders[i]->getCalibration(0);
 
-
             // Loop through each of the 4 aligned positions
             for (int j = 0; j < 4; j++) {
 
-                if (continueMove && motorMoved[i] && j == startCalIndex[i]) {
+                // Skip the starting position if in selective mode
+                if (selectiveAlign && motorMoved[i] && j == startCalIndex[i]) {
                     continue;
                 }
 
                 int calVal = MotorEncoders[i]->getCalibration(j);
                 int diff = abs(currentVal - calVal);
-                if (diff > 2048) diff = 4096  - diff;  // Account for wraparound
+                if (diff > 2048) diff = 4096 - diff;  // Account for wraparound
 
                 if (diff < minDiff) {
                     minDiff = diff;
                     targetVal = calVal;
                 }
-
             }
-
-
-            // Move motor if not within threshold of calibrated value
-            // Track consecutive alignment stability for each motor
-            int stableCount[6] = {0, 0, 0, 0, 0, 0};
 
             // Compute wraparound-safe difference
             int diff = abs(currentVal - targetVal);
             if (diff > 2048) diff = 4096 - diff;
 
             // Check if within tolerance
-            if (diff <= motorAlignmentTol) {
-                stableCount[i]++;
-            } else {
-                stableCount[i] = 0;
-            }
-
-            // If not stable long enough, continue stepping
-            if (stableCount[i] < stableReq) {
+            if (diff > motorAlignmentTol) {
                 aligned = false;
 
+                // Move toward target
                 if (currentVal > targetVal)
                     pos[i] += stepSize;
                 else
                     pos[i] -= stepSize;
-            }       
-        }        
+            }
+        }
 
         // Apply new positions
         cubeMotors.moveTo(pos);
 
-        // Add function timeout
-        t_home = millis();
-        if(t_home - t_home_start > alignmentTimeout) {
+        // Check for timeout
+        if (millis() - t_start > timeout) {
+            cubeMotors.disableMotors();
             return 2;
         }
     }
+
+    // Disable motors
     cubeMotors.disableMotors();
 
-    // Manually reset stepper position
+    // Reset stepper position tracking
     cubeMotors.resetMotorPos();
-    
-    return 0;   // Return successful alignment
+
+    return 0;   // Success
+}
+
+int CubeSystem::homeMotors() {
+    // Homes all motors from unknown position (full homing procedure)
+    // Outputs:
+    //      0 - Success
+    //      1 - Motors not calibrated
+    //      2 - Did not reach threshold in time
+
+    // Check if motors are calibrated
+    if (!getMotorCalibration()) {
+        return 1;
+    }
+
+    // Clear all tracking variables for fresh start
+    for (int i = 0; i < 6; i++) {
+        startCalIndex[i] = -9999;
+        motorMoved[i] = false;
+    }
+
+    // Call internal alignment with full homing mode
+    return alignMotorsInternal(false);
+}
+
+int CubeSystem::alignMotors() {
+    // Re-aligns motors after a move (only aligns motors that moved)
+    // Outputs:
+    //      0 - Success
+    //      1 - Motors not calibrated
+    //      2 - Did not reach threshold in time
+
+    // Check if motors are calibrated
+    if (!getMotorCalibration()) {
+        return 1;
+    }
+
+    // Determine starting calibration index for each motor
+    for (int i = 0; i < numMotors; i++) {
+        int cur = MotorEncoders[i]->scan();
+
+        int bestIdx = 0;
+        int bestDiff = 9999;
+
+        for (int j = 0; j < 4; j++) {
+            int cal = MotorEncoders[i]->getCalibration(j);
+            int diff = abs(cur - cal);
+            if (diff > 2048) diff = 4096 - diff;
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestIdx = j;
+            }
+        }
+
+        startCalIndex[i] = bestIdx;
+    }
+
+    // Call internal alignment with selective mode
+    return alignMotorsInternal(true);
 }
 
 bool CubeSystem::getColorCalibration(){
@@ -478,40 +520,49 @@ int CubeSystem::calibrateColorSensors(){
 
 void CubeSystem::topServoExtend() {
     topServo.extend();
+    delay(servoDelay);
 }
 
 void CubeSystem::topServoRetract() {
     topServo.retract();
+    delay(servoDelay);
 }
 
 void CubeSystem::topServoPartial()
 {
     topServo.partial();
+    delay(servoDelay);
 }
 
 void CubeSystem::botServoExtend() {
     botServo.extend();
+    delay(servoDelay);
 }
 
 void CubeSystem::botServoRetract() {
     botServo.retract();
+    delay(servoDelay);
 }
 
 void CubeSystem::botServoPartial()
 {
     botServo.partial();
+    delay(servoDelay);
 }
 
 void CubeSystem::toggleTopServo() {
     topServo.toggle();
+    delay(servoDelay);
 }
 
 void CubeSystem::toggleBotServo() {
     botServo.toggle();
+    delay(servoDelay);
 }
 
 void CubeSystem::toggleRing() {
     cubeMotors.ringToggle();
+    delay(servoDelay);
 }
 
 void CubeSystem::ringExtend() {
@@ -530,107 +581,222 @@ void CubeSystem::ringRetract() {
     cubeMotors.ringMove(0);
 }   
 
-int CubeSystem::executeMove(const String &move, bool moveVirtual, bool align){
-    // Function to execute any turn of the cube
-    // Inputs:
-    //  bool moveVirtual - set true to turn virtual cube
-    //  bool align       - set true to activate alignment after movement
+int CubeSystem::executeMove(const String &move, bool moveVirtual, bool align) {
     // Outputs:
-    //  0 - Ran succesfully
+    //  0 - Ran successfully
     //  1X - Virtual move failed (X is error thrown by virtual move)
-    //  2X - Home motors failed
+    //  2X - Alignment failed after retries
+    //  3 - Move string is invalid
 
-    // Determine which index we are starting at
-    for (int i = 0; i < numMotors; i++) {
-        int cur = MotorEncoders[i]->scan();
-
-        int bestIdx = 0;
-        int bestDiff = 9999;
-
-        for (int j = 0; j < 4; j++) {
-            int cal = MotorEncoders[i]->getCalibration(j);
-            int diff = abs(cur - cal);
-            if (diff > 2048) diff = 4096 - diff;
-            if (diff < bestDiff) {
-                bestDiff = diff;
-                bestIdx = j;
+    // Pre-check alignment if alignment is requested
+    if (align) {
+        if (!checkAlignment()) {
+            Serial.println("Motors misaligned before move - homing now");
+            int homeResult = homeMotors();
+            if (homeResult != 0) {
+                Serial.println("ERROR: Pre-move homing failed");
+                return 20 + homeResult;
             }
         }
-
-        startCalIndex[i] = bestIdx;
     }
 
-    // Reset motorMoved flags
-    for (int i = 0; i < 6; i++) {
-        motorMoved[i] = false;
+    const int MAX_RETRIES = 3;
+    int retryCount = 0;
+
+    while (retryCount < MAX_RETRIES) {
+        // Store starting encoder positions
+        int startPositions[6];
+        for (int i = 0; i < numMotors; i++) {
+            startPositions[i] = MotorEncoders[i]->scan();
+        }
+
+        // Reset motorMoved flags
+        for (int i = 0; i < 6; i++) {
+            motorMoved[i] = false;
+        }
+
+        // Mark motors that this move affects
+        if (move == "U" || move == "U'" || move == "U2")
+            motorMoved[0] = true;
+        else if (move == "R" || move == "R'" || move == "R2")
+            motorMoved[1] = true;
+        else if (move == "F" || move == "F'" || move == "F2")
+            motorMoved[2] = true;
+        else if (move == "D" || move == "D'" || move == "D2")
+            motorMoved[3] = true;
+        else if (move == "L" || move == "L'" || move == "L2")
+            motorMoved[4] = true;
+        else if (move == "B" || move == "B'" || move == "B2")
+            motorMoved[5] = true;
+        else if (move == "ROTX") {
+            motorMoved[4] = true;   // L
+            motorMoved[1] = true;   // R (inverse)
+        }
+        else if (move == "ROTZ") {
+            motorMoved[0] = true;   // U
+            motorMoved[3] = true;   // D (inverse)
+        }
+        else if (move == "ALL") {
+            for (int i = 0; i < 6; i++)
+                motorMoved[i] = true;
+        }
+        else {
+            return 3; // Invalid move
+        }
+
+        // Execute the physical move
+        cubeMotors.executeMove(move);
+
+        // Check if alignment is needed
+        if (align) {
+            // Determine starting calibration indices
+            for (int i = 0; i < numMotors; i++) {
+                if (!motorMoved[i]) continue;
+
+                int bestIdx = 0;
+                int bestDiff = 9999;
+
+                for (int j = 0; j < 4; j++) {
+                    int cal = MotorEncoders[i]->getCalibration(j);
+                    int diff = abs(startPositions[i] - cal);
+                    if (diff > 2048) diff = 4096 - diff;
+                    if (diff < bestDiff) {
+                        bestDiff = diff;
+                        bestIdx = j;
+                    }
+                }
+                startCalIndex[i] = bestIdx;
+            }
+
+            // Try to align
+            int alignResult = alignMotorsInternal(true);
+            
+            if (alignResult == 0) {
+                // Alignment successful!
+                break;
+            }
+            
+            // Alignment failed - likely jammed
+            Serial.print("Alignment failed, attempt ");
+            Serial.print(retryCount + 1);
+            Serial.println(" - backing out and re-homing");
+
+            // Step 1: Back out only the moved motor(s) to relieve jam
+            bool backoutSuccess = backoutMove(startPositions);
+            
+            if (!backoutSuccess) {
+                Serial.println("ERROR: Failed to back out of jammed position");
+                return 20 + alignResult;
+            }
+
+            Serial.println("Backout complete - now homing all motors");
+
+            // Step 2: Clear motorMoved flags so homeMotors aligns ALL motors
+            for (int i = 0; i < 6; i++) {
+                motorMoved[i] = false;
+            }
+
+            // Step 3: Re-home all motors from their current positions
+            int homeResult = homeMotors();
+            if (homeResult != 0) {
+                Serial.println("ERROR: Re-homing failed");
+                return 20 + homeResult;
+            }
+
+            retryCount++;
+            
+            if (retryCount >= MAX_RETRIES) {
+                Serial.println("ERROR: Max retries exceeded");
+                return 20 + alignResult;
+            }
+            
+            // Loop will retry the move
+            delay(100);
+        }
+        else {
+            // No alignment requested, just do the move once
+            break;
+        }
     }
 
-    // Mark motors that this move affects
-    if (move == "U" || move == "U'" || move == "U2")
-        motorMoved[0] = true;
-
-    else if (move == "R" || move == "R'" || move == "R2")
-        motorMoved[1] = true;
-
-    else if (move == "F" || move == "F'" || move == "F2")
-        motorMoved[2] = true;
-
-    else if (move == "D" || move == "D'" || move == "D2")
-        motorMoved[3] = true;
-
-    else if (move == "L" || move == "L'" || move == "L2")
-        motorMoved[4] = true;
-
-    else if (move == "B" || move == "B'" || move == "B2")
-        motorMoved[5] = true;
-
-    // Whole cube rotations
-    else if (move == "ROTX") {
-        motorMoved[4] = true;   // L
-        motorMoved[1] = true;   // R (inverse)
-    }
-
-    else if (move == "ROTZ") {
-        motorMoved[0] = true;   // U
-        motorMoved[3] = true;   // D (inverse)
-    }
-
-    else if (move == "ALL") {
-        for (int i = 0; i < 6; i++)
-            motorMoved[i] = true;
-    }
-
-    // Turn real cube side
-    cubeMotors.executeMove(move);
-
-    // Turn Virtual Cube
-    int result = 0;
+    // Execute virtual move if requested
     if (moveVirtual) {
-        result = virtualCube.executeMove(move);
-        if(result) return 10+result;
-    }
-
-    // If alignment is active and motor is misaligned
-    result = 0;
-    if(align && !checkAlignment()){
-        result = homeMotors(true);
-        if(result) return 20+result;
+        int result = virtualCube.executeMove(move);
+        if (result) return 10 + result;
     }
 
     return 0;   // Success
 }
 
-bool CubeSystem::checkAlignment()
-{
-    // Returns true if aligned
+bool CubeSystem::backoutMove(int targetPositions[6]) {
+    // Try to return motors to their starting positions
+    // Returns true if successful, false if failed
+    
+    const unsigned long BACKOUT_TIMEOUT = 2000;
+    unsigned long startTime = millis();
+    
+    long pos[6];
+    for (int i = 0; i < 6; i++) {
+        pos[i] = cubeMotors.getPos(i);
+    }
+    
+    cubeMotors.enableMotors();
+    
+    bool aligned = false;
+    while (!aligned && (millis() - startTime < BACKOUT_TIMEOUT)) {
+        aligned = true;
+        
+        for (int i = 0; i < numMotors; i++) {
+            if (!motorMoved[i]) continue;
+            
+            int currentPos = MotorEncoders[i]->scan();
+            int diff = abs(currentPos - targetPositions[i]);
+            if (diff > 2048) diff = 4096 - diff;
+            
+            if (diff > motorAlignmentTol) {
+                aligned = false;
+                
+                // Determine direction to move back
+                int rawDiff = currentPos - targetPositions[i];
+                if (rawDiff > 2048) rawDiff -= 4096;
+                if (rawDiff < -2048) rawDiff += 4096;
+                
+                if (rawDiff > 0)
+                    pos[i] -= stepSize;
+                else
+                    pos[i] += stepSize;
+            }
+        }
+        
+        cubeMotors.moveTo(pos);
+    }
+    
+    cubeMotors.disableMotors();
+    
+    if (!aligned) {
+        Serial.println("Backout timeout - could not return to start");
+        return false;
+    }
+    
+    // Reset position tracking
+    cubeMotors.resetMotorPos();
+    return true;
+}
+
+bool CubeSystem::checkAlignment() {
+    // Returns true if all motors are aligned
     // Returns false if one or more motors is misaligned
+    
     for (int i = 0; i < numMotors; i++) {
         int currentVal = MotorEncoders[i]->scan();
         bool aligned = false;
 
         for (int j = 0; j < 4; j++) {
             int calVal = MotorEncoders[i]->getCalibration(j);
-            if (abs(currentVal - calVal) <= motorAlignmentTol) {
+            int diff = abs(currentVal - calVal);
+            if (diff > 2048) diff = 4096 - diff;  // Account for wraparound
+            
+            if (diff <= motorAlignmentTol) {
                 aligned = true;
                 break;
             }
@@ -642,16 +808,6 @@ bool CubeSystem::checkAlignment()
     }
 
     return true;
-}
-
-
-void CubeSystem::displayBegin(uint32_t spiSpeed) {
-    displayInitialized = cubeDisplay.begin(spiSpeed);
-    if (displayInitialized) {
-        Serial.println("CubeSystem: Display initialized");
-    } else {
-        Serial.println("CubeSystem: Display initialization failed!");
-    }
 }
 
 void CubeSystem::displaySetMessage(const char* msg) {
@@ -739,6 +895,7 @@ int CubeSystem::executeSolve(){
     for (int i = 0; i < solutionLength; i++) {
         int e = 0;
         e = executeMove(solveMoves[i], 1, 1);
+
         if (e) return 100+e;
     }
     

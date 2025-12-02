@@ -10,22 +10,13 @@ int execResult = -1;
 
 void setup() {
     Serial.begin(115200);
-    delay(200);
     Serial.println("==== Cube Solver UI Startup ====");
-
-    // Initialize display first
-    Cube.displayBegin(10000000);  // 10MHz SPI speed
     
-    if (!Cube.displayReady()) {
-        Serial.println("ERROR: Display failed to initialize!");
-        while (1) delay(100);
-    }
+      // Initialize cube hardware
+    Cube.begin();
 
     Cube.displaySetMessage("Initializing Cube...");
     Cube.displayUpdate();
-
-    // Initialize cube hardware
-    Cube.begin();
 
     Cube.displaySetMessage("Ready.");
     Cube.displayClearStatus();
@@ -60,7 +51,6 @@ void loop() {
 
     Cube.displaySetMessage("Scan complete.");
     Serial.println("Scan successful.");
-    delay(250);
 
     // -------------------- STEP 2: SOLVE VIRTUALLY --------------------
     Cube.displaySetMessage("Solving cube...");
@@ -95,10 +85,8 @@ void loop() {
     Serial.println("Loading cube...");
 
     Cube.botServoExtend();
-    delay(120);
     Cube.ringExtend();
     Cube.topServoExtend();
-    delay(160);
 
     Cube.displaySetMessage("Cube loaded.");
     Cube.displaySetStatus("Cube ready to solve.\nPress SELECT to begin.");
@@ -148,7 +136,6 @@ void loop() {
 
     Cube.ringRetract();
     Cube.topServoRetract();
-    delay(130);
     Cube.botServoRetract();
 
     // Done – stay on result screen

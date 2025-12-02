@@ -189,9 +189,12 @@ void CubeMotors::executeMove(String moveString) {
     enableMotors();
     multiStep.moveTo(pos);
     multiStep.runSpeedToPosition();
-    delay(stepDelay);               // Delay to keep motors holding position to negate rotational inertia
-
+    delay(stepDelay);
     disableMotors();
+    delay(stepDelay);
+
+    
+
 }
 
 // Private Methods
