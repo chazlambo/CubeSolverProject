@@ -89,6 +89,37 @@ noted.
 > **TODO:** pin the versions you actually build against, especially LVGL — the
 > code uses `lv_display_create` / `lv_tick_set_cb`, which are v9-only.
 
+### Menu theme assets
+
+The menu's look is generated, not hand-drawn. `docs/theme/` holds the design as
+two HTML files, and `Code/tools/bake_theme.py` rasterizes *those same files*
+through headless Chrome at the panel's native 320x240, then packs the result
+into LVGL C arrays under `Code/libraries/CubeSolver/utility/`:
+
+```sh
+python3 Code/tools/bake_theme.py              # images + fonts (needs network)
+python3 Code/tools/bake_theme.py --no-fonts   # images only
+```
+
+The generated files **are committed**, so a normal build needs none of this —
+run it only after changing the design. It needs `google-chrome`, `python3-pil`,
+and `npx` for the font conversion.
+
+Two things about those assets are load-bearing and easy to undo by accident:
+
+- **They live in `utility/`.** `Code/libraries/CubeSolver` has no
+  `library.properties`, so the Arduino IDE treats it as a 1.0-format library and
+  compiles only the library root and `utility/`. Assets moved to a prettier
+  subdirectory are silently not compiled, and the sketch fails to link.
+- **The recolourable masks are RGB565A8, not A8.** LVGL reads an uncompressed
+  RGB565A8 straight out of flash, but copies every alpha-only image into RAM
+  first. The frame band is 49 KB against a 32 KB `LV_MEM_SIZE`, so as A8 it
+  fails to allocate — and with `LV_USE_LOG` at 0 it fails *silently*, drawing
+  nothing at all. This costs about 220 KB of flash and is worth it.
+
+Total asset cost: **~565 KB of flash**, against the ~3.3 MB left after the
+solver's own 4.14 MiB of lookup tables. RAM is unchanged.
+
 ### lv_conf.h
 
 `Code/libraries/lv_conf.h` is **required** and its settings are not defaults.
@@ -96,6 +127,18 @@ noted.
 to build, it renders wrong colours and looks like a hardware fault. See the
 comments in that file for the load-bearing settings and for several defines that
 use LVGL v8 spellings and are silently ignored by v9.
+
+**`LV_MEM_SIZE` is 48 KB, and running out of it hangs the machine.**
+`LV_USE_ASSERT_MALLOC` is 1 and LVGL's default assert handler is `while(1);`, so
+an exhausted pool is not a degraded UI — it is a halt, with no message, because
+`LV_USE_LOG` is 0. It was 32 KB, which the themed menu alone came within ~1 KB
+of; adding the operation screens took the peak to ~27 KB and the firmware hung
+at boot with no output at all. 48 KB was set against a measurement, not a guess.
+
+Two things watch this now: `CubeDisplay::begin()` prints the pool usage over
+Serial once every widget exists, and warns below 8 KB free; and `M` in the
+desktop simulator prints it live. Check the boot line before assuming a new
+screen is free.
 
 ---
 

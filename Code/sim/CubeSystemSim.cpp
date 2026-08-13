@@ -220,22 +220,21 @@ void simMakeCubeKnown(VirtualCube& vc) {
 int CubeSystem::scanCube() {
     const bool injectFault = sim::consumeFaultInjection();
 
-    static const char* kFaceNames[6] = { "up", "right", "front", "down", "left", "back" };
+    // Same three passes the real scanCube() runs, so the progress display is
+    // exercised here exactly as it will be on the machine.
+    for (int pass = 0; pass < CubeSystem::kScanPasses; ++pass) {
+        displaySteps(CubeSystem::kScanPassLabels, CubeSystem::kScanPasses, pass, pass);
+        displaySetStatus("Reading two faces");
+        if (!simWait(kScanPerFaceMs * 2)) return 70;      // "Scan aborted"
 
-    for (int i = 0; i < 6; ++i) {
-        char msg[64];
-        snprintf(msg, sizeof(msg), "Reading %s face  (%d/6)", kFaceNames[i], i + 1);
-        displaySetStatus(msg);
-
-        if (!simWait(kScanPerFaceMs)) return 70;      // "Scan aborted"
-
-        // Two whole-cube reorientations, after faces 2 and 4 — the same shape
-        // as the real scan sequence.
-        if (i == 1 || i == 3) {
-            displaySetStatus("Rotating cube...");
+        if (pass < CubeSystem::kScanPasses - 1) {
+            displaySteps(CubeSystem::kScanPassLabels, CubeSystem::kScanPasses, pass, pass + 1);
+            displaySetStatus(pass == 0 ? "Rotating cube (X)" : "Rotating cube (Z)");
             if (!simWait(kScanReorientMs)) return 70;
         }
     }
+
+    displaySteps(CubeSystem::kScanPassLabels, CubeSystem::kScanPasses, -1, CubeSystem::kScanPasses);
 
     if (injectFault) {
         displaySetStatus("");
@@ -279,6 +278,7 @@ int CubeSystem::executeSolve() {
         snprintf(msg, sizeof(msg), "Move %d/%d   %s",
                  i + 1, solutionLength, solveMoves[i].c_str());
         displaySetStatus(msg);
+        displayProgress(i, solutionLength);
 
         if (!simWait(kPerMoveMs)) {
             // Same unwind the firmware performs: release the cube, invalidate
@@ -310,12 +310,36 @@ int CubeSystem::calibrateMotorRotations() {
 int CubeSystem::calibrateColorSensors() {
     const bool injectFault = sim::consumeFaultInjection();
 
-    static const char* kFaceNames[6] = { "white", "blue", "red", "yellow", "green", "orange" };
-    for (int i = 0; i < 6; ++i) {
+    // The real routine's colour order, so the chips fill in the same sequence
+    // here as on the machine. Each rotation feeds a DIFFERENT colour to each
+    // board, which is why the two rows do not fill together.
+    uint8_t bits[2] = { 0, 0 };
+    const int per = kCalColorMs / (CubeSystem::kCalSideRots + 1 + CubeSystem::kCalTopRots);
+
+    for (int rot = 0; rot < CubeSystem::kCalSideRots; ++rot) {
         char msg[64];
-        snprintf(msg, sizeof(msg), "Sampling %s  (%d/6)", kFaceNames[i], i + 1);
+        snprintf(msg, sizeof(msg), "Side faces  (%d/%d)", rot + 1, CubeSystem::kCalSideRots);
+        displaySetMessage("Sampling side faces");
         displaySetStatus(msg);
-        if (!simWait(kCalColorMs / 6)) return 9;
+        bits[0] |= (uint8_t)(1u << CubeSystem::kCalSideColors[rot][0]);
+        bits[1] |= (uint8_t)(1u << CubeSystem::kCalSideColors[rot][1]);
+        displayChips(bits, 2);
+        if (!simWait(per)) return 9;
+    }
+
+    displaySetMessage("Sampling empty slot");
+    displaySetStatus("Reference reading");
+    if (!simWait(per)) return 9;
+
+    for (int rot = 0; rot < CubeSystem::kCalTopRots; ++rot) {
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Top and bottom  (%d/%d)", rot + 1, CubeSystem::kCalTopRots);
+        displaySetMessage("Sampling top and bottom");
+        displaySetStatus(msg);
+        bits[0] |= (uint8_t)(1u << CubeSystem::kCalTopColors[rot][0]);
+        bits[1] |= (uint8_t)(1u << CubeSystem::kCalTopColors[rot][1]);
+        displayChips(bits, 2);
+        if (!simWait(per)) return 9;
     }
 
     displaySetStatus("");
@@ -427,6 +451,15 @@ void CubeSystem::displaySetStatus(const char* msg) {
 }
 void CubeSystem::displayClearStatus() {
     if (displayInitialized) cubeDisplay.clearStatus();
+}
+void CubeSystem::displaySteps(const char* const* steps, int count, int active, int done) {
+    if (displayInitialized) cubeDisplay.setOpSteps(steps, count, active, done);
+}
+void CubeSystem::displayChips(const uint8_t* bits, int boards) {
+    if (displayInitialized) cubeDisplay.setOpChips(bits, boards);
+}
+void CubeSystem::displayProgress(int done, int total) {
+    if (displayInitialized) cubeDisplay.setOpProgress(done, total);
 }
 void CubeSystem::displayUpdate() {
     if (displayInitialized) cubeDisplay.update();

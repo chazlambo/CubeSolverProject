@@ -160,6 +160,38 @@ public:
     void displaySetStatus(const char* msg);
     void displayClearStatus();
     void displayUpdate();
+
+    // Progress decorations for the themed operation screen. The long
+    // operations live in this file, so this is the only place that knows how
+    // far through one the machine actually is.
+    void displaySteps(const char* const* steps, int count, int active, int done);
+    void displayChips(const uint8_t* bits, int boards);
+    void displayProgress(int done, int total);
+
+    // ---- shape of the long operations, for the progress display ----------
+    //
+    // These describe what the machine physically does, so they live beside the
+    // code that does it rather than in the sketch. The simulator replaces
+    // CubeSystem.cpp but not this header, which is what keeps its fake scan
+    // the same shape as the real one instead of quietly drifting.
+
+    // A scan is THREE passes, not six face reads: the two colour boards read
+    // one face each at the same time, with a whole-cube reorientation between
+    // passes (ROTX after the first, ROTZ after the second). Order matches the
+    // scan loop in scanCube().
+    static const int kScanPasses = 3;
+    static const char* const kScanPassLabels[kScanPasses];
+
+    // Colour calibration is four side rotations, one empty-slot reference,
+    // then four top/bottom rotations. Every rotation samples both boards at
+    // once but on DIFFERENT colours, so the two boards complete the set at
+    // different moments — hence one row of chips each.
+    //
+    // Values index the display's chip order: 0 W, 1 Y, 2 R, 3 O, 4 G, 5 B.
+    static const int kCalSideRots = 4;
+    static const int kCalTopRots  = 4;
+    static const uint8_t kCalSideColors[kCalSideRots][2];
+    static const uint8_t kCalTopColors[kCalTopRots][2];
     void displayWaitForSelect(const char* msg);
     bool displayReady();
 

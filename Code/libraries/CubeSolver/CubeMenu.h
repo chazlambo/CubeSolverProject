@@ -41,21 +41,59 @@ struct MenuScreen;
 // state, not the menu.
 typedef void (*MenuActionFn)();
 
+// Frame colour, chosen by the SELECTED item rather than by the screen.
+//
+// Inherit is deliberately 0. Every existing table was written as a three-field
+// aggregate — { "Solve", nullptr, actSolve } — and C++ value-initialises the
+// members those braces do not reach. Making the "no opinion" case the zero
+// value is what lets those tables keep compiling untouched and still mean
+// something sensible: fall back to the screen's theme.
+enum class MenuTheme : uint8_t {
+    Inherit = 0,
+    Green, Blue, Red, Violet, Yellow, Purple
+};
+
 // An item opens a submenu OR runs an action, never both.
 //
 // A submenu item has `action == nullptr`; an action item has
 // `submenu == nullptr`. An item with both null is legal and inert — useful as a
 // placeholder while a screen is being built out.
+//
+// Everything from `caption` down is presentation the themed renderer draws and
+// a plain one ignores. All of it is optional; an item that sets none of it
+// still renders, just without a description line or a preview.
 struct MenuItem {
-    const char*       label;
-    const MenuScreen* submenu;
-    MenuActionFn      action;
+    const char*       label   = nullptr;
+    const MenuScreen* submenu = nullptr;
+    MenuActionFn      action  = nullptr;
+
+    // One line in the description box. nullptr leaves the box empty.
+    const char*       caption = nullptr;
+
+    // What the preview pane lists when this item is selected. nullptr means
+    // "no list" — the renderer draws the placeholder graphic instead, which is
+    // the design's answer for items that lead to an operation rather than to
+    // another menu.
+    const char* const* preview      = nullptr;
+    uint8_t            previewCount = 0;
+
+    // Frame colour while this item is selected. Inherit takes the screen's.
+    MenuTheme          theme        = MenuTheme::Inherit;
 };
 
 struct MenuScreen {
-    const char*     title;
-    const MenuItem* items;
-    uint8_t         count;
+    const char*     title = nullptr;
+    const MenuItem* items = nullptr;
+    uint8_t         count = 0;
+
+    // Default colour for items that do not name one. Inherit means Green.
+    //
+    // These defaults are what keep every pre-theme table compiling as written:
+    // a three-field { title, items, count } brace list still means exactly what
+    // it did, and -Wextra stays quiet about the fields it does not mention.
+    // Aggregate initialisation with default member initialisers needs C++14,
+    // which the simulator (C++17) and the Teensy build (gnu++17) both exceed.
+    MenuTheme       theme = MenuTheme::Inherit;
 };
 
 // Navigation events, already edge-detected by the caller.
@@ -66,22 +104,40 @@ struct MenuScreen {
 // time the wheel feels inverted on the bench.
 enum class MenuEvent : uint8_t { None, Up, Down, Select, Back };
 
+// What the user did to arrive at this frame.
+//
+// The themed renderer animates screen changes — old items wheel out, new ones
+// wheel in, and Back mirrors the direction — so it has to distinguish "the
+// cursor moved within a screen" from "we changed screens, this way". Only the
+// menu knows which happened, so only the menu can say.
+enum class MenuNav : uint8_t {
+    None = 0,   // first draw, or a forced redraw() with nothing behind it
+    Move,       // cursor moved within the current screen
+    Enter,      // pushed into a submenu
+    Back,       // popped out of one
+    Root        // the root screen was swapped underneath us
+};
+
 // Called by render() when the screen needs redrawing.
 //
-//   title        screen title, never null
-//   labels       `rows` pointers, the visible slice of the item list
-//   chevron      `rows` flags, true where that item opens a submenu
+//   screen       the screen being drawn, never null; carries title and theme
+//   items        `rows` pointers, the visible slice of the item list. Passing
+//                the items themselves rather than pre-flattened label/chevron
+//                arrays is what lets a renderer reach the caption, preview and
+//                per-item theme without this header growing a parameter per
+//                field every time the design gains one.
 //   rows         number of visible entries, 1..kVisibleRows
 //   selectedRow  index WITHIN the visible slice, 0..rows-1
 //   moreAbove/   whether the list continues off-screen, so the renderer can
 //   moreBelow    draw scroll hints
-typedef void (*MenuDrawFn)(const char*        title,
-                           const char* const* labels,
-                           const bool*        chevron,
-                           uint8_t            rows,
-                           uint8_t            selectedRow,
-                           bool               moreAbove,
-                           bool               moreBelow);
+//   nav          how we got here; see MenuNav
+typedef void (*MenuDrawFn)(const MenuScreen*      screen,
+                           const MenuItem* const* items,
+                           uint8_t                rows,
+                           uint8_t                selectedRow,
+                           bool                   moreAbove,
+                           bool                   moreBelow,
+                           MenuNav                nav);
 
 class CubeMenu {
 public:
@@ -139,6 +195,13 @@ public:
     uint8_t depthLevel()    const { return depth; }
     bool    atRoot()        const { return depth == 0; }
 
+    // Resolve an item's frame colour against its screen's default.
+    //
+    // Lives here rather than in the renderer because it is a fact about the
+    // data model, and a second renderer (or a test) that re-derived the
+    // fallback rule could quietly disagree with the first.
+    static MenuTheme themeOf(const MenuScreen* screen, const MenuItem* item);
+
 private:
     // One cursor per depth, not one global cursor.
     //
@@ -152,6 +215,10 @@ private:
 
     MenuDrawFn        drawFn = nullptr;
     bool              dirty  = true;
+
+    // Consumed by the next render() and reset afterwards, so a redraw() that
+    // is not the result of navigation does not replay the last transition.
+    MenuNav           nav    = MenuNav::None;
 
     // Top of the visible window for a given cursor/count. Centres the cursor
     // and clamps to the ends. Always 0 while count <= kVisibleRows, which is

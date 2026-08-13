@@ -1,6 +1,7 @@
 #include "SimHost.h"
 
 #include <SDL2/SDL.h>
+#include <lvgl.h>   // for the LVGL heap report on M
 
 #include <chrono>
 #include <cstdio>
@@ -133,6 +134,25 @@ void pumpEvents() {
                     break;
                 case SDLK_c: g_cubeToggle = true; break;
                 case SDLK_k: g_calToggle  = true; break;
+                case SDLK_m:
+                    // LVGL heap report. The simulator builds against the
+                    // firmware's own lv_conf.h, so this is the Teensy's 32 KB
+                    // pool, not the host's. Worth having a key for: LV_USE_LOG
+                    // is 0, so a pool that fills up says nothing at all — it
+                    // just silently stops drawing whatever it could not fit.
+                    {
+                        lv_mem_monitor_t mon;
+                        lv_mem_monitor(&mon);
+                        std::printf("[sim] LVGL heap: %u/%u bytes used (%u%%), "
+                                    "free %u, largest free block %u, frag %u%%\n",
+                                    (unsigned)(mon.total_size - mon.free_size),
+                                    (unsigned)mon.total_size,
+                                    (unsigned)mon.used_pct,
+                                    (unsigned)mon.free_size,
+                                    (unsigned)mon.free_biggest_size,
+                                    (unsigned)mon.frag_pct);
+                    }
+                    break;
                 case SDLK_p:
                     // Screenshot, for before/after layout comparisons.
                     {

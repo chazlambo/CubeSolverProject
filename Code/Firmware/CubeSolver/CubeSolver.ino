@@ -119,14 +119,38 @@ static void actNotImplemented();
 //
 //  There is no "Back" item anywhere: LEFT backs out of every screen. Adding one
 //  would cost a row on screens that are already at the limit.
+//
+//  Presentation fields
+//  -------------------
+//  `caption` is the description line under the frame; keep it under about 34
+//  characters or it will be ellipsised in the 182 px box. `preview` is what the
+//  side pane lists — spell it out for items that open a submenu, and leave it
+//  null for items that start an operation, which makes the pane draw the
+//  design's placeholder graphic instead. `theme` recolours the whole frame
+//  while that item is selected; omitting it inherits the screen's.
+
+// Preview lists. These deliberately repeat their submenu's item labels rather
+// than being generated from them: the pane is a teaser, it is written to fit,
+// and a screen is free to show fewer entries there than it really has. The
+// pane is about 54 px wide at 9 px type — roughly 13 characters — so these are
+// abbreviated where the real item name would not fit.
+static const char* const kPrevSettings[]    = { "Calibration", "Diagnostics", "About" };
+static const char* const kPrevModes[]       = { "Scramble", "Idle Mode", "Demo Mode",
+                                                "Step Solve", "Patterns" };
+static const char* const kPrevCalibration[] = { "Status", "Colors", "Motors", "Servos" };
+static const char* const kPrevDiagnostics[] = { "Hardware", "Sensor Test", "Parameters",
+                                                "Cube State", "Fault Log" };
 
 // ---- Main, before a cube is scanned ----
 static const MenuItem kMainPreItems[] = {
-    { "Load & Scan Cube", nullptr,         actLoadScan },
-    { "Settings",         &kScreenSettings, nullptr    },
-    { "Stats",            nullptr,         actStats    },
+    { "Load & Scan Cube", nullptr,          actLoadScan, "Read all six faces.",
+      nullptr, 0, MenuTheme::Blue },
+    { "Settings",         &kScreenSettings, nullptr,     "Setup and machine info.",
+      kPrevSettings, 3, MenuTheme::Yellow },
+    { "Stats",            nullptr,          actStats,    "View solve records.",
+      nullptr, 0, MenuTheme::Purple },
 };
-static const MenuScreen kScreenMainPre = { "Cube Solver", kMainPreItems, 3 };
+static const MenuScreen kScreenMainPre = { "Cube Solver", kMainPreItems, 3, MenuTheme::Green };
 
 // ---- Main, once the cube state is known ----
 //
@@ -135,40 +159,47 @@ static const MenuScreen kScreenMainPre = { "Cube Solver", kMainPreItems, 3 };
 // safeStop() invalidates the virtual cube on every fault path, so the menu
 // reverts to "you need to scan" without this file having to catch every case.
 static const MenuItem kMainPostItems[] = {
-    { "Solve",      nullptr,          actSolve },
-    { "Modes",      &kScreenModes,    nullptr  },
-    { "Eject Cube", nullptr,          actEject },
-    { "Settings",   &kScreenSettings, nullptr  },
-    { "Stats",      nullptr,          actStats },
+    { "Solve",      nullptr,          actSolve, "Compute and run the solution.",
+      nullptr, 0, MenuTheme::Blue },
+    { "Modes",      &kScreenModes,    nullptr,  "Other ways to run it.",
+      kPrevModes, 5, MenuTheme::Red },
+    { "Eject Cube", nullptr,          actEject, "Release the cube.",
+      nullptr, 0, MenuTheme::Violet },
+    { "Settings",   &kScreenSettings, nullptr,  "Setup and machine info.",
+      kPrevSettings, 3, MenuTheme::Yellow },
+    { "Stats",      nullptr,          actStats, "View solve records.",
+      nullptr, 0, MenuTheme::Purple },
 };
-static const MenuScreen kScreenMainPost = { "Cube Ready", kMainPostItems, 5 };
+static const MenuScreen kScreenMainPost = { "Cube Ready", kMainPostItems, 5, MenuTheme::Green };
 
 // ---- Modes ----  (all NOT-IMPLEMENTED)
 static const MenuItem kModesItems[] = {
-    { "Scramble Solve", nullptr, actNotImplemented },
-    { "Idle Mode",      nullptr, actNotImplemented },
-    { "Demo Mode",      nullptr, actNotImplemented },
-    { "Step Solve",     nullptr, actNotImplemented },
-    { "Patterns",       nullptr, actNotImplemented },
+    { "Scramble Solve", nullptr, actNotImplemented, "Scramble, then solve it." },
+    { "Idle Mode",      nullptr, actNotImplemented, "Turn slowly while waiting." },
+    { "Demo Mode",      nullptr, actNotImplemented, "Show off, unattended." },
+    { "Step Solve",     nullptr, actNotImplemented, "One move at a time." },
+    { "Patterns",       nullptr, actNotImplemented, "Fold the cube into shapes." },
 };
-const MenuScreen kScreenModes = { "Modes", kModesItems, 5 };
+const MenuScreen kScreenModes = { "Modes", kModesItems, 5, MenuTheme::Red };
 
 // ---- Settings ----
 static const MenuItem kSettingsItems[] = {
-    { "Calibration", &kScreenCalibration, nullptr  },
-    { "Diagnostics", &kScreenDiagnostics, nullptr  },
-    { "About",       nullptr,             actAbout },
+    { "Calibration", &kScreenCalibration, nullptr,  "Tune motors and sensors.",
+      kPrevCalibration, 4, MenuTheme::Violet },
+    { "Diagnostics", &kScreenDiagnostics, nullptr,  "Test and inspect hardware.",
+      kPrevDiagnostics, 5, MenuTheme::Purple },
+    { "About",       nullptr,             actAbout, "Firmware and build info." },
 };
-const MenuScreen kScreenSettings = { "Settings", kSettingsItems, 3 };
+const MenuScreen kScreenSettings = { "Settings", kSettingsItems, 3, MenuTheme::Yellow };
 
 // ---- Calibration ----
 static const MenuItem kCalibrationItems[] = {
-    { "Calibration Status", nullptr, actCalStatus      },
-    { "Color Sensors",      nullptr, actCalColors      },
-    { "Motor Positions",    nullptr, actCalMotors      },
-    { "Servo Positions",    nullptr, actNotImplemented },
+    { "Calibration Status", nullptr, actCalStatus,      "What is calibrated so far." },
+    { "Color Sensors",      nullptr, actCalColors,      "Learn the six face colours." },
+    { "Motor Positions",    nullptr, actCalMotors,      "Find the motor home points." },
+    { "Servo Positions",    nullptr, actNotImplemented, "Set the gripper travel." },
 };
-const MenuScreen kScreenCalibration = { "Calibration", kCalibrationItems, 4 };
+const MenuScreen kScreenCalibration = { "Calibration", kCalibrationItems, 4, MenuTheme::Violet };
 
 // ---- Diagnostics ----  (all NOT-IMPLEMENTED)
 //
@@ -176,40 +207,51 @@ const MenuScreen kScreenCalibration = { "Calibration", kCalibrationItems, 4 };
 // no home until Parameters is built. The flag still exists and still works; it
 // is just not reachable from the panel this iteration.
 static const MenuItem kDiagnosticsItems[] = {
-    { "Hardware Test", nullptr, actNotImplemented },
-    { "Sensor Test",   nullptr, actNotImplemented },
-    { "Parameters",    nullptr, actNotImplemented },
-    { "Cube State",    nullptr, actNotImplemented },
-    { "Fault Log",     nullptr, actNotImplemented },
+    { "Hardware Test", nullptr, actNotImplemented, "Exercise every actuator." },
+    { "Sensor Test",   nullptr, actNotImplemented, "Watch the sensors live." },
+    { "Parameters",    nullptr, actNotImplemented, "Tunable machine settings." },
+    { "Cube State",    nullptr, actNotImplemented, "Show the stored cube." },
+    { "Fault Log",     nullptr, actNotImplemented, "Recent faults and errors." },
 };
-const MenuScreen kScreenDiagnostics = { "Diagnostics", kDiagnosticsItems, 5 };
+const MenuScreen kScreenDiagnostics = { "Diagnostics", kDiagnosticsItems, 5, MenuTheme::Purple };
 
 // ---------------------------------------------------------------------------
 //  Display helpers
 // ---------------------------------------------------------------------------
-static void show(const char* msg, const char* status = nullptr) {
-    Cube.displaySetMessage(msg);
-    if (status) Cube.displaySetStatus(status);
-    else        Cube.displayClearStatus();
+using Op = CubeDisplay::OpKind;
+
+// Every screen the machine shows while it is working goes through here, so all
+// of them get the same frame, the same title position and the same hint bar as
+// the menu. `kind` only picks the frame colour — it is what tells an operator
+// across the room whether the machine is scanning, solving, calibrating or
+// stopped, without reading a word.
+static void showOp(Op kind, const char* title, const char* headline,
+                   const char* hint = nullptr) {
+    cubeDisplay.showOperation(kind, title, headline, hint);
     Cube.displayUpdate();
 }
 
-// A read-only text screen. SELECT or LEFT returns to wherever the menu was.
-static void showInfo(const char* title, const char* body) {
-    cubeDisplay.showMessage(title, body, "SELECT or LEFT to go back");
+// A read-only status screen. SELECT or LEFT returns to wherever the menu was.
+//
+// Rows are "Label\tValue"; the display right-aligns the value half, which is
+// what makes these read as a table rather than as a wall of text. A row with no
+// tab spans the full width.
+static void showInfo(const char* title, const char* const* lines, int count,
+                     const char* headline = nullptr) {
+    cubeDisplay.showOperation(Op::Info, title, headline, "SELECT or LEFT to go back");
+    cubeDisplay.setOpLines(lines, count);
     Cube.displayUpdate();
     state = AppState::Info;
 }
 
-static void drawMenu(const char*        title,
-                     const char* const* labels,
-                     const bool*        chevron,
-                     uint8_t            rows,
-                     uint8_t            selectedRow,
-                     bool               moreAbove,
-                     bool               moreBelow) {
-    cubeDisplay.showList(title, labels, chevron, rows, selectedRow,
-                         moreAbove, moreBelow);
+static void drawMenu(const MenuScreen*      screen,
+                     const MenuItem* const* items,
+                     uint8_t                rows,
+                     uint8_t                selectedRow,
+                     bool                   moreAbove,
+                     bool                   moreBelow,
+                     MenuNav                nav) {
+    cubeDisplay.showList(screen, items, rows, selectedRow, moreAbove, moreBelow, nav);
 }
 
 // Point the menu at the main list that matches the machine's actual state.
@@ -310,7 +352,7 @@ static void fail(const char* what, const char* detail, int code) {
     } else {
         snprintf(sub, sizeof(sub), "%s  (code %d)", detail, code);
     }
-    show(what, sub);
+    showOp(Op::Error, "Stopped", what, sub);
     state = AppState::Error;
 }
 
@@ -323,31 +365,33 @@ static void fail(const char* what, const char* detail, int code) {
 
 static void actLoadScan() {
     Cube.clearAbort();
-    show("Insert a scrambled cube", "Press SELECT when loaded");
+    showOp(Op::Scan, "Scan", "Insert a scrambled cube", "Press SELECT when loaded");
     state = AppState::AwaitCube;
 }
 
 static void actSolve() {
     Cube.clearAbort();
-    show("Solving...", "");
+    showOp(Op::Solve, "Solve", "Computing a solution");
     state = AppState::Solving;
 }
 
 static void actEject() {
     Cube.clearAbort();
-    show("Ejecting cube...", "");
+    showOp(Op::Info, "Eject", "Releasing the cube");
     state = AppState::Ejecting;
 }
 
 static void actCalMotors() {
     Cube.clearAbort();
-    show("Calibrating motors...", "Do not touch the machine");
+    showOp(Op::Calibrate, "Motor Calibration", "Finding home positions",
+           "Do not touch the machine");
     state = AppState::CalMotors;
 }
 
 static void actCalColors() {
     Cube.clearAbort();
-    show("Calibrating colours...", "Needs a SOLVED cube");
+    showOp(Op::Calibrate, "Colour Calibration", "Learning the six colours",
+           "Needs a SOLVED cube");
     state = AppState::CalColors;
 }
 
@@ -365,49 +409,63 @@ static void actCalStatus() {
         if (colorSensor2.checkSensorHealth(i) == 0) ok2++;
     }
 
-    char body[224];
-    snprintf(body, sizeof(body),
-             "Motors:  %s\n"
-             "Colour:  %s\n"
-             "Board 1: %d/9 healthy, min sep %d\n"
-             "Board 2: %d/9 healthy, min sep %d\n"
-             "(sep x1000; under 20 unusable)",
-             Cube.getMotorCalibration() ? "CALIBRATED" : "NOT CALIBRATED",
-             Cube.getColorCalibration() ? "CALIBRATED" : "NOT CALIBRATED",
-             ok1, worst1, ok2, worst2);
-    showInfo("Calibration Status", body);
+    char rowMotors[48], rowColour[48], rowB1[48], rowB2[48];
+    snprintf(rowMotors, sizeof(rowMotors), "Motors\t%s",
+             Cube.getMotorCalibration() ? "CALIBRATED" : "NOT CALIBRATED");
+    snprintf(rowColour, sizeof(rowColour), "Colour\t%s",
+             Cube.getColorCalibration() ? "CALIBRATED" : "NOT CALIBRATED");
+    snprintf(rowB1, sizeof(rowB1), "Board 1\t%d/9 healthy, sep %d", ok1, worst1);
+    snprintf(rowB2, sizeof(rowB2), "Board 2\t%d/9 healthy, sep %d", ok2, worst2);
+
+    const char* rows[] = {
+        rowMotors, rowColour, rowB1, rowB2,
+        "",
+        "Separation x1000; under 20 is unusable.",
+    };
+    showInfo("Calibration Status", rows, 6);
 }
 
 static void actAbout() {
-    char body[192];
-    snprintf(body, sizeof(body),
-             "CubeSolver firmware v%s\n"
-             "Built %s %s\n\n"
-             "Designed, built and programmed by\n"
-             "Charlie Lambert",
-             kFirmwareVersion, __DATE__, __TIME__);
-    showInfo("About", body);
+    char rowVer[48], rowBuilt[48];
+    snprintf(rowVer, sizeof(rowVer), "Firmware\tv%s", kFirmwareVersion);
+    snprintf(rowBuilt, sizeof(rowBuilt), "Built\t%s", __DATE__);
+
+    const char* rows[] = {
+        rowVer,
+        rowBuilt,
+        "Board\tTeensy 4.1",
+        "",
+        "Designed, built and programmed by",
+        "Charlie Lambert",
+    };
+    showInfo("About", rows, 6);
 }
 
 static void actStats() {
     // NOT IMPLEMENTED. Counters need an EEPROM block of their own (there is
     // room: the existing layout uses ~2152 of the Teensy 4.1's 4284 bytes), plus
     // a magic+version header so adding a field later does not read garbage.
-    showInfo("Stats",
-             "Solves:    not recorded yet\n"
-             "Best time: not recorded yet\n\n"
-             "Statistics are not stored yet - the\n"
-             "EEPROM block is still to be added.");
+    const char* rows[] = {
+        "Solves\tnot recorded yet",
+        "Best time\tnot recorded yet",
+        "Last solve\tnot recorded yet",
+        "",
+        "Nothing is stored yet - the EEPROM",
+        "block is still to be added.",
+    };
+    showInfo("Stats", rows, 6);
 }
 
 // One placeholder for every unbuilt screen. It names itself from the item that
 // invoked it, so each new table entry does not need its own stub function.
 static void actNotImplemented() {
     const MenuItem* it = Menu.selectedItem();
-    showInfo(it && it->label ? it->label : "Not implemented",
-             "Not implemented yet.\n\n"
-             "The menu structure is in place; this\n"
-             "screen is still to be built.");
+    const char* rows[] = {
+        "The menu structure is in place;",
+        "this screen is still to be built.",
+    };
+    showInfo(it && it->label ? it->label : "Not implemented", rows, 2,
+             "Not implemented yet");
 }
 
 // ---------------------------------------------------------------------------
@@ -489,13 +547,18 @@ static MenuEvent pollEvent() {
 // to the menu — a checklist of ticks is a screen nobody reads, which is exactly
 // how a cross in it gets missed.
 static void showSelfTestFailures() {
-    char body[256];
-    int  n = 0;
-    body[0] = '\0';
+    // One row per fault, not one string with newlines in it: the panel lays
+    // rows out itself, and a fault list is exactly the case where each line
+    // wants to be its own row rather than a wrapped paragraph.
+    static char rows[CubeDisplay::kOpLines][64];
+    const char* lines[CubeDisplay::kOpLines];
+    int n = 0;
 
     auto addLine = [&](const char* line) {
-        n += snprintf(body + n, (n < (int)sizeof(body)) ? sizeof(body) - n : 0, "%s\n", line);
-        if (n > (int)sizeof(body)) n = (int)sizeof(body);
+        if (n >= CubeDisplay::kOpLines) return;
+        snprintf(rows[n], sizeof(rows[n]), "%s", line);
+        lines[n] = rows[n];
+        ++n;
     };
 
     if (!Cube.encoderInitialized) addLine("Menu encoder (seesaw) not found");
@@ -521,10 +584,13 @@ static void showSelfTestFailures() {
         addLine(line);
     }
 
-    cubeDisplay.showMessage("Startup Faults", body, "SELECT to continue anyway");
+    cubeDisplay.showOperation(CubeDisplay::OpKind::Error, "Startup Faults",
+                              nullptr, "SELECT to continue anyway");
+    cubeDisplay.setOpLines(lines, n);
     Cube.displayUpdate();
+
     Serial.println(F("=== startup faults ==="));
-    Serial.print(body);
+    for (int i = 0; i < n; ++i) Serial.println(lines[i]);
     state = AppState::SelfTest;
 }
 
@@ -606,7 +672,12 @@ void loop() {
             // although the abort now needs LEFT as well, clearing here also
             // discards any latch left over from a previous operation.
             Cube.clearAbort();
-            show("Scanning cube...", "SELECT+LEFT to abort");
+            // The step rows come from CubeSystem, which owns the scan
+            // sequence; this only opens the screen they draw into.
+            showOp(Op::Scan, "Scan", nullptr, "SELECT+LEFT to abort");
+            Cube.displaySteps(CubeSystem::kScanPassLabels,
+                              CubeSystem::kScanPasses, 0, 0);
+            Cube.displayUpdate();
             state = AppState::Scanning;
         } else if (ev == MenuEvent::Back) {
             toMenu();
@@ -622,7 +693,7 @@ void loop() {
             // sticker was ambiguous instead of just a code.
             fail("Scan failed", scanErrorText(e), e);
         } else {
-            show("Scan complete", "Press SELECT");
+            showOp(Op::Done, "Scan", "Scan complete", "Press SELECT");
             state = AppState::Done;
         }
         break;
@@ -633,7 +704,7 @@ void loop() {
         if (e) {
             fail("Solve failed", solveErrorText(e), e);
         } else {
-            show("Loading cube...", "");
+            showOp(Op::Solve, "Solve", "Clamping the cube");
             state = AppState::Loading;
         }
         break;
@@ -655,9 +726,8 @@ void loop() {
         }
 
         char sub[64];
-        snprintf(sub, sizeof(sub), "%d moves - SELECT+LEFT to abort",
-                 Cube.solutionLength);
-        show("Solving cube", sub);
+        snprintf(sub, sizeof(sub), "%d moves to run", Cube.solutionLength);
+        showOp(Op::Solve, "Solve", sub, "SELECT+LEFT to abort");
         solveStart = millis();
         state = AppState::Executing;
         break;
@@ -684,7 +754,7 @@ void loop() {
                  Cube.solutionLength,
                  (unsigned long)(solveMillis / 1000),
                  (unsigned long)((solveMillis % 1000) / 10));
-        show("Solved!", sub);
+        showOp(Op::Done, "Solve", "Solved!", sub);
         state = AppState::Done;
         break;
     }
@@ -699,21 +769,24 @@ void loop() {
         Cube.botServoPartial();
         Cube.virtualCube.resetCube();
         Cube.clearSolution();
-        show("Cube ejected", "Take the cube out, then press SELECT");
+        showOp(Op::Done, "Eject", "Cube ejected",
+               "Take the cube out, then press SELECT");
         state = AppState::Done;
         break;
 
     case AppState::CalMotors: {
         int e = Cube.calibrateMotorRotations();
         if (e) fail("Motor calibration failed", calibErrorText(e), e);
-        else   { show("Motors calibrated", "Press SELECT"); state = AppState::Done; }
+        else   { showOp(Op::Done, "Motor Calibration", "Motors calibrated", "Press SELECT");
+                 state = AppState::Done; }
         break;
     }
 
     case AppState::CalColors: {
         int e = Cube.calibrateColorSensors();
         if (e) fail("Colour calibration failed", calibErrorText(e), e);
-        else   { show("Colours calibrated", "Press SELECT"); state = AppState::Done; }
+        else   { showOp(Op::Done, "Colour Calibration", "Colours calibrated", "Press SELECT");
+                 state = AppState::Done; }
         break;
     }
 

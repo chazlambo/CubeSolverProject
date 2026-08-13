@@ -10,6 +10,7 @@ void CubeMenu::begin(const MenuScreen* root, MenuDrawFn draw) {
     depth    = 0;
     drawFn   = draw;
     dirty    = true;
+    nav      = MenuNav::None;
 }
 
 void CubeMenu::setRoot(const MenuScreen* root) {
@@ -32,6 +33,13 @@ void CubeMenu::setRoot(const MenuScreen* root) {
     stack[0] = root;
     depth    = 0;
     dirty    = true;
+    nav      = MenuNav::Root;
+}
+
+MenuTheme CubeMenu::themeOf(const MenuScreen* screen, const MenuItem* item) {
+    if (item != nullptr && item->theme != MenuTheme::Inherit) return item->theme;
+    if (screen != nullptr && screen->theme != MenuTheme::Inherit) return screen->theme;
+    return MenuTheme::Green;
 }
 
 const MenuScreen* CubeMenu::current() const {
@@ -53,6 +61,7 @@ bool CubeMenu::enter(const MenuScreen* screen) {
     stack[depth]  = screen;
     cursor[depth] = 0;
     dirty = true;
+    nav   = MenuNav::Enter;
     return true;
 }
 
@@ -65,6 +74,7 @@ bool CubeMenu::back() {
     // left instead of dereferencing a null.
     depth--;
     dirty = true;
+    nav   = MenuNav::Back;
     return true;
 }
 
@@ -72,6 +82,7 @@ void CubeMenu::toRoot() {
     if (depth == 0) return;
     depth = 0;
     dirty = true;
+    nav   = MenuNav::Back;
 }
 
 bool CubeMenu::handle(MenuEvent ev) {
@@ -86,11 +97,13 @@ bool CubeMenu::handle(MenuEvent ev) {
         cursor[depth] = (cursor[depth] == 0) ? (uint8_t)(s->count - 1)
                                              : (uint8_t)(cursor[depth] - 1);
         dirty = true;
+        nav   = MenuNav::Move;
         return true;
 
     case MenuEvent::Down:
         cursor[depth] = (uint8_t)((cursor[depth] + 1) % s->count);
         dirty = true;
+        nav   = MenuNav::Move;
         return true;
 
     case MenuEvent::Select: {
@@ -157,22 +170,21 @@ void CubeMenu::render() {
     uint8_t       rows = (uint8_t)(s->count - top);
     if (rows > kVisibleRows) rows = kVisibleRows;
 
-    const char* labels[kVisibleRows];
-    bool        chevron[kVisibleRows];
+    const MenuItem* items[kVisibleRows];
+    for (uint8_t i = 0; i < rows; ++i) items[i] = &s->items[top + i];
 
-    for (uint8_t i = 0; i < rows; ++i) {
-        const MenuItem& it = s->items[top + i];
-        labels[i]  = (it.label != nullptr) ? it.label : "";
-        chevron[i] = (it.submenu != nullptr);
-    }
-
-    drawFn(s->title != nullptr ? s->title : "",
-           labels,
-           chevron,
+    drawFn(s,
+           items,
            rows,
            (uint8_t)(cursor[depth] - top),
            top > 0,
-           (uint16_t)(top + rows) < s->count);
+           (uint16_t)(top + rows) < s->count,
+           nav);
 
     dirty = false;
+
+    // Cleared after the draw, not before: a renderer that starts a transition
+    // animation reads this once, and a later forced redraw() (an operation
+    // screen handing the panel back) must not replay that transition.
+    nav = MenuNav::None;
 }

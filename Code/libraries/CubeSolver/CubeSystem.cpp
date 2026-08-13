@@ -234,6 +234,13 @@ int CubeSystem::scanCube(){
             return 70;
         }
 
+        // Tell the panel which pass this is before the ~5.4 s of colour
+        // integration below, not after: that wait is most of a scan, and a
+        // progress display that only updates once it is over is no display.
+        displaySteps(kScanPassLabels, kScanPasses, i, i);
+        displaySetStatus("Reading two faces");
+        displayUpdate();
+
         // Scan Sensors
         colorSensor1.scanFace();
         colorSensor2.scanFace();
@@ -345,6 +352,11 @@ int CubeSystem::scanCube(){
         }
 
         if (i < 2) {
+            // The pass just finished counts as done while the cube turns.
+            displaySteps(kScanPassLabels, kScanPasses, i, i + 1);
+            displaySetStatus("Rotating cube");
+            displayUpdate();
+
             botServoExtend();
             pumpDelay(servoDelay);
             ringMiddle();
@@ -390,6 +402,10 @@ int CubeSystem::scanCube(){
             pumpDelay(servoDelay);
         }
     }
+
+    displaySteps(kScanPassLabels, kScanPasses, -1, kScanPasses);
+    displaySetStatus("Checking the cube");
+    displayUpdate();
 
     // Set Orientation of Cube
     char rightColor = lastface2;
@@ -1039,8 +1055,21 @@ int CubeSystem::calibrateColorSensors(){
     botServoPartial();
     botServoRetract();
 
+    // Chips filled so far, one bit per colour per board. Both boards sample at
+    // every rotation but on different colours, so they do not fill in step.
+    uint8_t calBits[2] = { 0, 0 };
+
     // Scan the four side faces
-    for (int rot = 0; rot < 4; rot++) {
+    for (int rot = 0; rot < kCalSideRots; rot++) {
+
+        char calMsg[48];
+        snprintf(calMsg, sizeof(calMsg), "Side faces  (%d/%d)", rot + 1, kCalSideRots);
+        displaySetMessage("Sampling side faces");
+        displaySetStatus(calMsg);
+        calBits[0] |= (uint8_t)(1u << kCalSideColors[rot][0]);
+        calBits[1] |= (uint8_t)(1u << kCalSideColors[rot][1]);
+        displayChips(calBits, 2);
+        displayUpdate();
 
         // Scan current face configuration
         colorSensor1.scanFace();
@@ -1075,6 +1104,10 @@ int CubeSystem::calibrateColorSensors(){
     botServoRetract();
     pumpDelay(servoDelay);
 
+    displaySetMessage("Sampling empty slot");
+    displaySetStatus("Reference reading");
+    displayUpdate();
+
     // Scan and set color calibration values for empty face
     colorSensor1.scanFace();
     colorSensor2.scanFace();
@@ -1103,8 +1136,17 @@ int CubeSystem::calibrateColorSensors(){
         {'O', 'W'}  // Orange Left, White Back
     };
     
-    // Scan the four side faces
-    for (int rot = 0; rot < 4; rot++) {
+    // Scan the remaining top/bottom faces
+    for (int rot = 0; rot < kCalTopRots; rot++) {
+        char calMsg[48];
+        snprintf(calMsg, sizeof(calMsg), "Top and bottom  (%d/%d)", rot + 1, kCalTopRots);
+        displaySetMessage("Sampling top and bottom");
+        displaySetStatus(calMsg);
+        calBits[0] |= (uint8_t)(1u << kCalTopColors[rot][0]);
+        calBits[1] |= (uint8_t)(1u << kCalTopColors[rot][1]);
+        displayChips(calBits, 2);
+        displayUpdate();
+
         colorSensor1.scanFace();
         colorSensor2.scanFace();
 
@@ -1529,6 +1571,24 @@ void CubeSystem::displayClearStatus() {
     }
 }
 
+void CubeSystem::displaySteps(const char* const* steps, int count, int active, int done) {
+    if (displayInitialized) {
+        cubeDisplay.setOpSteps(steps, count, active, done);
+    }
+}
+
+void CubeSystem::displayChips(const uint8_t* bits, int boards) {
+    if (displayInitialized) {
+        cubeDisplay.setOpChips(bits, boards);
+    }
+}
+
+void CubeSystem::displayProgress(int done, int total) {
+    if (displayInitialized) {
+        cubeDisplay.setOpProgress(done, total);
+    }
+}
+
 void CubeSystem::displayUpdate() {
     if (displayInitialized) {
         cubeDisplay.update();
@@ -1773,6 +1833,15 @@ int CubeSystem::executeSolve(){
 
     // Execute each move
     for (int i = 0; i < solutionLength; i++) {
+        // A 21-move solve is the longest the machine does anything for without
+        // saying so. The bar is what makes "nearly finished" readable from
+        // across the room; the move name is for the bench.
+        char moveMsg[48];
+        snprintf(moveMsg, sizeof(moveMsg), "Move %d/%d   %s",
+                 i + 1, solutionLength, solveMoves[i].c_str());
+        displaySetStatus(moveMsg);
+        displayProgress(i, solutionLength);
+
         // Refresh the display and sample the button between moves as well as
         // inside the alignment loop, so progress is visible and an abort is
         // noticed even on a move that aligns on the first pass.

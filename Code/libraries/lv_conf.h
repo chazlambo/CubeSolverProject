@@ -16,13 +16,27 @@
  *                         not fail to build; it renders wrong colours, which
  *                         looks exactly like a hardware fault.
  *   LV_BIG_ENDIAN_SYSTEM 0
- *   LV_MEM_SIZE         - 32 KB static pool. LVGL allocates from this, not
- *                         from the heap that CubeDisplay's framebuffer uses.
+ *   LV_MEM_SIZE         - 48 KB static pool. LVGL allocates from this, not
+ *                         from the heap, and running out of it does NOT
+ *                         degrade gracefully: LV_USE_ASSERT_MALLOC is 1 and
+ *                         LVGL's default assert handler is `while(1);`, so an
+ *                         exhausted pool HALTS THE MACHINE, silently, because
+ *                         LV_USE_LOG is 0.
  *
- * KNOWN GOTCHAS  (see notes inline below)
- *   - Several defines here are LVGL v8 spellings and are silently ignored by
- *     v9.1. The ones set to 0 are therefore NOT disabling anything.
- *   - LV_USE_FLOAT 0 means lv_label_set_text_fmt() cannot print %f.
+ *                         This was 32 KB, which was ~1 KB clear of the themed
+ *                         menu's own peak. Adding the operation screens (the
+ *                         status rows, the calibration chips, the progress
+ *                         bar) pushed the measured peak to 27.3 KB, and the
+ *                         transient draw layers on top of that took it over —
+ *                         the firmware hung at startup with no output at all.
+ *
+ *                         48 KB was chosen against a measurement, not a guess:
+ *                         press M in the desktop simulator to print live usage.
+ *                         Peak is ~27 KB, leaving room for the 8 KB simple-layer
+ *                         buffer and headroom on top. The Teensy 4.1 has 1 MB of
+ *                         RAM and the framebuffers already account for ~195 KB,
+ *                         so the extra 16 KB is not the constraint here.
+ *
  *   - LV_USE_LOG 0 means LVGL failures are silent.
  * ---------------------------------------------------------------------------
  */
@@ -53,7 +67,7 @@
 /* LOAD-BEARING. Static pool, separate from the ~200 KB of RAM2 heap that
  * CubeDisplay's framebuffer + lv_buf + diff buffers consume. Raise this if
  * widgets start failing to allocate (LV_USE_ASSERT_MALLOC below will catch it). */
-#define LV_MEM_SIZE (32 * 1024U)    /*Smaller RAM footprint*/
+#define LV_MEM_SIZE (48 * 1024U)    /*see the note above*/
 #define LV_MEM_POOL_EXPAND_SIZE 0
 
 /*====================

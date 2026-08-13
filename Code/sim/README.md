@@ -42,6 +42,7 @@ sudo apt install cmake build-essential libsdl2-dev
 | `F` | arm a fault; the next operation fails |
 | `C` | toggle whether a cube is loaded and scanned (flips the main menu) |
 | `K` | toggle the calibration flags |
+| `M` | print the LVGL heap report to the console |
 | `P` | screenshot to `sim-shot-NN.bmp` |
 | `Esc`, close window | quit |
 
@@ -50,8 +51,17 @@ sudo apt install cmake build-essential libsdl2-dev
 **Real, compiled unmodified from `Code/libraries/CubeSolver`:** the sketch
 itself (`CubeSolver.ino`), `CubeMenu`, `CubeDisplay`, `RotaryEncoder`,
 `CubePump`, `CubeServo`, `CubeMotors`, `ColorSensor`, `MotorEncoder`,
-`VirtualCube`, and the repo's own `lv_conf.h` — including its 32 KB
-`LV_MEM_SIZE`, so LVGL pool pressure shows up here rather than on the bench.
+`VirtualCube`, the baked theme assets in `utility/`, and the repo's own
+`lv_conf.h` — including its `LV_MEM_SIZE`, so LVGL pool pressure shows up
+here rather than on the bench.
+
+That last point is not theoretical. The menu theme's frame band was originally
+baked as an A8 mask, which LVGL copies into RAM rather than reading from flash;
+at 49 KB it did not fit the pool, and because `LV_USE_LOG` is 0 it failed by
+silently drawing nothing. `M` prints the heap so that class of bug is visible
+here instead of on the bench. Expect roughly 63% of the 48 KB pool in use, and
+note that exhausting it halts the firmware in a `while(1)` rather than
+degrading — which is exactly how it presents: a window that never draws.
 
 **Real behaviour worth knowing about:**
 

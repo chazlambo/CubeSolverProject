@@ -7,7 +7,7 @@
 //  otherwise only verifiable by flashing a Teensy and pressing buttons.
 //
 //  Build and run, from this directory:
-//      g++ -std=c++11 -Wall -Wextra -I../libraries/CubeSolver
+//      g++ -std=c++14 -Wall -Wextra -I../libraries/CubeSolver
 //          test_menu.cpp ../libraries/CubeSolver/CubeMenu.cpp -o /tmp/test_menu
 //      /tmp/test_menu
 //  (one command; the two g++ lines join)
@@ -36,33 +36,46 @@ static int    checks   = 0;
 //  Captured render output
 // ---------------------------------------------------------------------------
 struct Frame {
-    char    title[32];
-    char    labels[CubeMenu::kVisibleRows][32];
-    bool    chevron[CubeMenu::kVisibleRows];
-    uint8_t rows;
-    uint8_t selectedRow;
-    bool    moreAbove;
-    bool    moreBelow;
-    int     drawCount;
+    char      title[32];
+    char      labels[CubeMenu::kVisibleRows][32];
+    bool      chevron[CubeMenu::kVisibleRows];
+    uint8_t   rows;
+    uint8_t   selectedRow;
+    bool      moreAbove;
+    bool      moreBelow;
+    MenuNav   nav;
+    MenuTheme theme;        // resolved colour of the selected item
+    char      caption[64];  // its description line
+    int       drawCount;
 };
 static Frame g_frame;
 
-static void testDraw(const char*        title,
-                     const char* const* labels,
-                     const bool*        chevron,
-                     uint8_t            rows,
-                     uint8_t            selectedRow,
-                     bool               moreAbove,
-                     bool               moreBelow) {
-    std::snprintf(g_frame.title, sizeof(g_frame.title), "%s", title);
+// Flattens the item slice the way a renderer does, so the assertions below can
+// stay written in terms of labels and chevrons.
+static void testDraw(const MenuScreen*      screen,
+                     const MenuItem* const* items,
+                     uint8_t                rows,
+                     uint8_t                selectedRow,
+                     bool                   moreAbove,
+                     bool                   moreBelow,
+                     MenuNav                nav) {
+    std::snprintf(g_frame.title, sizeof(g_frame.title), "%s",
+                  screen->title ? screen->title : "");
     for (uint8_t i = 0; i < rows && i < CubeMenu::kVisibleRows; ++i) {
-        std::snprintf(g_frame.labels[i], sizeof(g_frame.labels[i]), "%s", labels[i]);
-        g_frame.chevron[i] = chevron[i];
+        std::snprintf(g_frame.labels[i], sizeof(g_frame.labels[i]), "%s",
+                      items[i]->label ? items[i]->label : "");
+        g_frame.chevron[i] = (items[i]->submenu != nullptr);
     }
     g_frame.rows        = rows;
     g_frame.selectedRow = selectedRow;
     g_frame.moreAbove   = moreAbove;
     g_frame.moreBelow   = moreBelow;
+    g_frame.nav         = nav;
+
+    const MenuItem* sel = (rows > 0) ? items[selectedRow] : nullptr;
+    g_frame.theme = CubeMenu::themeOf(screen, sel);
+    std::snprintf(g_frame.caption, sizeof(g_frame.caption), "%s",
+                  (sel && sel->caption) ? sel->caption : "");
     g_frame.drawCount++;
 }
 
@@ -316,6 +329,67 @@ int main() {
               "depth clamped to %u, got %u", CubeMenu::kMaxDepth - 1, deep.depthLevel());
         deep.render();   // must not crash or read out of bounds
         CHECK(g_frame.rows == 1, "self screen has 1 row, got %u", g_frame.rows);
+    }
+
+    // --- theme resolution --------------------------------------------------
+    {
+        // Three cases the themed renderer depends on: the item overrides, the
+        // item defers to the screen, and neither says anything.
+        static const char* const kPrev[] = { "One", "Two" };
+        static const MenuItem themedItems[] = {
+            { "Loud",  nullptr, nullptr, "Has its own colour.", kPrev, 2, MenuTheme::Red },
+            { "Quiet", nullptr, nullptr, "Takes the screen's.", nullptr, 0, MenuTheme::Inherit },
+        };
+        static const MenuScreen themedScreen = { "Themed", themedItems, 2, MenuTheme::Violet };
+
+        CubeMenu m;
+        resetCounters();
+        m.begin(&themedScreen, testDraw);
+        m.render();
+        CHECK(g_frame.theme == MenuTheme::Red, "item theme should win");
+        CHECK(std::strcmp(g_frame.caption, "Has its own colour.") == 0,
+              "caption = %s", g_frame.caption);
+
+        m.handle(MenuEvent::Down);
+        m.render();
+        CHECK(g_frame.theme == MenuTheme::Violet, "Inherit should fall back to the screen");
+
+        // An untouched three-field table — the shape every existing screen
+        // still uses — must resolve to a real colour rather than nothing.
+        CHECK(CubeMenu::themeOf(&kMainPre, &kMainPreItems[0]) == MenuTheme::Green,
+              "a table that names no theme should land on Green");
+    }
+
+    // --- navigation reporting ----------------------------------------------
+    {
+        CubeMenu m;
+        resetCounters();
+        m.begin(&kMainPre, testDraw);
+        m.render();
+        CHECK(g_frame.nav == MenuNav::None, "the first draw is not a navigation");
+
+        m.handle(MenuEvent::Down);
+        m.render();
+        CHECK(g_frame.nav == MenuNav::Move, "cursor movement reports Move");
+
+        m.handle(MenuEvent::Select);          // Settings
+        m.render();
+        CHECK(g_frame.nav == MenuNav::Enter, "entering a submenu reports Enter");
+
+        m.handle(MenuEvent::Back);
+        m.render();
+        CHECK(g_frame.nav == MenuNav::Back, "backing out reports Back");
+
+        // A forced redraw is not navigation: replaying the last transition
+        // when an operation screen hands the panel back would animate a screen
+        // change that did not happen.
+        m.redraw();
+        m.render();
+        CHECK(g_frame.nav == MenuNav::None, "redraw() must not replay the last transition");
+
+        m.setRoot(&kMainPost);
+        m.render();
+        CHECK(g_frame.nav == MenuNav::Root, "swapping the root reports Root");
     }
 
     std::printf("\n%d checks, %d failures\n", checks, failures);
