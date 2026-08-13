@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# CubeSolverProject
+#
+# Everything here is REGENERABLE. None of it belongs in history — it churns on
+# every tool launch and, in the case of the KiCad backups and footprint caches,
+# adds tens of megabytes that git cannot delta-compress.
+# ---------------------------------------------------------------------------
+
+# --- KiCad ---------------------------------------------------------------
+# Timestamped .zip snapshots KiCad writes automatically on every save.
+*-backups/
+
+# Regenerable footprint index. ~3.3 MB each, one per project.
+fp-info-cache
+
+# Per-user local project state (layer visibility, window geometry, last paths).
+# Not shared settings — those live in .kicad_pro, which IS tracked.
+*.kicad_prl
+
+# Editor lock files and autosaves — meaningless once the editor closes.
+*.lck
+~*.lck
+_autosave-*
+
+# --- SolidWorks ----------------------------------------------------------
+# Lock files written while a document is open (~$Part.SLDPRT).
+~$*
+
+# Generic backup copies.
+#
+# NOT a bare *.bak: Circuitry/KiCad/CubeSolverLibraries/symbols/ contains three
+# TRACKED .bak files (TEENSY_4.1, 2717, VEML6040) that are prior revisions of
+# hand-drawn schematic symbols, not tool output. A bare rule matches them, so
+# deleting and re-adding one — or re-cloning into a fresh index — would silently
+# drop it.
+*.bak
+!Circuitry/**/symbols/*.bak
+*~
+
+# --- Arduino / build -----------------------------------------------------
+build/
+*.hex
+*.elf
+*.o
+*.a
+.vscode/ipch/
+.vscode/browse.vc.db*
+
+# --- OS ------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini

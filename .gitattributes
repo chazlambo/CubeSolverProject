@@ -1,2 +1,41 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# ---------------------------------------------------------------------------
+# Binary / byte-stable formats.
+#
+# `* text=auto` above asks git to guess. Its heuristic is good but not perfect,
+# and a CAD or fab file that gets misclassified as text is CRLF-mangled on
+# checkout — silently corrupting a part or a gerber. These rules take the guess
+# out of it.
+#
+# Gerber, drill and STEP files are technically ASCII, but they are machine
+# output headed for a fab house; keeping them byte-identical matters more than
+# line-ending tidiness.
+# ---------------------------------------------------------------------------
+
+# --- SolidWorks ---
+*.SLDPRT  -text
+*.SLDASM  -text
+*.SLDDRW  -text
+
+# --- Mesh / interchange ---
+*.STL     -text
+*.stl     -text
+*.3mf     -text
+*.step    -text
+*.stp     -text
+*.igs     -text
+*.iges    -text
+
+# --- Fabrication output ---
+*.gbr     -text
+*.gbrjob  -text
+*.drl     -text
+
+# --- Archives / documents / images ---
+*.zip     -text
+*.pdf     -text
+*.png     -text
+*.jpg     -text
+*.jpeg    -text
