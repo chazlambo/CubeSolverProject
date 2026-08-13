@@ -61,11 +61,50 @@ public:
     int rebuildFromCubeArray(); // UNFINISHED NEEDS DEBUGGING
 
     // Get Solution
-    int splitSolveString(String input, char delimiter, String output[]);
+    // maxTokens bounds `output` — see the note in the .cpp. Passing 0 or a
+    // negative value is treated as "no room" and returns -1.
+    int splitSolveString(String input, char delimiter, String output[], int maxTokens);
     int solveCube(String moves[], int maxMoves);
+
+    // Whole-cube sanity checks, run automatically by solveCube() but public so
+    // the scan path can reject a bad read before committing to a solve.
+    //
+    // validateCentres(): 0 ok, non-zero if a centre facelet is not in its
+    //   canonical URFDLB position.
+    //
+    //   IMPORTANT — this does NOT detect an orientation misread, despite the
+    //   obvious intuition that it should. buildCubeArray() relabels colours
+    //   through orientation[], so the centres come out canonical BY
+    //   CONSTRUCTION whatever orientation was reported. A misread orientation
+    //   produces a different but internally consistent cube that is legal,
+    //   piece-valid, centre-canonical and solvable — the machine then executes
+    //   ~20 moves in the wrong frame with no error at any layer. Catching that
+    //   requires cross-checking the scanned left/back colours against something
+    //   outside the model, which this class cannot do on its own.
+    //
+    //   Kept as cheap insurance against a future path that writes cubeArray
+    //   without going through buildCubeArray(). Expect it to always return 0.
+    //
+    // validatePieces(): 0 ok. Catches compensating misreads that leave the
+    //   per-colour counts at exactly 9 — the dominant failure mode here, since
+    //   Y and W are the closest colour pair on most of the sensors.
+    int validateCentres() const;
+    int validatePieces() const;
 
     // Movement functions
     int executeMove(const String &moveString);
+
+    // State accessors.
+    //
+    // Both return a pointer to a fixed 54-byte buffer that is NOT
+    // NUL-terminated — treat them as char[54], never as a C string. Do not
+    // pass them to strlen/printf("%s"). kociemba::solve() reads exactly 54
+    // bytes, which is why passing cubeArray to it directly is safe.
+    //
+    // The buffer is owned by this object and is invalidated by resetCube(),
+    // buildCubeArray(), executeMove() and friends. Copy it if you need to keep it.
+    const char* getCubeArray() const           { return cubeArray; }
+    const char* getUnorientedCubeArray() const { return unorientedCubeArray; }
 
     // TODO: DEBUG REMOVE LATER
     void printUnorientedCubeArray();

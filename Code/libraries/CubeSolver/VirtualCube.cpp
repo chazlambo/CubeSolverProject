@@ -1,5 +1,10 @@
 #include "VirtualCube.h"
 
+// For cornerFacelet / edgeFacelet / cornerColor / edgeColor, used by
+// validatePieces(). Using the solver's own tables rather than transcribing them
+// keeps the piece definitions in exactly one place.
+#include <facecube.h>
+
 VirtualCube::VirtualCube()
 {
   this->resetCube();
@@ -51,13 +56,27 @@ void VirtualCube::resetOrientation() {
 }
 
 void VirtualCube::resetColor() {
-  // Undefine faces
-  setColorArray('W', "QQQQWQQQQ", 'G'); // Up
-  setColorArray('B', "QQQQBQQQQ", 'R'); // Right
-  setColorArray('R', "QQQQRQQQQ", 'G'); // Front
-  setColorArray('Y', "QQQQYQQQQ", 'G'); // Down
-  setColorArray('G', "QQQQGQQQQ", 'O'); // Left
-  setColorArray('O', "QQQQOQQQQ", 'B'); // Back
+  // Undefine faces.
+  //
+  // This previously called setColorArray(<colour>, "QQQQ<c>QQQQ", <left>) six
+  // times. setColorArray validates all nine characters against RGBYOW and
+  // returns error 2 on the first 'Q' BEFORE writing anything, so every one of
+  // those calls failed and every return value was discarded. Net effect: the
+  // six side arrays were never reset here, and were never initialised by the
+  // constructor either — they held indeterminate memory until a successful
+  // scan populated them, and a reset left stale colours from the previous cube.
+  //
+  // Write the sentinels directly instead of routing them through the validator
+  // that rejects them.
+  char* const sides[6] = { redSide, orangeSide, yellowSide, greenSide, blueSide, whiteSide };
+  const char  centre[6] = { 'R',    'O',        'Y',        'G',       'B',      'W'      };
+
+  for (int c = 0; c < 6; c++) {
+    for (int i = 0; i < 9; i++) {
+      sides[c][i] = 'Q';        // 'Q' = unset sentinel; rejected by setColorArray on purpose
+    }
+    sides[c][4] = centre[c];    // centre sticker is fixed by definition
+  }
 
   // Reset Set Variables.
   redSet = 0;
@@ -413,7 +432,11 @@ int VirtualCube::setFaceSquare(char color, int squarePos, char newColor)
   }
 
   // Check if position is valid
-  if (squarePos < 0 || squarePos > 9 || squarePos == 4) {
+  // NOTE: bound is 8, not 9. Faces are char[9] (indices 0-8), so squarePos == 9
+  // used to pass validation and write one byte past the end of the array. The
+  // six side arrays are declared consecutively with no padding, so that
+  // silently corrupted a sticker on a DIFFERENT face.
+  if (squarePos < 0 || squarePos > 8 || squarePos == 4) {
     return 2;
   }
 
@@ -952,30 +975,169 @@ int VirtualCube::rebuildFromCubeArray() {
   return 0;
 }
 
-int VirtualCube::splitSolveString(String input, char delimiter, String output[]){
+int VirtualCube::splitSolveString(String input, char delimiter, String output[], int maxTokens){
   // Splits solve string into array of substrings
   // Inputs:
   //  1 - input: solve string to be split apart
   //  2 - delimiter: character used to separate moves in solve string
   //  3 - output: Placeholder to be poplulated by move substrings
+  //  4 - maxTokens: capacity of output[]
   // Outputs:
-  //  tokenCount: The number of moves in solution
+  //  >=0 - The number of moves in solution
+  //   -1 - Solution has more tokens than output[] can hold
+  //
+  // The capacity argument is not optional. This function previously had no
+  // bound at all and wrote output[tokenCount++] until the input was exhausted,
+  // while solveCube() accepted a maxMoves parameter and never referenced it.
+  // That was safe only by coincidence: kociemba runs with maxDepth 24 and no
+  // phase separator, so it emits at most 24 tokens into an array of 50. Raise
+  // maxDepth, enable useSeparator, or reuse this helper on a serial-entered
+  // scramble and it overruns an array of Arduino String objects — stomping
+  // heap pointers and then free()ing garbage.
+
+  if (maxTokens <= 0) {
+    return -1;
+  }
 
   int tokenIndex = 0;
   int tokenCount = 0;
   while (tokenIndex >= 0) {
     tokenIndex = input.indexOf(delimiter);
     if (tokenIndex >= 0) {
+      if (tokenCount >= maxTokens) return -1;
       output[tokenCount] = input.substring(0, tokenIndex);
       input = input.substring(tokenIndex + 1);
       tokenCount++;
     }
   }
   if (input.length() > 0) {
+    if (tokenCount >= maxTokens) return -1;
     output[tokenCount] = input;
     tokenCount++;
   }
   return tokenCount;
+}
+
+// ---------------------------------------------------------------------------
+// Whole-cube validation
+// ---------------------------------------------------------------------------
+
+// cubeArray holds URFDLB letters; kociemba's color_t is { U, R, F, D, L, B }
+// in that order, so the letter maps straight onto the enum value.
+static int faceIndexOf(char c) {
+  switch (c) {
+    case 'U': return 0;
+    case 'R': return 1;
+    case 'F': return 2;
+    case 'D': return 3;
+    case 'L': return 4;
+    case 'B': return 5;
+    default:  return -1;
+  }
+}
+
+// Opposite faces are 3 apart in URFDLB order: U/D, R/L, F/B.
+static inline bool areOpposite(int a, int b) {
+  return ((a + 3) % 6) == b;
+}
+
+int VirtualCube::validateCentres() const {
+  // Outputs:
+  //  0 - Centres are canonical
+  //  1 - A centre facelet is not in its expected position
+  //
+  // kociemba's input validation counts nine of each letter and then calls
+  // verify() for permutation / twist / parity legality. Neither checks that the
+  // centres sit where the facelet-to-cubie mapping assumes.
+  //
+  // NOTE: this is defence in depth against a corrupted cubeArray, NOT a
+  // detector for orientation misreads. buildCubeArray() forces the centres
+  // canonical by construction, so after a successful build this always returns
+  // 0. See the comment on the declaration in VirtualCube.h.
+  static const char kCentre[6] = { 'U', 'R', 'F', 'D', 'L', 'B' };
+  for (int f = 0; f < 6; f++) {
+    if (cubeArray[9 * f + 4] != kCentre[f]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+int VirtualCube::validatePieces() const {
+  // Outputs:
+  //  0 - Every corner and edge is a real cubie, each used exactly once
+  //  1 - A corner holds two identical or two opposite colours
+  //  2 - A corner is not one of the 8 real corner cubies
+  //  3 - An edge holds two identical or two opposite colours
+  //  4 - An edge is not one of the 12 real edge cubies
+  //  5 - A cubie appears in more than one position
+  //  6 - cubeArray contains a character outside URFDLB
+  //
+  // Counting nine of each colour cannot see a compensating pair: one Y read as
+  // W plus one W read as Y leaves both counts at 9 and produces a legal-looking
+  // facelet string. Checking the colour SET of each physical piece does see it,
+  // because two swapped stickers almost never yield two other real cubies.
+
+  bool cornerUsed[8] = { false, false, false, false, false, false, false, false };
+  for (int i = 0; i < 8; i++) {
+    int c[3];
+    for (int k = 0; k < 3; k++) {
+      c[k] = faceIndexOf(cubeArray[kociemba::cornerFacelet[i][k]]);
+      if (c[k] < 0) return 6;
+    }
+
+    for (int a = 0; a < 3; a++) {
+      for (int b = a + 1; b < 3; b++) {
+        if (c[a] == c[b] || areOpposite(c[a], c[b])) return 1;
+      }
+    }
+
+    int found = -1;
+    for (int j = 0; j < 8 && found < 0; j++) {
+      bool ok = true;
+      for (int a = 0; a < 3 && ok; a++) {
+        bool present = false;
+        for (int b = 0; b < 3; b++) {
+          if (c[a] == (int)kociemba::cornerColor[j][b]) present = true;
+        }
+        if (!present) ok = false;
+      }
+      if (ok) found = j;
+    }
+    if (found < 0)        return 2;
+    if (cornerUsed[found]) return 5;
+    cornerUsed[found] = true;
+  }
+
+  bool edgeUsed[12] = { false, false, false, false, false, false,
+                        false, false, false, false, false, false };
+  for (int i = 0; i < 12; i++) {
+    int e[2];
+    for (int k = 0; k < 2; k++) {
+      e[k] = faceIndexOf(cubeArray[kociemba::edgeFacelet[i][k]]);
+      if (e[k] < 0) return 6;
+    }
+
+    if (e[0] == e[1] || areOpposite(e[0], e[1])) return 3;
+
+    int found = -1;
+    for (int j = 0; j < 12 && found < 0; j++) {
+      bool ok = true;
+      for (int a = 0; a < 2 && ok; a++) {
+        bool present = false;
+        for (int b = 0; b < 2; b++) {
+          if (e[a] == (int)kociemba::edgeColor[j][b]) present = true;
+        }
+        if (!present) ok = false;
+      }
+      if (ok) found = j;
+    }
+    if (found < 0)       return 4;
+    if (edgeUsed[found]) return 5;
+    edgeUsed[found] = true;
+  }
+
+  return 0;
 }
 
 int VirtualCube::solveCube(String moves[], int maxMoves){
@@ -986,21 +1148,40 @@ int VirtualCube::solveCube(String moves[], int maxMoves){
   // Outputs:
   // >=0 - Number of moves
   //  -1 - Cube is not ready
-  //  -2 - Solution not found
+  //  -2 - Solution not found (illegal cube, or solver timed out)
+  //  -3 - Centres are not canonical  (orientation was misread)
+  //  -4 - A corner or edge is not a real cubie (compensating colour misread)
+  //  -5 - Solution has more moves than `moves` can hold
+
+    // Make sure the cube has been built BEFORE spending up to `timeOut` ms in
+    // the solver.
+    //
+    // This check used to sit AFTER kociemba::solve() and AFTER the solution had
+    // already been split into moves[], and it returned +1. CubeSystem tests
+    // `if (solveOutput < 0)`, so +1 was read as "a one-move solution" and
+    // reported as success — the machine would execute move 1 of N and stop.
+    if (!cubeReady) return -1;
+
+    // Reject cubes the solver would happily accept but that cannot physically
+    // exist. Both checks are microseconds and both catch scan errors that would
+    // otherwise be executed as ~20 real moves on the machine.
+    if (validateCentres() != 0) return -3;
+    if (validatePieces()  != 0) return -4;
 
     // Solve using Kociemba
     const char* sol;
     sol = kociemba::solve(cubeArray);
     if (sol == nullptr) {
-      return 2;
+      // Illegal cube (failed the solver's own legality checks) or timed out.
+      // Must be negative — see note above.
+      return -2;
     }
 
     // Break solution string into substrings of moves
-    int moveCount = splitSolveString(sol, ' ', moves);
-
-
-    if (!cubeReady) return 1;  // Make sure the cube has been built
-
+    int moveCount = splitSolveString(sol, ' ', moves, maxMoves);
+    if (moveCount < 0) {
+      return -5;    // more moves than the caller's array can hold
+    }
 
     return moveCount;  // Success
 }

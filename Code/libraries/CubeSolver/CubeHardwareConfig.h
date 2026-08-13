@@ -42,6 +42,14 @@ extern const int ENC_MUX_RST;
 extern const int ENCODER_ADDR;
 extern TCA9548 encoderMux;
 
+// Configure ENC_MUX_RST as an output and release the mux from reset.
+// Call once from CubeSystem::begin(), before encoderMux.begin().
+void initEncoderMuxReset();
+
+// Pulse the TCA9548A's /RESET line to recover a wedged encoder bus.
+// Call after repeated MotorEncoder::scanChecked() failures.
+void resetEncoderMux();
+
 // Mux channels for each encoder {U, R, F, D, L, B, RING}
 extern int encoderChannels[7];
 

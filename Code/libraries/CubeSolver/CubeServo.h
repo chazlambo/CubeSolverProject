@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <PWMServo.h>
 #include <EEPROM.h>
+#include "CubePump.h"
 
 class CubeServo {
 public:
@@ -31,7 +32,12 @@ private:
     int extState;               // 0 = retracted, 1 = extended, 2 = partially retracted, -1 = unknown
     int sweepDelay;             // Time in ms to delay between each sweep step
 
-    void sweepTo(unsigned int newPos);
+    unsigned int partialTarget() const;  // 3/4 of the way from retracted to extended
+
+    // Returns false if the sweep was cut short by an abort. Callers MUST NOT
+    // record the target position or a settled state when it returns false —
+    // the horn did not get there.
+    bool sweepTo(unsigned int newPos);
     void loadStateFromEEPROM();
     void updateEEPROM();
 };

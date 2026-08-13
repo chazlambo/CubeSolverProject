@@ -1,4 +1,28 @@
 #include "CubeMotors.h"
+#include "CubePump.h"
+
+
+// Run a MultiStepper move to completion while servicing the cooperative pump.
+//
+// MultiStepper::runSpeedToPosition() is a blocking loop over run(); this is the
+// same loop with a pump call, so it is behaviourally identical to the stepper
+// but leaves no blind window. That matters more than it sounds: a half turn is
+// 200 steps at 1000 steps/s = 200 ms, and pumpTick() treats a >200 ms poll gap
+// as "we were blind, restart the hold timer" — so with the blocking version the
+// SELECT-held abort gesture could never accumulate its 1 s during a solve
+// containing half turns. Measured before this change: a 20-move solution with
+// SELECT held for 5.2 s never fired the abort.
+//
+// It also unfreezes the display DURING the move rather than only after it.
+static void runPumped(MultiStepper &ms) {
+    unsigned long lastPump = millis();
+    while (ms.run()) {
+        if (millis() - lastPump >= 5) {
+            lastPump = millis();
+            pumpOnce();
+        }
+    }
+}
 
 // Constructor 
 CubeMotors::CubeMotors(int enpin, int step_pins[7], int dir_pins[7], int ringStateEEPROMAddress)
@@ -51,7 +75,16 @@ void CubeMotors::homeRingStepper(AccelStepper &ringStep) {
     ringStep.runToNewPosition(ringExtPos);
     ringStep.runToNewPosition(ringRetPos);
     disableMotors();
+
     ringState = 0;
+    ringPos   = ringRetPos;
+
+    // Persist it. Setting ringState in RAM only meant the EEPROM sentinel (-1)
+    // written before an interrupted move survived the re-home: ringMove(0) then
+    // early-returns because ringState is already 0, EEPROM keeps -1, and the
+    // machine performs this blind out-and-back on EVERY boot until some other
+    // ring move happens to write a valid state.
+    EEPROM.put(ringStateEEPROMAddress, ringState);
 }
 
 void CubeMotors::ringMove(int state) {
@@ -77,15 +110,30 @@ void CubeMotors::ringMove(int state) {
             return;
     }
     
-    ringState = -1;                         // Set state to unknown so it will rehome if turned off midway
+    // Mark the state unknown IN EEPROM before moving, not just in RAM.
+    //
+    // The `ringState = -1` line below always had the right intent ("so it will
+    // rehome if turned off midway") but only ever touched the RAM copy, which
+    // is lost on power-off. EEPROM kept the previous — now wrong — state for
+    // the entire ~2.8 s of travel. Lose power mid-move and initRingStepper()
+    // trusts it: for the retracted case it calls setCurrentPosition() without
+    // moving, so a ring physically halfway out is believed to be at zero, and
+    // the next extend travels half the distance and stops short while
+    // reporting success.
+    //
+    // CubeServo already does this correctly (writes -1 before sweeping); the
+    // ring simply was not updated to match.
+    ringState = -1;
+    EEPROM.put(ringStateEEPROMAddress, ringState);  // persist "in motion" BEFORE moving
+
     enableMotors();                         // Enable motors
-    ringStepper.runToNewPosition(newPos);   // Move ring to 
+    ringStepper.runToNewPosition(newPos);   // Move ring to
     ringPos = newPos;                       // Update position variable
     disableMotors();                        // Disable motors
-    delay(20);                              // Short delay for timing
+    delay(20);                              // settle before the EEPROM write
 
     ringState = state;                      // Update state variable
-    EEPROM.put(ringStateEEPROMAddress, state); // Update state in EEPROM
+    EEPROM.put(ringStateEEPROMAddress, ringState); // Update state in EEPROM
 }
 
 void CubeMotors::ringToggle() {
@@ -110,7 +158,7 @@ void CubeMotors::moveTo(long newPos[6]){
         pos[i] = newPos[i];  // Update internal pos
     }
     multiStep.moveTo(pos);
-    multiStep.runSpeedToPosition();  // Blocking run
+    runPumped(multiStep);   // blocking, but pumped — see runPumped()
 }
 
 void CubeMotors::resetMotorPos(){
@@ -188,10 +236,15 @@ void CubeMotors::executeMove(String moveString) {
     // Move Steppers to position
     enableMotors();
     multiStep.moveTo(pos);
-    multiStep.runSpeedToPosition();
+    runPumped(multiStep);
+
+    // Settle before torque is removed. Deliberately NOT pumpDelay: an aborted
+    // pumpDelay returns in ~0 ms, which would strip the 50 ms settle and
+    // de-energise six steppers immediately after an abrupt stop with a clamped
+    // cube's inertia still in the mechanism — strictly worse than blocking.
     delay(stepDelay);
     disableMotors();
-    delay(stepDelay);
+    delay(stepDelay);       // decay time; see note above
 
     
 
@@ -210,8 +263,16 @@ void CubeMotors::initRingStepper(AccelStepper &ringStep) {// Initialize Ring Pos
   ringStep.setAcceleration(ringStepAccel);
   ringStep.setPinsInverted(true, false);    // Reverse direction
 
-  // Read saved state from EEPROM
-  ringState = EEPROM.read(ringStateEEPROMAddress);
+  // Read saved state from EEPROM.
+  //
+  // Must use get(), not read(): ringMove() persists this with EEPROM.put(),
+  // which writes sizeof(int) == 4 bytes, while EEPROM.read() returns only the
+  // first byte. That worked by little-endian accident for values 0-3, but the
+  // "in motion" sentinel -1 (0xFFFFFFFF) came back as 255 rather than -1. It
+  // still landed in the default branch and re-homed, so the behaviour happened
+  // to be right — but for the wrong reason, and it would break the moment
+  // anyone compared ringState against -1 directly.
+  EEPROM.get(ringStateEEPROMAddress, ringState);
 
   // Assign position based on state, or rehome if unknown.
   switch(ringState){  // Determine which state we are moving to

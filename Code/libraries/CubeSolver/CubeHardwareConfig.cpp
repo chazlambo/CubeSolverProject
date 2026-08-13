@@ -48,6 +48,30 @@ MotorEncoder motB(encoderChannels[5], &encoderMux, motorCalFlagAddress, motorCal
 MotorEncoder motRing(encoderChannels[6], &encoderMux, motorCalFlagAddress, motorCalAddresses[6]);
 MotorEncoder* MotorEncoders[] = {&motU, &motR, &motF, &motD, &motL, &motB, &motRing};
 
+void initEncoderMuxReset() {
+    // ENC_MUX_RST (pin 30) is routed on the Motherboard to the TCA9548A's
+    // active-low /RESET, but nothing ever configured it — so the Teensy left it
+    // as a high-impedance input and the reset line floated, next to seven
+    // stepper drivers. Drive it high (inactive) and hold it there.
+    pinMode(ENC_MUX_RST, OUTPUT);
+    digitalWrite(ENC_MUX_RST, HIGH);
+}
+
+void resetEncoderMux() {
+    // Hardware recovery for a wedged encoder mux. The TCA9548A latches its
+    // channel mask; if it locks up mid-transaction every subsequent scan()
+    // fails forever and there is otherwise no way out short of a power cycle.
+    //
+    // Datasheet requires the reset pulse to be held only a few hundred ns; 10 us
+    // is comfortably over that and still negligible against a solve.
+    pinMode(ENC_MUX_RST, OUTPUT);
+    digitalWrite(ENC_MUX_RST, LOW);
+    delayMicroseconds(10);
+    digitalWrite(ENC_MUX_RST, HIGH);
+    delayMicroseconds(100);         // allow the part to come out of reset
+    encoderMux.setChannelMask(0x00);
+}
+
 // ================ Motor Setup ================
 
 // Pin Definitions

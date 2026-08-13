@@ -67,8 +67,33 @@ bool MotorEncoder::deselectMux() {
     return result;
 }
 
+int MotorEncoder::scanChecked(int retries) {
+    // Transient NACKs are normal on a bus shared by seven AS5600s behind a mux,
+    // so retry a couple of times, releasing the bus in between, before
+    // declaring the encoder dead.
+    //
+    // Returns [0-4095] on success, or -1 on persistent failure. Callers must
+    // check the sign and abort the motion — see the note in MotorEncoder.h.
+    for (int attempt = 0; attempt <= retries; attempt++) {
+        int v = scan();
+        if (v >= 0) {
+            return v;
+        }
+
+        // No explicit bus release here: scan() -> selectMux() already issues
+        // setChannelMask(0x00) as its first action, and both the -2 and -3
+        // paths call deselectMux() on the way out. An extra write would only
+        // add traffic to an already-failing bus.
+        if (attempt < retries) {
+            delayMicroseconds(200);
+        }
+    }
+
+    return -1;
+}
+
 int MotorEncoder::scan() {
-    // RETURNS: 
+    // RETURNS:
     //  >= 0 : Raw 12-bit angle value from AS5600 [0–4095]
     //   -1 : Failed to select TCA9548A mux channel
     //   -2 : I2C write to AS5600 failed (e.g. disconnected device)

@@ -132,7 +132,18 @@ void ColorSensor::scanSingle(int sensorIdx) {
 
     // Give the mux a moment to settle and veml to integrate
     veml.getRed(); veml.getGreen(); veml.getBlue(); veml.getWhite(); // Dummy read
-    delay(waitTime*3);
+
+    // ~900 ms integration wait; pump so the UI survives it.
+    // An aborted wait returns after ~0 ms, and the VEML6040 integrates
+    // continuously — so reading now would return the PREVIOUS integration
+    // window, i.e. data from before the mux switched. A wrong-but-plausible
+    // colour is the worst possible output here, so bail instead.
+    if (!pumpDelay(waitTime*3)) {
+        digitalWrite(ledPin, LOW);
+        multiplexers[0]->setChannelMask(0x00);
+        multiplexers[1]->setChannelMask(0x00);
+        return;
+    }
 
     currentRGBW[0] = veml.getRed();
     currentRGBW[1] = veml.getGreen();
@@ -179,7 +190,15 @@ void ColorSensor::scanFace() {
         }
 
         // --- Wait once for integration ---
-        delay(waitTime * 3);
+        // Abort here means the sensors have NOT finished integrating; reading
+        // them would yield the previous window's data. Leave scanVals holding
+        // the previous scan and let the caller notice the abort.
+        if (!pumpDelay(waitTime * 3)) {   // ~900 ms x 6 faces
+            setLED(false);
+            multiplexers[0]->setChannelMask(0x00);
+            multiplexers[1]->setChannelMask(0x00);
+            return;
+        }
 
         // --- Now read all sensors once they've integrated ---
         for (int j = 0; j < 9; ++j) {
@@ -219,12 +238,149 @@ void ColorSensor::getFaceColors(char output[9]){
     }
 }
 
+void ColorSensor::getFaceReadings(ColorReading out[9]) const {
+    for (int i = 0; i < 9; i++) {
+        out[i] = classify(i, scanVals[i]);
+    }
+}
+
+void ColorSensor::computeSeparations() {
+    // For each sensor, the smallest distance between any two of the SIX REAL
+    // colours (index 0-5 = R G B Y O W). Index 6 ('E', empty chamber) is
+    // deliberately excluded: it is useful as a cube-present test but it is not
+    // a sticker colour, and on some sensors it sits closer to blue than blue
+    // sits to anything else — which would collapse the separation figure.
+    //
+    // This is derived from calVals rather than stored, so it needs no EEPROM
+    // and cannot fall out of sync with the calibration it describes.
+    for (int s = 0; s < 9; s++) {
+        float minSep = -1.0f;
+
+        for (int a = 0; a < 6; a++) {
+            if (calVals[s][a][3] <= 0) continue;            // uncalibrated entry
+            for (int b = a + 1; b < 6; b++) {
+                if (calVals[s][b][3] <= 0) continue;
+                float d = colorDistance(calVals[s][a], calVals[s][b]);
+                if (d != d) continue;                       // NaN guard
+                if (minSep < 0.0f || d < minSep) minSep = d;
+            }
+        }
+
+        sensorSeparation[s] = (minSep < 0.0f) ? 0.0f : minSep;
+    }
+}
+
+float ColorSensor::getSensorSeparation(int sensorIdx) const {
+    if (sensorIdx < 0 || sensorIdx > 8) return 0.0f;
+    return sensorSeparation[sensorIdx];
+}
+
+int ColorSensor::checkSensorHealth(int sensorIdx) const {
+    if (sensorIdx < 0 || sensorIdx > 8) return 1;
+
+    // A channel that reads identically zero for every real colour is a dead
+    // photodiode channel, not a legitimate measurement. Board 2 sensor 2 shows
+    // exactly this on green across every archived calibration run, and nothing
+    // in software could previously see it: setColorCal only rejects negatives
+    // and values above 65535, so 0 is "valid" and colorDistance computes
+    // happily on two of three dimensions.
+    for (int k = 0; k < 3; k++) {           // R, G, B — W is the divisor
+        bool allZero = true;
+        for (int c = 0; c < 6; c++) {
+            if (calVals[sensorIdx][c][k] != 0) { allZero = false; break; }
+        }
+        if (allZero) return 1;
+    }
+
+    if (sensorSeparation[sensorIdx] < minUsableSeparation) return 2;
+
+    return 0;
+}
+
+ColorReading ColorSensor::classify(int sensorIdx, const int rgbw[4]) const {
+    ColorReading r;
+    r.color = 'U';
+    r.alt   = 'U';
+    r.dist  = 0.0f;
+    r.margin = 0.0f;
+    r.confidence = 0.0f;
+    r.ok = false;
+
+    if (sensorIdx < 0 || sensorIdx > 8) return r;
+
+    static const char colorChars[7] = { 'R', 'G', 'B', 'Y', 'O', 'W', 'E' };
+
+    // colorDistance divides by the white channel. A zero W makes every distance
+    // inf/NaN, which used to fall through to 'U' by accident; make it explicit.
+    if (rgbw[3] <= 0) return r;
+
+    int   best = -1,  second = -1;
+    float bestD = 0.0f, secondD = 0.0f;
+
+    for (int c = 0; c < 7; ++c) {
+        if (calVals[sensorIdx][c][3] <= 0) continue;    // this colour never calibrated
+        float d = colorDistance(rgbw, calVals[sensorIdx][c]);
+        if (d != d) continue;                           // NaN guard
+
+        if (best < 0 || d < bestD) {
+            second = best;  secondD = bestD;
+            best   = c;     bestD   = d;
+        } else if (second < 0 || d < secondD) {
+            second = c;     secondD = d;
+        }
+    }
+
+    if (best < 0) return r;         // nothing usable: sensor is uncalibrated
+
+    r.color = colorChars[best];
+    r.dist  = bestD;
+    if (second >= 0) {
+        r.alt    = colorChars[second];
+        r.margin = secondD - bestD;
+    }
+
+    float sep = sensorSeparation[sensorIdx];
+    if (sep <= 0.0f) {
+        // No separation figure available. Report the nearest match but never
+        // claim confidence in it — ok stays false.
+        return r;
+    }
+
+    // Absolute test: is the reading even in the neighbourhood of a reference?
+    //
+    // Deliberately generous — see distanceFraction in the header. Requiring
+    // bestD <= sep (i.e. fraction 1.0) is unachievable in practice because
+    // run-to-run drift is roughly 70% of the separation itself, and it rejects
+    // most legitimate readings.
+    bool inRange = (bestD <= distanceFraction * sep);
+
+    // Relative test: decisively closer to one reference than to the next?
+    float need = marginFraction * sep;
+    if (need > 0.0f) {
+        float conf = r.margin / need;
+        r.confidence = (conf > 1.0f) ? 1.0f : ((conf < 0.0f) ? 0.0f : conf);
+    }
+
+    // Clipping check: a saturated channel is not a measurement.
+    bool saturated = false;
+    for (int k = 0; k < 4; ++k) {
+        if (rgbw[k] >= saturationThreshold) { saturated = true; break; }
+    }
+
+    r.ok = inRange
+        && (r.margin >= need)
+        && !saturated
+        && (sep >= minUsableSeparation);
+
+    return r;
+}
+
 const int *ColorSensor::getScanValRow(int idx)
 {
     return scanVals[idx]; 
 }
 
-float ColorSensor::colorDistance(const int rgbw1[4], const int rgbw2[4]) {
+float ColorSensor::colorDistance(const int rgbw1[4], const int rgbw2[4]) const {
     // Simple Euclidean distance in 4D space (R,G,B,W)
     float sumSq = 0;
 
@@ -243,35 +399,37 @@ float ColorSensor::colorDistance(const int rgbw1[4], const int rgbw2[4]) {
 }
 
 char ColorSensor::getColor(int sensorIdx, const int rgbw[4]) {
-    // Initialize search variables
-    float minDist = 9999999.0;
-    char closestColor = 'U';  // Default to unknown
+    // Thin wrapper over classify(), kept so existing callers and sketches work
+    // unchanged. Prefer classify() / getFaceReadings() in new code — this
+    // signature can only say "some colour", never "I am not sure".
+    //
+    ColorReading r = classify(sensorIdx, rgbw);
 
-    const char colorChars[7] = { 'R', 'G', 'B', 'Y', 'O', 'W', 'E'};
-    
-    // Check distance to each color
-    for (int c = 0; c < 7; ++c) {
-        float dist = colorDistance(rgbw, calVals[sensorIdx][c]);
-
-        // If closest so far then update
-        if (dist < minDist) {
-            minDist = dist;
-            closestColor = colorChars[c];
+    // Apply the ABSOLUTE gate here, but not the margin/health gates.
+    //
+    // Gating on the full r.ok made three sensors (board 2 #2, #4, #7, whose
+    // separation is below minUsableSeparation) return 'U' for every colour they
+    // will ever read, including their own calibration references — that broke
+    // the diagnostic sketch for exactly the sensors you would open it to
+    // investigate.
+    //
+    // But removing the gate entirely was also wrong. Measured over the archived
+    // data, the ORIGINAL colorTol gate returned 'U' for 10.8% of cross-run
+    // readings and 54% of those were genuinely the wrong colour. Dropping it
+    // turned real rejections into confident wrong answers.
+    //
+    // So: reject readings that are nowhere near any reference, and leave the
+    // margin and sensor-health judgements to classify(), which reports them
+    // without destroying the answer.
+    if (r.color != 'U' && r.color != 'E') {
+        float sep = sensorSeparation[sensorIdx];
+        float limit = (sep > 0.0f) ? (distanceFraction * sep) : colorTol;
+        if (r.dist > limit) {
+            return 'U';
         }
     }
 
-    // If not within tolerance to closest color, return unknown
-    if (minDist > colorTol){
-        // TODO: DEBUG REMOVE LATER
-        Serial.print("Min Dist: ");
-        Serial.println(minDist);
-        Serial.print("Closest Color: ");
-        Serial.println(closestColor);
-
-        return 'U';
-    } 
-    
-    return closestColor;
+    return r.color;
 }
 
 int ColorSensor::colorIndex(char color) {
@@ -364,15 +522,29 @@ bool ColorSensor::loadCalibration() {
             }
         }
     }
-    
+
+    // Derive the per-sensor decision limits from what we just loaded.
+    computeSeparations();
+
     return true;
 }
 
 bool ColorSensor::saveCalibration() {
-    // First write the flag value
-    EEPROM.put(eepromFlagAddr, flagValue);
-    
-    // Save all calibration data to EEPROM
+    // Write order matters. This function previously wrote the valid flag FIRST,
+    // then the data, then the flag again — so the table was marked good before
+    // a single value landed. Calibration takes tens of seconds and several
+    // physical cube rotations, so a power loss, reset or abort part-way through
+    // left a valid flag over a half-old / half-new table, and loadCalibration()
+    // happily returned true for it.
+    //
+    // Correct order: invalidate, write data, then validate.
+
+    // 1. Invalidate. Anything that reads the table from here until the final
+    //    write will correctly conclude it is not calibrated.
+    int invalid = 0;
+    EEPROM.put(eepromFlagAddr, invalid);
+
+    // 2. Write all calibration data.
     for (int i = 0; i < 9; i++) {           // For each sensor
         for (int j = 0; j < 7; j++) {       // For each color
             for (int k = 0; k < 4; k++) {   // For each RGBW value
@@ -380,14 +552,36 @@ bool ColorSensor::saveCalibration() {
             }
         }
     }
-    
+
+    // 3. Verify what actually landed before claiming success. The old code
+    //    ended with `return loadCalibration()`, which looked like a write
+    //    verify but only re-read the flag it had just written and copied the
+    //    values back into calVals[] without comparing anything.
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 7; j++) {
+            for (int k = 0; k < 4; k++) {
+                int readback;
+                EEPROM.get(eepromAddr[i][j][k], readback);
+                if (readback != calVals[i][j][k]) {
+                    return false;           // flag stays invalid — table is not trusted
+                }
+            }
+        }
+    }
+
+    // 4. Validate only now that the data is known good on the device.
     EEPROM.put(eepromFlagAddr, flagValue);
 
-    // Load the calibration after saving it
-    return loadCalibration();
+    // Keep the derived limits in step with the calibration they describe.
+    computeSeparations();
+
+    return true;
 }
 
 void ColorSensor::resetCalibration() {
+    // Derived limits must be recomputed after ANY change to calVals — see the
+    // note in the header. resetCalibration/setColorCal/a failed saveCalibration
+    // all used to leave sensorSeparation describing the previous table.
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 7; j++) {
             for (int k = 0; k < 4; k++) {

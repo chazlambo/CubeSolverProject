@@ -20,8 +20,17 @@ public:
                  int eepromAddr[4],
                  int ENC_ADDR = 0x36);
 
-    int       begin();                       
-    int       scan();                        // returns raw 12-bit angle [0-4095]
+    int       begin();
+    int       scan();                        // returns raw 12-bit angle [0-4095], or -1/-2/-3 on I2C failure
+
+    // scan() with retry. Returns [0-4095], or -1 if the encoder could not be
+    // read after `retries` extra attempts.
+    //
+    // ALWAYS prefer this over raw scan() in control paths, and ALWAYS check the
+    // sign. A negative return is a sensor fault, not a position — consuming it
+    // as one makes the alignment loop step the motor blind until its timeout,
+    // roughly 45-90 degrees at full torque with the cube clamped.
+    int       scanChecked(int retries = 2);
     bool      isCalibrated();                // EEPROM flag check
     int       getCalibration(int index = 0); // Returns stored value [0-4095]
     int       setCalibration(int index);     // Set value based on scan

@@ -111,7 +111,20 @@ namespace kociemba
 			flipMove = (short_bidim_N_MOVE)flash_flipMove;
 			UBtoDF_Move = (short_bidim_N_MOVE)flash_UBtoDF_Move;
 			FRtoBR_Move24 = (short_bidim_N_MOVE)flash_FRtoBR_Move24;
-			Slice_Flip_Prun_fast = nullptr;
+
+			// LOCAL PATCH (upstream bug in vindar/kociemba).
+			// This branch releases the mem479 block, which owns
+			// Slice_Twist_Prun_fast (assigned at the top of this function).
+			// It previously nulled Slice_Flip_Prun_fast instead — a pointer
+			// owned by the mem248 block and already correctly cleared in the
+			// mem248 else-branch below. Net effect: after
+			// set_memory(buf479, buf248) followed by set_memory(nullptr, buf248),
+			// Slice_Twist_Prun_fast was left dangling into the released buffer
+			// while solve() still dispatched on it to select the FAST_TWIST
+			// search path — reading pruning values out of freed memory. No
+			// crash, just silently wrong search results.
+			// Keep this patch if the kociemba library is ever re-vendored.
+			Slice_Twist_Prun_fast = nullptr;
 		}
 
 		if (mem248 != nullptr)
