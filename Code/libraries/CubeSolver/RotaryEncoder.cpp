@@ -27,6 +27,25 @@ int32_t RotaryEncoder::getPosition() {
     return ss.getEncoderPosition();
 }
 
+uint8_t RotaryEncoder::readButtons() {
+    const uint32_t mask = (1UL << PIN_SELECT) | (1UL << PIN_UP) |
+                          (1UL << PIN_LEFT)   | (1UL << PIN_DOWN) |
+                          (1UL << PIN_RIGHT);
+
+    // Pins are INPUT_PULLUP, so a pressed button reads LOW. digitalReadBulk()
+    // returns the raw levels for the requested mask in one transfer; invert to
+    // get "pressed".
+    const uint32_t raw = ss.digitalReadBulk(mask);
+
+    uint8_t out = 0;
+    if (!(raw & (1UL << PIN_SELECT))) out |= BTN_SELECT;
+    if (!(raw & (1UL << PIN_UP)))     out |= BTN_UP;
+    if (!(raw & (1UL << PIN_LEFT)))   out |= BTN_LEFT;
+    if (!(raw & (1UL << PIN_DOWN)))   out |= BTN_DOWN;
+    if (!(raw & (1UL << PIN_RIGHT)))  out |= BTN_RIGHT;
+    return out;
+}
+
 bool RotaryEncoder::upPressed()     { return !ss.digitalRead(PIN_UP); }
 bool RotaryEncoder::downPressed()   { return !ss.digitalRead(PIN_DOWN); }
 bool RotaryEncoder::leftPressed()   { return !ss.digitalRead(PIN_LEFT); }

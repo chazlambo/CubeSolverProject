@@ -40,34 +40,44 @@ public:
     // instead of blocking dead. This is what keeps the UI alive through the
     // ~25-40 s scan and gives an abort somewhere to be noticed.
     //
-    // Abort gesture: hold SELECT for kAbortHoldMs. No new hardware needed.
+    // Abort gesture: hold SELECT + LEFT together for kAbortHoldMs.
+    //
+    // It used to be SELECT alone. SELECT is also the button that starts every
+    // operation, so leaning on it a beat too long aborted the very thing the
+    // user had just asked for — and the release-latch below existed mostly to
+    // paper over that. A two-button chord cannot be produced by resting a thumb
+    // on the wheel, so the gesture can be deliberate without being twitchy.
+    //
     // Not touched by any ISR — plain state. Kept non-volatile deliberately so
     // the threading model isn't misrepresented.
     bool abortRequested = false;
 
     // Programmatic abort, for callers without a button (a serial command, a
-    // limit switch, a future e-stop). The UI uses the SELECT-hold gesture.
+    // limit switch, a future e-stop). The UI uses the chord.
     //
     // Mirrors clearAbort()'s discipline so the gesture state cannot be left in a
     // combination that says "abort pending" and "waiting for a release" at once.
     void requestAbort() {
         abortRequested   = true;
-        selectMustRelease = false;
-        selectHeldSince   = 0;
+        chordMustRelease = false;
+        chordHeldSince   = 0;
     }
 
-    // Clearing also demands the button be RELEASED before a new hold can count.
-    // Without that, the very SELECT press used to start an operation keeps the
-    // button down, the hold timer restarts from here, and an abort fires ~1 s
-    // into the thing the user just asked for.
+    // Clearing also demands the chord be RELEASED before a new hold can count.
+    // Less critical now that the gesture needs two buttons, but still correct:
+    // an abort raised mid-operation is cleared while both buttons are usually
+    // still down, and without this the next pumpTick() would re-latch it.
     void clearAbort() {
         abortRequested   = false;
-        selectHeldSince  = 0;
-        selectMustRelease = true;
+        chordHeldSince   = 0;
+        chordMustRelease = true;
     }
     bool abortPending() const { return abortRequested; }
 
-    static constexpr unsigned long kAbortHoldMs = 1000;
+    // 1.5 s. The chord is what prevents accidents; the duration only has to be
+    // long enough that a fumbled two-button press is not an abort. Raising this
+    // costs responsiveness on a real abort, so don't go much past 2 s.
+    static constexpr unsigned long kAbortHoldMs = 1500;
 
     // One pump iteration: refresh display, poll input, report whether to continue.
     bool pumpTick();
@@ -169,26 +179,45 @@ private:
     static CubeSystem* s_pumpOwner;
     static bool pumpTrampoline();
 
-    unsigned long selectHeldSince = 0;   // for the long-press abort gesture
-    unsigned long lastInputPoll   = 0;   // throttles the I2C read in pumpTick()
+    unsigned long chordHeldSince = 0;    // for the SELECT+LEFT abort gesture
+    unsigned long lastInputPoll  = 0;    // throttles the I2C read in pumpTick()
 
     // Suppresses abort DETECTION (not just the flag) while safeStop() unloads.
-    // Clearing abortRequested alone is not enough: the gesture is a 1 s hold, so
-    // the button is still down when safeStop runs, and the very first pumpTick()
-    // inside unloadCube() would see a stale selectHeldSince already older than
-    // kAbortHoldMs and instantly re-latch — truncating every servo sweep and
-    // leaving the cube clamped, which is the exact failure safeStop prevents.
+    // Clearing abortRequested alone is not enough: the gesture is a timed hold,
+    // so the buttons are still down when safeStop runs, and the very first
+    // pumpTick() inside unloadCube() would see a stale chordHeldSince already
+    // older than kAbortHoldMs and instantly re-latch — truncating every servo
+    // sweep and leaving the cube clamped, which is the exact failure safeStop
+    // prevents.
     bool pumpAbortSuppressed = false;
 
-    // Set by clearAbort(); cleared by pumpTick() the first time it sees SELECT
-    // up. Until then the hold timer does not run.
-    bool selectMustRelease = false;
+    // Set by clearAbort(); cleared by pumpTick() the first time it sees the
+    // chord broken. Until then the hold timer does not run.
+    bool chordMustRelease = false;
 
 public:
     int numMotors = 6;
+
+    // ================= Boot self-test results =================
+    // begin() already probed all of this and printed the outcome to Serial,
+    // where nobody standing at the machine can see it. Recording it lets the
+    // application put a subsystem checklist on the panel — and, more usefully,
+    // stay silent when everything passed.
     bool displayInitialized = false;
     bool encoderInitialized = false;   // seesaw menu encoder responded at boot
     bool colorSensorsOk = false;       // both ColorSensor::begin() returned 0
+    bool encoderMuxOk = false;         // TCA9548 on the motor-encoder bus
+    bool motorEncoderOk[7] = {false, false, false, false, false, false, false};
+
+    // True when every subsystem above came up. Calibration is NOT included:
+    // an uncalibrated machine is not a faulty one, it is a machine that needs
+    // calibrating, and the two want different screens.
+    bool selfTestPassed() const {
+        if (!displayInitialized || !encoderInitialized) return false;
+        if (!colorSensorsOk || !encoderMuxOk) return false;
+        for (int i = 0; i < 7; ++i) if (!motorEncoderOk[i]) return false;
+        return true;
+    }
 
 public:
     // Virtual Cube

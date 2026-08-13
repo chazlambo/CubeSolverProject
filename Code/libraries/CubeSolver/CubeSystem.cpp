@@ -18,12 +18,12 @@ bool CubeSystem::pumpTick() {
     // While safeStop() is releasing the cube, keep refreshing the display but
     // do not detect aborts — the button that triggered this abort is still down.
     if (pumpAbortSuppressed) {
-        selectHeldSince = 0;
+        chordHeldSince = 0;
         return true;
     }
 
-    // Poll input, but not on every 5 ms pump: each selectPressed() is a full
-    // I2C transaction to the seesaw on Wire1, and doing that 200x/second would
+    // Poll input, but not on every 5 ms pump: readButtons() is a full I2C
+    // transaction to the seesaw on Wire1, and doing that 200x/second would
     // saturate the bus for no benefit. 25 ms is far faster than a human.
     unsigned long now = millis();
     if (now - lastInputPoll >= 25) {
@@ -33,35 +33,39 @@ bool CubeSystem::pumpTick() {
         // taps that bracket a move as one continuous hold — that produced
         // spurious aborts.
         if (now - lastInputPoll > 200) {
-            selectHeldSince = 0;
+            chordHeldSince = 0;
         }
         lastInputPoll = now;
 
-        bool held = encoderInitialized && menuEncoder.selectPressed();
+        // SELECT + LEFT, sampled in ONE transaction so both are read at the
+        // same instant. Reading them separately makes a chord that is genuinely
+        // held look intermittent whenever a press lands between the two reads.
+        const uint8_t kChord = RotaryEncoder::BTN_SELECT | RotaryEncoder::BTN_LEFT;
+        uint8_t btns = encoderInitialized ? menuEncoder.readButtons() : 0;
+        bool held = ((btns & kChord) == kChord);
 
         // After clearAbort(), require a release before a hold can count again.
-        // Otherwise the SELECT press that STARTED this operation is still down,
-        // the timer restarts, and an abort fires ~1 s into the thing the user
-        // just asked for.
+        // Otherwise the buttons still down from the abort that just fired
+        // re-latch immediately on the next operation.
         //
         // Single exit deliberately: an earlier version returned early from this
-        // branch, which made (selectMustRelease && abortRequested) a sticky cell
+        // branch, which made (chordMustRelease && abortRequested) a sticky cell
         // that reported "stop" from a branch whose premise is "no abort detected"
-        // and could never clear while the button was held.
-        if (selectMustRelease) {
-            if (!held) selectMustRelease = false;
-            selectHeldSince = 0;
+        // and could never clear while the buttons were held.
+        if (chordMustRelease) {
+            if (!held) chordMustRelease = false;
+            chordHeldSince = 0;
         } else if (held) {
-            if (selectHeldSince == 0) {
-                selectHeldSince = now;
-            } else if (now - selectHeldSince >= kAbortHoldMs) {
+            if (chordHeldSince == 0) {
+                chordHeldSince = now;
+            } else if (now - chordHeldSince >= kAbortHoldMs) {
                 if (!abortRequested) {
-                    Serial.println(F("ABORT requested (SELECT held)"));
+                    Serial.println(F("ABORT requested (SELECT+LEFT held)"));
                 }
                 abortRequested = true;
             }
         } else {
-            selectHeldSince = 0;
+            chordHeldSince = 0;
         }
     }
 
@@ -132,16 +136,19 @@ void CubeSystem::begin() {
     }
 
     // Motor Encoder Setup (ENC_MUX_RST was already driven, right after Wire.begin)
-    if (!encoderMux.begin()) {           // Begins I2C Mux for encoders
+    encoderMuxOk = encoderMux.begin();   // Begins I2C Mux for encoders
+    if (!encoderMuxOk) {
         Serial.println(F("WARNING: encoder mux did not respond - attempting reset"));
         resetEncoderMux();
-        if (!encoderMux.begin()) {
+        encoderMuxOk = encoderMux.begin();
+        if (!encoderMuxOk) {
             Serial.println(F("ERROR: encoder mux unavailable. Motion will fault."));
         }
     }
 
     for (int i = 0; i < 7; ++i) {
         int rc = MotorEncoders[i]->begin();
+        motorEncoderOk[i] = (rc == 0);
         if (rc != 0) {
             Serial.print("MotorEncoder "); Serial.print(i);
             Serial.print(" begin() failed rc="); Serial.println(rc);
@@ -1650,7 +1657,7 @@ void CubeSystem::unloadCube() {
     botServoRetract();
 
     pumpAbortSuppressed = wasSuppressed;
-    selectHeldSince = 0;    // a still-held button must be released to re-abort
+    chordHeldSince = 0;     // a still-held chord must be released to re-abort
 }
 
 void CubeSystem::safeStop(int faultCode) {
@@ -1668,12 +1675,12 @@ void CubeSystem::safeStop(int faultCode) {
     // Suspend the latch AND the detector for the duration of the unload, then
     // restore the latch so the caller and the UI still see that an abort
     // happened. Suppressing the detector is essential: the gesture is a 1 s
-    // hold, so the button is still down here, and a stale selectHeldSince would
+    // hold, so the buttons are still down here, and a stale chordHeldSince would
     // re-latch on the first pump inside unloadCube().
     const bool wasAborted = abortRequested;
     pumpAbortSuppressed = true;
     abortRequested = false;
-    selectHeldSince = 0;
+    chordHeldSince = 0;
 
     // 1. Kill torque first so nothing fights the unload.
     cubeMotors.disableMotors();
@@ -1690,10 +1697,10 @@ void CubeSystem::safeStop(int faultCode) {
     clearSolution();
 
     // Restore the latch. The UI clears it when the user acknowledges the fault.
-    // selectHeldSince is zeroed so a still-held button must be released and
-    // held again to raise a new abort, rather than re-arming ~1 s from now.
+    // chordHeldSince is zeroed so a still-held chord must be released and
+    // held again to raise a new abort, rather than re-arming ~1.5 s from now.
     pumpAbortSuppressed = false;
-    selectHeldSince = 0;
+    chordHeldSince = 0;
     abortRequested = wasAborted;
 
     if (faultCode != 0) {
