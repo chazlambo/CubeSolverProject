@@ -61,3 +61,9 @@ Code/sim/build/
 sim-eeprom.bin
 sim-shot-*.bmp
 sim-shot-*.png
+
+# --- Menu theme assets (Code/tools/bake_theme.py) ------------------------
+# The TTFs the baker converts into LVGL fonts. Not vendored, for the same
+# reason LVGL is not: the script fetches them by URL, and the repo already
+# needs the network to configure the simulator. Delete them to force a refetch.
+Code/tools/fonts/

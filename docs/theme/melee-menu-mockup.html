@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Main Menu — Melee Menu Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:ital,wght@0,600;0,700;1,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#050414;
+    --band-fill:#1d2680;
+    --band-edge:#6d7cf0;
+    --gold:#d09018;
+    --gold-glow:#e8a820;
+    --gold-text:#f0a018;
+    --sel-y1:#fdff8c;
+    --sel-y2:#fbff47;
+    --ui-font:'Fira Sans Condensed','Trebuchet MS','Segoe UI',sans-serif;
+    --serif-font:'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;background:#000;overflow:hidden;}
+
+  #viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  #stage{
+    position:relative;width:1200px;height:900px;flex:none;
+    transform-origin:center center;
+    background:
+      radial-gradient(42% 30% at 78% 22%, rgba(58,52,150,.30), transparent 70%),
+      radial-gradient(34% 26% at 16% 62%, rgba(38,58,138,.20), transparent 72%),
+      radial-gradient(46% 36% at 60% 88%, rgba(46,26,96,.18), transparent 75%),
+      radial-gradient(115% 90% at 58% 36%, #06051a 0%, #040311 48%, #02020b 75%, #010107 100%);
+    overflow:hidden;user-select:none;
+  }
+
+  /* ---- background grids: warped perspective, prominent ---- */
+  #gridWarp{position:absolute;inset:-10%;pointer-events:none;
+    transform:perspective(1100px) rotateX(17deg) rotateY(-7deg) scale(1.28);
+    transform-origin:50% 42%;}
+  .grid{position:absolute;inset:-14%;pointer-events:none;}
+  .grid.g1{
+    background:
+      repeating-linear-gradient(0deg, transparent 0 27px, rgba(70,82,210,.42) 27px 28px),
+      repeating-linear-gradient(90deg, transparent 0 27px, rgba(70,82,210,.42) 27px 28px);
+    animation:drift1 80s linear infinite;opacity:.8;
+  }
+  .grid.g2{
+    background:
+      repeating-linear-gradient(0deg, transparent 0 164px, rgba(96,96,215,.16) 164px 166px),
+      repeating-linear-gradient(90deg, transparent 0 164px, rgba(96,96,215,.16) 164px 166px);
+    animation:drift2 120s linear infinite;opacity:.6;transform:rotate(.4deg);
+  }
+  @keyframes drift1{from{transform:translate(0,0)}to{transform:translate(-28px,-28px)}}
+  @keyframes drift2{from{transform:translate(0,0) rotate(.4deg)}to{transform:translate(166px,83px) rotate(.4deg)}}
+
+  .streak{position:absolute;height:4px;border-radius:3px;pointer-events:none;
+    background:linear-gradient(90deg, transparent, rgba(190,200,255,.55) 45%, rgba(230,235,255,.75) 50%, rgba(190,200,255,.55) 55%, transparent);
+    filter:blur(2px);opacity:.5;animation:streakSlide 9s linear infinite;}
+  .streak.green{background:linear-gradient(90deg, transparent, rgba(90,235,150,.5) 45%, rgba(160,255,200,.7) 50%, rgba(90,235,150,.5) 55%, transparent);}
+  .streak.s1{top:190px;left:-30%;width:640px;animation-duration:11s;}
+  .streak.s2{top:318px;left:-20%;width:420px;height:3px;animation-duration:8s;animation-delay:-3s;opacity:.4;}
+  .streak.s3{top:565px;left:-35%;width:720px;height:5px;animation-duration:14s;animation-delay:-7s;opacity:.42;}
+  .streak.s4{top:470px;left:-25%;width:380px;height:3px;animation-duration:10s;animation-delay:-5s;opacity:.45;}
+  .streak.s5{top:730px;left:-30%;width:520px;animation-duration:12s;animation-delay:-9s;opacity:.35;}
+  @keyframes streakSlide{from{transform:translateX(0)}to{transform:translateX(190%)}}
+  @keyframes dashFlicker{0%,100%{opacity:.55}42%{opacity:.75}47%{opacity:.3}52%{opacity:.7}80%{opacity:.5}}
+  #orbits{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .orbit-spin{transform-origin:640px 500px;animation:orbitspin 100s linear infinite;}
+  .orbit-spin.rev{animation:orbitspin 140s linear infinite reverse;transform-origin:500px 420px;}
+  @keyframes orbitspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  #vignette{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(115% 100% at 50% 45%, transparent 40%, rgba(0,0,5,.88) 100%);}
+
+  /* ---- CRT overlays ---- */
+  #tone{position:absolute;inset:0;pointer-events:none;z-index:40;
+    background:rgba(3,2,14,.18);mix-blend-mode:multiply;}
+  #scanlines{position:absolute;inset:0;pointer-events:none;z-index:41;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.15) 0 1px, transparent 1px 3px);opacity:.45;}
+  #grain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:42;opacity:.15;}
+  #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:45;}
+  #flash.go{animation:flashout .5s ease-out;}
+  @keyframes flashout{0%{opacity:0}22%{opacity:.95}100%{opacity:0}}
+
+  /* ---- screen title: silver-gray ---- */
+  #screenTitle{
+    position:absolute;left:194px;top:78px;
+    font-family:Impact,'Arial Narrow',sans-serif;font-weight:400;font-size:52px;letter-spacing:2px;
+    -webkit-text-stroke:1.3px rgba(172,175,186,.82);
+    color:rgba(172,175,186,.82);font-style:italic;transform:skewX(-8deg) scaleY(.84);transform-origin:left top;
+  }
+
+  /* ---- NEXT SCREEN label ---- */
+  #nextLabel{
+    position:absolute;left:733px;top:334px;height:262px;
+    writing-mode:vertical-rl;transform:rotate(180deg);
+    font-family:Impact,'Arial Narrow',sans-serif;font-size:18px;letter-spacing:9px;
+    color:rgba(205,210,222,.8);pointer-events:none;text-align:center;
+  }
+
+  /* ---- teal preview pane ---- */
+  #previewPane{
+    position:absolute;left:826px;top:258px;width:246px;height:362px;
+    transform:perspective(900px) rotateY(-26deg);
+    transform-origin:left center;
+    border-radius:0 18px 0 18px;
+    background:rgba(70,175,185,.16);
+    border:3px solid rgba(175,235,240,.75);box-shadow:0 0 3px rgba(150,220,228,.5), inset 0 0 2px rgba(150,220,228,.4);
+    pointer-events:none;overflow:hidden;
+  }
+  @keyframes shimmer{from{background-position:0 0}to{background-position:0 26px}}
+  #previewList{
+    position:relative;padding:72px 0 0 30px;
+    font-family:var(--ui-font);font-weight:700;
+    font-size:27px;line-height:1.9;color:#dff2f4;white-space:nowrap;
+    transition:opacity .12s ease, transform .12s ease;
+  }
+  #previewList.swap{opacity:0;transform:translateY(10px);}
+  #previewList .ghost{
+    width:164px;height:92px;margin:12px 0 24px -2px;
+    border:3px solid rgba(215,246,248,.5);border-radius:8px;
+    background:
+      linear-gradient(rgba(215,246,248,.14), rgba(215,246,248,.14)) 12px 12px/56px 32px no-repeat,
+      linear-gradient(rgba(215,246,248,.14), rgba(215,246,248,.14)) 80px 12px/60px 10px no-repeat,
+      linear-gradient(rgba(215,246,248,.14), rgba(215,246,248,.14)) 80px 30px/60px 10px no-repeat,
+      linear-gradient(rgba(215,246,248,.14), rgba(215,246,248,.14)) 12px 56px/128px 12px no-repeat;
+  }
+
+  /* ---- description bar: embedded in the frame's bottom edge ---- */
+  #descBar{
+    position:absolute;left:287px;top:758px;width:626px;height:62px;
+    background:rgba(5,4,18,.85);
+    border:solid #eef0f8;border-width:5.5px 3.5px;border-radius:14px;
+    box-shadow:inset 0 0 0 3px rgba(5,4,18,1), inset 0 0 0 4px rgba(140,145,165,.3);
+    display:flex;align-items:center;justify-content:center;
+  }
+  #descText{
+    font-family:Impact,'Arial Narrow',sans-serif;font-size:31px;letter-spacing:1.5px;
+    color:rgba(248,250,255,.95);
+    transition:opacity .1s ease;white-space:nowrap;
+  }
+  #descText.swap{opacity:0;}
+
+  /* ---- menu bars: no shadows, glow only ---- */
+  #menu{position:absolute;inset:0;transform-origin:1460px 460px;}
+  #menu.wheelOutFwd{transition:transform .16s cubic-bezier(.55,0,.85,.36), opacity .13s ease-in .04s;
+    transform:rotate(-24deg);opacity:0;}
+  #menu.wheelOutBack{transition:transform .16s cubic-bezier(.55,0,.85,.36), opacity .13s ease-in .04s;
+    transform:rotate(24deg);opacity:0;}
+  #menu.wheelPreFwd{transform:rotate(28deg);opacity:0;}
+  #menu.wheelPreBack{transform:rotate(-28deg);opacity:0;}
+  #menu.wheelGo{transition:transform .2s cubic-bezier(.18,.85,.32,1.07), opacity .12s ease-out;
+    transform:rotate(0deg);opacity:1;}
+  .bar{position:absolute;cursor:pointer;}
+  .bar.blink{animation:flick .09s steps(2,end) 2;}
+  .bar svg{display:block;overflow:visible;}
+  .bar .label{font-family:var(--ui-font);font-weight:700;letter-spacing:1px;paint-order:stroke fill;}
+  .bar:not(.sel) .label{fill:var(--gold-text);stroke:#080512;stroke-width:5px;}
+  .bar.sel .label{fill:#151000;stroke:none;}
+  .bar.sel{z-index:44;}
+  .bar.flicker{animation:flick .07s steps(2,end) 7;}
+  @keyframes flick{50%{opacity:.15}}
+
+  .cursorOrb{opacity:0;transition:opacity .1s;}
+  .bar.sel .cursorOrb{opacity:1;}
+  .bar.sel .comma{animation:spin 2.6s linear infinite;transform-box:fill-box;transform-origin:center;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .pulse{transform-box:fill-box;transform-origin:center;}
+  .bar.sel .pulse{animation:pulseIn 2.1s ease-out infinite;}
+  .bar.sel .pulse.p2{animation-delay:.16s;}
+  @keyframes pulseIn{
+    0%{transform:scale(1.7);opacity:0;}
+    7%{opacity:.75;}
+    52%{transform:scale(.5);opacity:0;}
+    100%{transform:scale(.5);opacity:0;}
+  }
+
+  #sndToggle{
+    position:absolute;right:18px;bottom:14px;z-index:50;
+    font-family:var(--ui-font);font-weight:600;font-size:13px;letter-spacing:2px;
+    color:#3f4780;background:none;border:none;padding:4px 8px;cursor:pointer;opacity:.6;
+  }
+  #sndToggle:hover{color:#8a92c8;}
+  #sndToggle:focus-visible{outline:2px solid #8a92e0;outline-offset:2px;}
+
+  @media (prefers-reduced-motion: reduce){
+    .grid,.orbit-spin,#previewPane::after,.bar.sel .comma,.bar.sel .pulse{animation:none !important;}
+  }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage" aria-label="Super Smash Bros. Melee style menu mockup">
+
+    <!-- background -->
+    <div id="gridWarp">
+      <div class="grid g1"></div>
+      <div class="grid g2"></div>
+    </div>
+    <div class="streak s1"></div>
+    <div class="streak s2"></div>
+    <div class="streak s3"></div>
+    <div class="streak s4 green"></div>
+    <div class="streak s5"></div>
+    <svg id="orbits" viewBox="0 0 1200 900" fill="none" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="streakA" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#4a44d8" stop-opacity="0"/>
+          <stop offset=".45" stop-color="#5a4ee0" stop-opacity=".45"/>
+          <stop offset="1" stop-color="#7a3cb8" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="streakB" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#2ab88a" stop-opacity="0"/>
+          <stop offset=".5" stop-color="#2fb8a2" stop-opacity=".45"/>
+          <stop offset="1" stop-color="#3d6cff" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="soft" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="9"/></filter>
+        <filter id="softer" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="18"/></filter>
+        <filter id="crisp" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.1"/></filter>
+      </defs>
+      <!-- soft nebula layers -->
+      <g class="orbit-spin rev" filter="url(#softer)">
+        <ellipse cx="500" cy="420" rx="620" ry="260" stroke="url(#streakA)" stroke-width="15" opacity=".45" transform="rotate(18 500 420)"/>
+        <ellipse cx="560" cy="620" rx="580" ry="120" stroke="url(#streakB)" stroke-width="9" opacity=".5" transform="rotate(-14 560 620)"/>
+      </g>
+      <!-- sharp wireframe orbit rings with satellites -->
+      <g class="orbit-spin" filter="url(#crisp)">
+        <g transform="rotate(-24 640 500)">
+          <ellipse cx="640" cy="500" rx="470" ry="185" stroke="#aeb6f6" stroke-width="2.5" opacity=".8"/>
+          <ellipse cx="640" cy="500" rx="425" ry="163" stroke="#8890e0" stroke-width="1.5" opacity=".6"/>
+          <circle cx="1110" cy="500" r="4" fill="#e8ecff" opacity=".95"/>
+          <circle cx="1110" cy="500" r="9" fill="#aeb6f6" opacity=".3"/>
+          <circle cx="215" cy="500" r="3" fill="#cfd6ff" opacity=".8"/>
+        </g>
+        <g transform="rotate(-38 640 500)">
+          <ellipse cx="640" cy="500" rx="560" ry="120" stroke="#7a84d8" stroke-width="1.5" opacity=".5"/>
+          <circle cx="80" cy="500" r="3" fill="#dfe4ff" opacity=".8"/>
+        </g>
+      </g>
+      <ellipse cx="330" cy="760" rx="420" ry="70" stroke="url(#streakB)" stroke-width="6" opacity=".38" filter="url(#soft)" transform="rotate(-9 330 760)"/>
+      <!-- green terminal dash clusters -->
+      <g fill="#52e88a" filter="url(#crisp)" style="animation:dashFlicker 4.2s steps(1,end) infinite;">
+        <rect x="168" y="700" width="18" height="3.5" opacity=".6"/>
+        <rect x="198" y="722" width="10" height="3.5" opacity=".5"/>
+        <rect x="253" y="708" width="26" height="3.5" opacity=".65"/>
+        <rect x="224" y="748" width="14" height="3.5" opacity=".45"/>
+        <rect x="288" y="734" width="9" height="3.5" opacity=".55"/>
+        <rect x="182" y="770" width="22" height="3.5" opacity=".5"/>
+        <rect x="336" y="756" width="13" height="3.5" opacity=".4"/>
+        <rect x="380" y="716" width="16" height="3.5" opacity=".45"/>
+        <rect x="300" y="690" width="20" height="3.5" opacity=".5"/>
+        <rect x="70" y="360" width="14" height="3.5" opacity=".4"/>
+        <rect x="52" y="392" width="20" height="3.5" opacity=".45"/>
+        <rect x="88" y="640" width="12" height="3.5" opacity=".4"/>
+      </g>
+      <g fill="#cdd4ff">
+        <circle cx="150" cy="120" r="1.6" opacity=".5"/><circle cx="1060" cy="70" r="1.4" opacity=".45"/>
+        <circle cx="960" cy="180" r="1.8" opacity=".5"/><circle cx="80" cy="540" r="1.4" opacity=".4"/>
+        <circle cx="1140" cy="420" r="1.6" opacity=".5"/><circle cx="620" cy="60" r="1.3" opacity=".4"/>
+        <circle cx="1100" cy="700" r="1.5" opacity=".45"/><circle cx="60" cy="800" r="1.3" opacity=".35"/>
+        <circle cx="380" cy="860" r="1.4" opacity=".4"/><circle cx="720" cy="870" r="1.3" opacity=".35"/>
+      </g>
+    </svg>
+    <div id="vignette"></div>
+
+    <div id="previewPane"><div id="previewList"></div></div>
+
+    <!-- frame + panel linework -->
+    <svg id="scene" viewBox="0 0 1200 900" fill="none" style="position:absolute;inset:0;width:100%;height:100%;">
+      <defs><filter id="softLine" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="0.8"/></filter></defs>
+      <!-- NEXT SCREEN: grey outline with trapezoidal indent holding the label -->
+      <path d="M 730 208 L 1042 196 L 1042 714 L 730 731
+               L 730 624 L 764 600 L 764 330 L 730 306 Z"
+            stroke="rgba(205,210,225,.62)" stroke-width="4" stroke-linejoin="miter" fill="none" filter="url(#softLine)"/>
+      <!-- frame: one continuous band. Thin horizontal runs (8px), thicker
+           perfectly-vertical sides (14px), wide bottom ribbon produced only
+           by oversized inner fillets. Sharp notch seats the title; three
+           band-styled diagonal bars nestle against the left face of the
+           step. Ribbon stops short of the description box on both sides. -->
+      <g stroke-linejoin="miter" filter="url(#softLine)">
+        <path class="bandShape" d="M 273 813 L 167 813 Q 127 813 127 773 L 127 180
+          Q 127 139 168 139 L 515 139 L 570 86 L 1040 86 Q 1078 86 1078 124
+          L 1078 775 Q 1078 813 1038 813 L 927 813
+          L 927 762 L 1008 762 Q 1064 762 1064 706 L 1064 132 Q 1064 94 1030 94
+          L 578 94 L 523 147 L 168 147 Q 141 147 141 174 L 141 706
+          Q 141 762 197 762 L 273 762 Z"/>
+        <!-- three diagonal bars, band-styled, hugging the step's left face -->
+        <path class="bandShape" d="M 496 139 L 551 86 L 570 86 L 515 139 Z"/>
+        <path class="bandShape" d="M 480 139 L 535 86 L 554 86 L 499 139 Z"/>
+        <path class="bandShape" d="M 464 139 L 519 86 L 538 86 L 483 139 Z"/>
+      </g>
+    </svg>
+    <style>
+      .bandShape{fill-opacity:.55;stroke-width:2.2;}
+      .bandStroke{}
+    </style>
+
+    <div id="nextLabel">NEXT SCREEN</div>
+
+    <div id="screenTitle">Main Menu</div>
+
+    <div id="menu"></div>
+
+    <div id="descBar"><div id="descText"></div></div>
+
+    <div id="tone"></div>
+    <div id="scanlines"></div>
+    <svg id="grain" viewBox="0 0 1200 900" preserveAspectRatio="none"><filter id="noiseF"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0.6  0 0 0 0 0.6  0 0 0 0 0.75  0 0 0 0.5 0"/></filter><rect width="1200" height="900" filter="url(#noiseF)"/></svg>
+    <div id="flash"></div>
+    <button id="sndToggle" aria-pressed="true">SOUND ON</button>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   CONFIG — screens, themes, and navigation.
+   Each screen: title, theme (frame band colors), rows of items.
+   goto:"key" makes Enter navigate to that screen; Esc/Backspace goes back.
+   Swap this object out to re-theme for your own project.
+   ================================================================ */
+const THEMES = {
+  green:   { fill:"#14522a", edge:"#4ade70" },   // Main Menu
+  blue:    { fill:"#1d2680", edge:"#6d7cf0" },   // 1-P Mode
+  red:     { fill:"#6e1a10", edge:"#f0603a" },   // VS. Mode
+  violet:  { fill:"#4a1a72", edge:"#ae6af0" },   // Trophies
+  yellow:  { fill:"#6e5a10", edge:"#e8cf3a" },   // Options
+  purple:  { fill:"#33176e", edge:"#8a62e8" },   // Data
+};
+
+const SCREENS = {
+  main: { title:"Main Menu", theme:"green", parent:null, items:[
+    { label:"1-P Mode", caption:"Solo Smash!", goto:"1p", theme:"blue",
+      preview:["Regular Match","Event Match","Stadium","Training"] },
+    { label:"VS. Mode", caption:"Multiplayer battles!", goto:"vs", theme:"red",
+      preview:["Melee","Tournament Melee","Special Melee","Custom Rules","Name Entry"] },
+    { label:"Trophies", caption:"View trophies.", goto:"trophies", theme:"green",
+      preview:["Gallery","Lottery","Collection"] },
+    { label:"Options",  caption:"Change game settings.", goto:"options", theme:"yellow",
+      preview:["Rumble","Sound","Screen Display","Erase Data"] },
+    { label:"Data",     caption:"View game records.", goto:"data", theme:"purple",
+      preview:["Snapshots","Sound Test","Melee Records","Special"] },
+  ]},
+  "1p": { title:"1-P Mode", theme:"blue", parent:"main", items:[
+    { label:"Regular Match", caption:"Multiple levels of standard Smash.", preview:["Classic","Adventure"] },
+    { label:"Event Match",   caption:"Fight through themed challenges.",   preview:"graphic" },
+    { label:"Stadium",       caption:"Compete for high scores.",           preview:["Target Test","Home-Run Contest","Multi-Man Melee"] },
+    { label:"Training",      caption:"Practice moves and strategies.",     preview:"graphic" },
+  ]},
+  vs: { title:"VS. Mode", theme:"red", parent:"main", items:[
+    { label:"Melee",            caption:"Standard multiplayer battles.",  preview:"graphic" },
+    { label:"Tournament Melee", caption:"Battle through a bracket.",      preview:"graphic" },
+    { label:"Special Melee",    caption:"Battle with special rules.",     preview:"graphic" },
+    { label:"Custom Rules",     caption:"Set your own rules.",            preview:"graphic" },
+    { label:"Name Entry",       caption:"Create and manage names.",       preview:"graphic" },
+  ]},
+  trophies: { title:"Trophies", theme:"green", parent:"main", items:[
+    { label:"Gallery",    caption:"View your trophies up close.", preview:"graphic" },
+    { label:"Lottery",    caption:"Spend coins to win trophies.", preview:"graphic" },
+    { label:"Collection", caption:"View your entire collection.", preview:"graphic" },
+  ]},
+  options: { title:"Options", theme:"yellow", parent:"main", items:[
+    { label:"Rumble",         caption:"Turn the Rumble feature on or off.", preview:"graphic" },
+    { label:"Sound",          caption:"Adjust sound settings.",             preview:"graphic" },
+    { label:"Screen Display", caption:"Adjust the screen position.",        preview:"graphic" },
+    { label:"Erase Data",     caption:"Erase saved game data.",             preview:"graphic" },
+  ]},
+  data: { title:"Data", theme:"purple", parent:"main", items:[
+    { label:"Snapshots",     caption:"View pictures taken in camera mode.", preview:"graphic" },
+    { label:"Sound Test",    caption:"Listen to music and sound effects.",  preview:"graphic" },
+    { label:"Melee Records", caption:"View various combat records.",        preview:"graphic" },
+    { label:"Special",       caption:"View special bonus records.",         preview:"graphic" },
+  ]},
+};
+
+/* zigzag x-offsets, reused per row count */
+const ZIGZAG = [198, 171, 91, 154, 113];
+const BAR_H = 70, BAR_W = 512;
+function rowsFor(n){
+  const startY = n>=5 ? 273 : 292, step = n>=5 ? 93 : 98;
+  return Array.from({length:n}, (_,i)=>({ x:ZIGZAG[i%ZIGZAG.length], y:startY + i*step, w:BAR_W }));
+}
+
+/* ---------------- bar construction ---------------- */
+const menuEl = document.getElementById("menu");
+const stageEl = document.getElementById("stage");
+let bars = [], curScreen = null, cur = -1, busy = false;
+
+function barSVG(w, h, label, idx){
+  const tipY = h*0.72;               // left point sits well below center
+  const inset = h*0.34;  // short, steep chamfer
+  const r = h/2 - 2.5;               // right semicircular cap
+  const capCx = w - h/2;             // cap center; target + socket share it
+  const body = `M 0 ${tipY} L ${inset} 2.5 H ${capCx} A ${r} ${r} 0 0 1 ${capCx} ${h-2.5} H ${inset} Z`;
+  const r2 = r*0.72, r3 = r*0.46;    // half-target arc + socket ring radii
+  return `
+  <svg width="${w+110}" height="${h+110}" viewBox="-24 -55 ${w+110} ${h+110}">
+    <defs>
+      <linearGradient id="selfill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--sel-y1)"/>
+        <stop offset="1" stop-color="var(--sel-y2)"/>
+      </linearGradient>
+      <filter id="barGlowWide" x="-50%" y="-120%" width="200%" height="340%">
+        <feGaussianBlur stdDeviation="13"/>
+      </filter>
+      <filter id="barGlowTight" x="-30%" y="-60%" width="160%" height="220%">
+        <feGaussianBlur stdDeviation="3"/>
+      </filter>
+      <filter id="orbGlow" x="-120%" y="-120%" width="340%" height="340%">
+        <feGaussianBlur stdDeviation="9"/>
+      </filter>
+      <filter id="pulseSoft" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="2.4"/>
+      </filter>
+      <radialGradient id="orbCore">
+        <stop offset="0" stop-color="#feffe0"/>
+        <stop offset=".55" stop-color="#fbff5e"/>
+        <stop offset="1" stop-color="#eef23c"/>
+      </radialGradient>
+    </defs>
+    <path class="glowWide" d="${body}" fill="none" stroke-width="28" filter="url(#barGlowWide)"/>
+    <path class="glowTight" d="${body}" fill="none" stroke-width="9" filter="url(#barGlowTight)"/>
+    <path class="body" d="${body}" stroke="none"/>
+    <text class="label" x="${(inset + capCx - r)/2}" y="${h/2 + 1}"
+          text-anchor="middle" dominant-baseline="central"
+          font-size="${h*0.54}">${label}</text>
+    <g class="socket" transform="translate(${capCx},${h/2})">
+      <path class="arc" d="M 0 ${-r2} A ${r2} ${r2} 0 0 1 0 ${r2}" fill="none" stroke-width="3"/>
+      <circle class="sockRing" r="${r3}" stroke-width="3.5" fill="rgba(3,2,12,.55)"/>
+      <path class="comma" d="M 0 ${-r3*0.55} A ${r3*0.55} ${r3*0.55} 0 1 1 ${-r3*0.55} 0 L 0 0 Z"/>
+      <g class="cursorOrb">
+        <circle r="${h*0.62}" fill="#f8ff4e" opacity=".7" filter="url(#orbGlow)"/>
+        <circle class="pulse" r="${h*0.52}" fill="none" stroke="#f2fa78" stroke-width="6" filter="url(#pulseSoft)"/>
+        <circle class="pulse p2" r="${h*0.52}" fill="none" stroke="#f2fa78" stroke-width="6" filter="url(#pulseSoft)"/>
+        <circle r="${h*0.44}" fill="none" stroke="#fcffd8" stroke-width="5"/>
+        <circle r="${h*0.34}" fill="url(#orbCore)"/>
+        <path class="commaSel" d="M 0 ${-r3*0.6} A ${r3*0.6} ${r3*0.6} 0 1 1 ${-r3*0.6} 0 L 0 0 Z" fill="#8a6a00"/>
+      </g>
+    </g>
+  </svg>`;
+}
+
+function paintBar(div, selected){
+  const body = div.querySelector(".body");
+  const gw = div.querySelector(".glowWide");
+  const gt = div.querySelector(".glowTight");
+  const ring = div.querySelector(".sockRing");
+  const comma = div.querySelector(".comma");
+  const arc = div.querySelector(".arc");
+  if(selected){
+    div.classList.add("sel");
+    body.setAttribute("fill","#fbff47");
+    gw.setAttribute("stroke","#f8ff5c"); gw.setAttribute("opacity","1");
+    gt.setAttribute("stroke","#fdffa8"); gt.setAttribute("opacity",".95");
+    ring.setAttribute("stroke","none");
+    comma.setAttribute("fill","none");
+    arc.setAttribute("stroke","none");
+  }else{
+    div.classList.remove("sel");
+    body.setAttribute("fill","rgba(2,2,12,.86)");
+    gw.setAttribute("stroke","#f5aa14"); gw.setAttribute("opacity",".9");
+    gt.setAttribute("stroke","#ffc030"); gt.setAttribute("opacity",".95");
+    ring.setAttribute("stroke","var(--gold)");
+    comma.setAttribute("fill","var(--gold)");
+    arc.setAttribute("stroke","var(--gold)");
+  }
+}
+
+/* ---------------- screen rendering + navigation ---------------- */
+const previewList = document.getElementById("previewList");
+const descText = document.getElementById("descText");
+const titleEl = document.getElementById("screenTitle");
+
+function applyChrome(scr){
+  titleEl.textContent = scr.title;
+}
+
+function applyTheme(key){
+  const th = THEMES[key];
+  stageEl.style.setProperty("--band-fill", th.fill);
+  stageEl.style.setProperty("--band-edge", th.edge);
+  document.querySelectorAll(".bandShape").forEach(p=>{ p.style.fill = th.fill; p.style.stroke = th.edge; });
+  document.querySelectorAll(".bandStroke").forEach(p=> p.style.stroke = th.edge);
+}
+
+function buildBars(scr){
+  menuEl.innerHTML = ""; bars = [];
+  const rows = rowsFor(scr.items.length);
+  scr.items.forEach((item, i)=>{
+    const row = rows[i], h = BAR_H;
+    const div = document.createElement("div");
+    div.className = "bar";
+    div.style.left = (row.x-24)+"px";
+    div.style.top  = (row.y - h/2 - 55)+"px";
+    div.innerHTML = barSVG(row.w, h, item.label, i);
+    div.addEventListener("mouseenter", ()=> select(i));
+    div.addEventListener("click", ()=> confirm());
+    menuEl.appendChild(div);
+    bars.push(div);
+  });
+}
+
+function renderScreen(key){
+  const scr = SCREENS[key];
+  curScreen = key; cur = -1;
+  applyChrome(scr);
+  buildBars(scr);
+  select(0, true);
+}
+
+/* Melee-style wheel: chrome swaps first, old bars rotate away around an
+   off-screen pivot at the right, new bars wheel in along the same arc. */
+function transitionTo(key, dir){
+  busy = true;
+  const scr = SCREENS[key];
+  curScreen = key; cur = -1;
+  applyChrome(scr);                             // frame color + title change early
+  const first = scr.items[0];                   // caption/preview swap early too
+  previewList.classList.add("swap"); descText.classList.add("swap");
+  setTimeout(()=>{
+    renderPreview(first); descText.textContent = first.caption;
+    previewList.classList.remove("swap"); descText.classList.remove("swap");
+  },110);
+  menuEl.classList.add(dir>0 ? "wheelOutFwd" : "wheelOutBack");
+  setTimeout(()=>{
+    buildBars(scr);
+    select(0, true);
+    menuEl.classList.remove("wheelOutFwd","wheelOutBack");
+    menuEl.classList.add(dir>0 ? "wheelPreFwd" : "wheelPreBack");
+    void menuEl.offsetWidth;                    // commit the pre-rotation
+    menuEl.classList.add("wheelGo");
+    menuEl.classList.remove("wheelPreFwd","wheelPreBack");
+    setTimeout(()=>{
+      menuEl.classList.remove("wheelGo");
+      busy = false;
+    }, 220);
+  }, 170);
+}
+
+function renderPreview(item){
+  if(item.preview === "graphic"){
+    previewList.innerHTML = `<div class="ghost"></div><div class="ghost"></div>`;
+  }else{
+    previewList.innerHTML = item.preview.map(t=>`<div>${t}</div>`).join("");
+  }
+}
+
+function select(i, instant){
+  if(busy && !instant) return;
+  if(i===cur) return;
+  cur = i;
+  bars.forEach((b,j)=> paintBar(b, j===i));
+  const item = SCREENS[curScreen].items[i];
+  applyTheme(item.theme || SCREENS[curScreen].theme);
+  if(instant){
+    renderPreview(item); descText.textContent = item.caption;
+  }else{
+    previewList.classList.add("swap"); descText.classList.add("swap");
+    setTimeout(()=>{
+      renderPreview(item); descText.textContent = item.caption;
+      previewList.classList.remove("swap"); descText.classList.remove("swap");
+    },110);
+    blip(660 + i*40, .05, "square", .05);
+  }
+}
+
+function confirm(){
+  if(busy) return;
+  const item = SCREENS[curScreen].items[cur];
+  blip(880,.06,"square",.07); setTimeout(()=>blip(1320,.1,"square",.05),60);
+  if(item.goto){
+    transitionTo(item.goto, 1);
+  }else{
+    const b = bars[cur];                        // leaf: quick acknowledge blink
+    b.classList.add("blink");
+    setTimeout(()=> b.classList.remove("blink"), 220);
+  }
+}
+
+function goBack(){
+  if(busy) return;
+  const parent = SCREENS[curScreen].parent;
+  if(parent){ blip(440,.07,"square",.05); transitionTo(parent, -1); }
+}
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowDown"){ e.preventDefault(); select((cur+1)%bars.length); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); select((cur-1+bars.length)%bars.length); }
+  else if(e.key==="Enter" || e.key===" "){ e.preventDefault(); confirm(); }
+  else if(e.key==="Escape" || e.key==="Backspace"){ e.preventDefault(); goBack(); }
+});
+
+/* ---------------- tiny synth for menu blips ---------------- */
+let AC = null, sndOn = true;
+function blip(freq, dur, type, gain){
+  if(!sndOn) return;
+  try{
+    AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==="suspended") AC.resume();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(gain, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime+dur);
+    o.connect(g).connect(AC.destination);
+    o.start(); o.stop(AC.currentTime+dur);
+  }catch(e){}
+}
+const sndBtn = document.getElementById("sndToggle");
+sndBtn.addEventListener("click", e=>{
+  e.stopPropagation();
+  sndOn = !sndOn;
+  sndBtn.textContent = sndOn ? "SOUND ON" : "SOUND OFF";
+  sndBtn.setAttribute("aria-pressed", sndOn);
+});
+
+/* ---------------- stage scaling ---------------- */
+function fit(){
+  const s = Math.min(innerWidth/1200, innerHeight/900);
+  document.getElementById("stage").style.transform = `scale(${s})`;
+}
+addEventListener("resize", fit); fit();
+
+renderScreen("main");
+</script>
+</body>
+</html>

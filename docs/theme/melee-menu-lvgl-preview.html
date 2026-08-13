@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cube Solver Menu — LVGL / ILI9341 Preview (320×240)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* =====================================================================
+     LVGL FEASIBILITY RULES honored by this preview:
+     - Rendered at a native 320x240 raster (the real panel size).
+     - Background is one STATIC baked layer (no live animation): in the
+       port this is a single full-screen image asset.
+     - Bars + border glow are "baked assets": drawn once here, but nothing
+       relies on runtime blur. Border recolors per selection = LVGL image
+       recolor on a white/alpha mask.
+     - Animations used are only ones LVGL 9 has natively:
+       zoom+opacity (sonar), transform_rotation around a pivot (wheel).
+     - No CRT overlay stack: on real hardware the TFT provides the pixels.
+       A faint scanline texture is baked into the background instead.
+     ===================================================================== */
+  :root{
+    --ui-font:'Fira Sans Condensed','Trebuchet MS',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;background:#14161c;overflow:hidden;
+    font-family:var(--ui-font);}
+
+  #room{position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;}
+
+  /* ---- TFT module bezel ---- */
+  #device{
+    padding:26px 30px;background:linear-gradient(160deg,#20242c,#171a20);
+    border-radius:14px;border:1px solid #2c313c;
+    box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  #panel{
+    padding:8px;background:#05060a;border-radius:4px;
+    border:1px solid #000;
+    box-shadow:inset 0 0 8px rgba(0,0,0,.9);
+  }
+  #zoomwrap{width:320px;height:240px;overflow:hidden;transition:width .15s,height .15s;}
+  #stage{
+    position:relative;width:320px;height:240px;
+    transform:scale(1);transform-origin:top left;
+    background:#020208;overflow:hidden;user-select:none;
+  }
+  #caption{color:#5a6170;font-size:13px;letter-spacing:.5px;text-align:center;line-height:1.7;}
+  #caption b{color:#8a92a4;font-weight:600;}
+  .zbtn{font-family:var(--ui-font);font-size:12px;letter-spacing:1px;color:#8a92a4;
+    background:#20242c;border:1px solid #2c313c;border-radius:5px;padding:3px 10px;
+    cursor:pointer;margin:0 3px;}
+  .zbtn.on{color:#e8ecf4;border-color:#5a6480;background:#2a3040;}
+  .zbtn:focus-visible{outline:2px solid #8a92e0;outline-offset:2px;}
+
+  /* ---- baked static background (one image asset in the port) ---- */
+  #bakedBG{position:absolute;inset:0;
+    background:
+      /* faint scanline texture, baked */
+      repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 3px),
+      /* light/dark regional variation */
+      radial-gradient(42% 30% at 78% 22%, rgba(58,52,150,.30), transparent 70%),
+      radial-gradient(34% 26% at 16% 62%, rgba(38,58,138,.20), transparent 72%),
+      radial-gradient(46% 36% at 60% 88%, rgba(46,26,96,.18), transparent 75%),
+      radial-gradient(115% 90% at 58% 36%, #06051a 0%, #040311 48%, #02020b 75%, #010107 100%);
+  }
+  #bakedBG .grid{position:absolute;inset:-10%;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 10px, rgba(66,78,205,.22) 10px 11px),
+      repeating-linear-gradient(90deg, transparent 0 10px, rgba(66,78,205,.22) 10px 11px);
+    transform:perspective(300px) rotateX(17deg) rotateY(-7deg) scale(1.28);
+    transform-origin:50% 42%;opacity:.7;}
+  #bakedBG .vig{position:absolute;inset:0;
+    background:radial-gradient(115% 100% at 50% 45%, transparent 40%, rgba(0,0,5,.88) 100%);}
+
+  /* ---- teal preview pane (behind border) ---- */
+  #previewPane{
+    position:absolute;left:220px;top:69px;width:66px;height:96px;
+    transform:perspective(240px) rotateY(-26deg);
+    transform-origin:left center;
+    border-radius:0 5px 0 5px;
+    background:rgba(70,175,185,.16);
+    border:1px solid rgba(175,235,240,.75);
+    pointer-events:none;overflow:hidden;
+  }
+  #previewList{
+    position:relative;padding:11px 0 0 6px;
+    font-family:var(--ui-font);font-weight:700;
+    font-size:9px;line-height:1.85;color:#dff2f4;white-space:nowrap;
+    transition:opacity .1s ease;
+  }
+  #previewList.swap{opacity:0;}
+  #previewList .ghost{
+    width:42px;height:24px;margin:3px 0 6px 0;
+    border:1px solid rgba(215,246,248,.5);border-radius:2px;
+  }
+
+  /* ---- screen title ---- */
+  #screenTitle{
+    position:absolute;left:52px;top:21px;
+    font-family:Impact,'Arial Narrow',sans-serif;font-size:13px;letter-spacing:.4px;
+    color:rgba(172,175,186,.82);font-style:italic;
+    transform:skewX(-8deg) scaleY(.84);transform-origin:left top;
+  }
+
+  /* ---- NEXT SCREEN label ---- */
+  #nextLabel{
+    position:absolute;left:195px;top:89px;height:70px;
+    writing-mode:vertical-rl;transform:rotate(180deg);
+    font-family:Impact,'Arial Narrow',sans-serif;font-size:5px;letter-spacing:2.5px;
+    color:rgba(205,210,222,.8);pointer-events:none;text-align:center;
+  }
+
+  /* ---- description bar (frame-embedded) ---- */
+  #descBar{
+    position:absolute;left:69px;top:199px;width:182px;height:21px;
+    background:rgba(5,4,18,.85);
+    border:solid #eef0f8;border-width:2px 1px;border-radius:4px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #descText{
+    font-family:Impact,'Arial Narrow',sans-serif;font-size:11px;letter-spacing:.4px;
+    color:rgba(248,250,255,.95);transition:opacity .1s ease;white-space:nowrap;
+  }
+  #descText.swap{opacity:0;}
+
+  /* ---- menu (wheel transform group) ---- */
+  #menu{position:absolute;inset:0;transform-origin:389px 123px;}
+  #menu.wheelOutFwd{transition:transform .16s cubic-bezier(.55,0,.85,.36), opacity .13s ease-in .04s;
+    transform:rotate(-24deg);opacity:0;}
+  #menu.wheelOutBack{transition:transform .16s cubic-bezier(.55,0,.85,.36), opacity .13s ease-in .04s;
+    transform:rotate(24deg);opacity:0;}
+  #menu.wheelPreFwd{transform:rotate(28deg);opacity:0;}
+  #menu.wheelPreBack{transform:rotate(-28deg);opacity:0;}
+  #menu.wheelGo{transition:transform .2s cubic-bezier(.18,.85,.32,1.07), opacity .12s ease-out;
+    transform:rotate(0deg);opacity:1;}
+  .bar{position:absolute;cursor:pointer;}
+  .bar svg{display:block;overflow:visible;}
+  .bar .label{font-family:var(--ui-font);font-weight:700;letter-spacing:.5px;paint-order:stroke fill;}
+  .bar:not(.sel) .label{fill:#f0a018;stroke:#080512;stroke-width:4px;}
+  .bar.sel .label{fill:#151000;stroke:none;}
+  .bar.sel{z-index:5;}
+  .bar.blink{animation:flick .09s steps(2,end) 2;}
+  @keyframes flick{50%{opacity:.15}}
+
+  .cursorOrb{opacity:0;transition:opacity .1s;}
+  .bar.sel .cursorOrb{opacity:1;}
+  .bar.sel .comma{animation:spin 2.6s linear infinite;transform-box:fill-box;transform-origin:center;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .pulse{transform-box:fill-box;transform-origin:center;}
+  .bar.sel .pulse{animation:pulseIn 2.1s ease-out infinite;}
+  .bar.sel .pulse.p2{animation-delay:.16s;}
+  @keyframes pulseIn{
+    0%{transform:scale(1.7);opacity:0;}
+    7%{opacity:.75;}
+    52%{transform:scale(.5);opacity:0;}
+    100%{transform:scale(.5);opacity:0;}
+  }
+</style>
+</head>
+<body>
+<div id="room">
+  <div id="device"><div id="panel"><div id="zoomwrap">
+    <div id="stage" aria-label="LVGL 320x240 preview of the menu">
+      <div id="bakedBG"><div class="grid"></div><div class="vig"></div></div>
+
+      <div id="previewPane"><div id="previewList"></div></div>
+
+      <!-- border: same path data as the 1200x900 master, rasterized to
+           320x240 by the viewBox — exactly what the asset bake does -->
+      <svg id="scene" viewBox="0 0 1200 900" width="320" height="240"
+           fill="none" style="position:absolute;inset:0;">
+        <path d="M 730 208 L 1042 196 L 1042 714 L 730 731
+                 L 730 624 L 764 600 L 764 330 L 730 306 Z"
+              stroke="rgba(205,210,225,.62)" stroke-width="4" stroke-linejoin="miter"/>
+        <g stroke-linejoin="miter" id="bandGroup">
+          <path class="bandShape" d="M 233 813 L 167 813 Q 127 813 127 773 L 127 180
+            Q 127 139 168 139 L 515 139 L 570 86 L 1040 86 Q 1078 86 1078 124
+            L 1078 775 Q 1078 813 1038 813 L 968 813
+            L 968 762 L 1008 762 Q 1064 762 1064 706 L 1064 132 Q 1064 94 1030 94
+            L 578 94 L 523 147 L 168 147 Q 141 147 141 174 L 141 706
+            Q 141 762 197 762 L 233 762 Z"/>
+          <path class="bandShape" d="M 496 139 L 551 86 L 570 86 L 515 139 Z"/>
+          <path class="bandShape" d="M 480 139 L 535 86 L 554 86 L 499 139 Z"/>
+          <path class="bandShape" d="M 464 139 L 519 86 L 538 86 L 483 139 Z"/>
+        </g>
+        <style>.bandShape{fill-opacity:.55;stroke-width:2.2;}</style>
+      </svg>
+
+      <div id="nextLabel">NEXT SCREEN</div>
+      <div id="screenTitle">Cube Solver</div>
+      <div id="menu"></div>
+      <div id="descBar"><div id="descText"></div></div>
+    </div>
+  </div></div></div>
+  <div id="caption">
+    <b>ILI9341 · 320×240 · <span id="zoomLabel">actual size (1×)</span></b> —
+    <button class="zbtn on" data-z="1">1×</button><button class="zbtn" data-z="2">2×</button><button class="zbtn" data-z="3">3×</button><br>
+    LVGL-feasible techniques only: baked background, recolorable border mask, image bars, zoom/opacity + pivot-rotation anims<br>
+    Encoder: ↑ / ↓ &nbsp;·&nbsp; Press: Enter &nbsp;·&nbsp; Back: Esc &nbsp;·&nbsp; Zoom: Z
+  </div>
+</div>
+
+<script>
+/* Themed for the cube solver; structure identical to the master mockup. */
+const THEMES = {
+  green:   { fill:"#14522a", edge:"#4ade70" },
+  blue:    { fill:"#1d2680", edge:"#6d7cf0" },
+  red:     { fill:"#6e1a10", edge:"#f0603a" },
+  violet:  { fill:"#4a1a72", edge:"#ae6af0" },
+  yellow:  { fill:"#6e5a10", edge:"#e8cf3a" },
+  purple:  { fill:"#33176e", edge:"#8a62e8" },
+};
+
+const SCREENS = {
+  main: { title:"Cube Solver", theme:"green", parent:null, items:[
+    { label:"Solve",     caption:"Scan and solve the cube!", goto:"solve", theme:"blue",
+      preview:["Full Solve","Scan Only","Solve Only"] },
+    { label:"Scramble",  caption:"Randomize the cube.", theme:"red",
+      preview:"graphic" },
+    { label:"Calibrate", caption:"Tune motors and sensors.", goto:"cal", theme:"violet",
+      preview:["Motors","Color Sensor","Servos"] },
+    { label:"Manual",    caption:"Direct motor control.", theme:"yellow",
+      preview:"graphic" },
+    { label:"Stats",     caption:"View solve records.", theme:"purple",
+      preview:["Best Time","History"] },
+  ]},
+  solve: { title:"Solve", theme:"blue", parent:"main", items:[
+    { label:"Full Solve", caption:"Scan, compute, and solve.", preview:"graphic" },
+    { label:"Scan Only",  caption:"Read the cube state.",      preview:"graphic" },
+    { label:"Solve Only", caption:"Solve from last scan.",     preview:"graphic" },
+  ]},
+  cal: { title:"Calibrate", theme:"violet", parent:"main", items:[
+    { label:"Motors",       caption:"Home and tune steppers.",  preview:"graphic" },
+    { label:"Color Sensor", caption:"Calibrate color readings.",preview:"graphic" },
+    { label:"Servos",       caption:"Set servo positions.",     preview:"graphic" },
+  ]},
+};
+
+/* 1200x900 master geometry, scaled to 320x240 (÷3.75) at build time —
+   in the port these are the pre-scaled pixel coords of the baked assets */
+const S = 3.75;
+const ZIGZAG = [198, 171, 91, 154, 113];
+const BAR_H = 22, BAR_W = 141;
+function rowsFor(n){
+  const startY = (n>=5 ? 70 : 76), step = (n>=5 ? 27 : 29);
+  return Array.from({length:n}, (_,i)=>({ x:ZIGZAG[i%ZIGZAG.length]/S, y:startY + i*step, w:BAR_W }));
+}
+
+const menuEl = document.getElementById("menu");
+let bars = [], curScreen = null, cur = -1, busy = false;
+
+function barSVG(w, h, label){
+  const tipY = h*0.72, inset = h*0.34;
+  const r = h/2 - 0.7, capCx = w - h/2;
+  const body = `M 0 ${tipY} L ${inset} 0.7 H ${capCx} A ${r} ${r} 0 0 1 ${capCx} ${h-0.7} H ${inset} Z`;
+  const r2 = r*0.72, r3 = r*0.46;
+  return `
+  <svg width="${w+26}" height="${h+26}" viewBox="-6 -13 ${w+26} ${h+26}">
+    <defs>
+      <filter id="gW" x="-50%" y="-120%" width="200%" height="340%"><feGaussianBlur stdDeviation="3.4"/></filter>
+      <filter id="gT" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="0.8"/></filter>
+      <filter id="oG" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="2.4"/></filter>
+      <filter id="pS" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="0.65"/></filter>
+      <radialGradient id="orbCore">
+        <stop offset="0" stop-color="#feffe0"/><stop offset=".55" stop-color="#fbff5e"/>
+        <stop offset="1" stop-color="#eef23c"/>
+      </radialGradient>
+    </defs>
+    <path class="glowWide" d="${body}" fill="none" stroke-width="7.5" filter="url(#gW)"/>
+    <path class="glowTight" d="${body}" fill="none" stroke-width="2.4" filter="url(#gT)"/>
+    <path class="body" d="${body}" stroke="none"/>
+    <text class="label" x="${(inset + capCx - r)/2}" y="${h/2 + 0.3}"
+          text-anchor="middle" dominant-baseline="central"
+          font-size="${h*0.54}">${label}</text>
+    <g class="socket" transform="translate(${capCx},${h/2})">
+      <path class="arc" d="M 0 ${-r2} A ${r2} ${r2} 0 0 1 0 ${r2}" fill="none" stroke-width="0.9"/>
+      <circle class="sockRing" r="${r3}" stroke-width="1" fill="rgba(3,2,12,.55)"/>
+      <path class="comma" d="M 0 ${-r3*0.55} A ${r3*0.55} ${r3*0.55} 0 1 1 ${-r3*0.55} 0 L 0 0 Z"/>
+      <g class="cursorOrb">
+        <circle r="${h*0.62}" fill="#f8ff4e" opacity=".7" filter="url(#oG)"/>
+        <circle class="pulse" r="${h*0.52}" fill="none" stroke="#f2fa78" stroke-width="1.7" filter="url(#pS)"/>
+        <circle class="pulse p2" r="${h*0.52}" fill="none" stroke="#f2fa78" stroke-width="1.7" filter="url(#pS)"/>
+        <circle r="${h*0.44}" fill="none" stroke="#fcffd8" stroke-width="1.4"/>
+        <circle r="${h*0.34}" fill="url(#orbCore)"/>
+        <path class="commaSel" d="M 0 ${-r3*0.6} A ${r3*0.6} ${r3*0.6} 0 1 1 ${-r3*0.6} 0 L 0 0 Z" fill="#8a6a00"/>
+      </g>
+    </g>
+  </svg>`;
+}
+
+function paintBar(div, selected){
+  const body = div.querySelector(".body");
+  const gw = div.querySelector(".glowWide");
+  const gt = div.querySelector(".glowTight");
+  const ring = div.querySelector(".sockRing");
+  const comma = div.querySelector(".comma");
+  const arc = div.querySelector(".arc");
+  if(selected){
+    div.classList.add("sel");
+    body.setAttribute("fill","#fbff47");
+    gw.setAttribute("stroke","#f8ff5c"); gw.setAttribute("opacity","1");
+    gt.setAttribute("stroke","#fdffa8"); gt.setAttribute("opacity",".95");
+    ring.setAttribute("stroke","none"); comma.setAttribute("fill","none"); arc.setAttribute("stroke","none");
+  }else{
+    div.classList.remove("sel");
+    body.setAttribute("fill","rgba(2,2,12,.86)");
+    gw.setAttribute("stroke","#f5aa14"); gw.setAttribute("opacity",".9");
+    gt.setAttribute("stroke","#ffc030"); gt.setAttribute("opacity",".95");
+    ring.setAttribute("stroke","#d09018"); comma.setAttribute("fill","#d09018"); arc.setAttribute("stroke","#d09018");
+  }
+}
+
+const previewList = document.getElementById("previewList");
+const descText = document.getElementById("descText");
+const titleEl = document.getElementById("screenTitle");
+
+function applyTheme(key){
+  const th = THEMES[key];
+  document.querySelectorAll(".bandShape").forEach(p=>{ p.style.fill = th.fill; p.style.stroke = th.edge; });
+}
+
+function buildBars(scr){
+  menuEl.innerHTML = ""; bars = [];
+  const rows = rowsFor(scr.items.length);
+  scr.items.forEach((item, i)=>{
+    const row = rows[i], h = BAR_H;
+    const div = document.createElement("div");
+    div.className = "bar";
+    div.style.left = (row.x-6)+"px";
+    div.style.top  = (row.y - h/2 - 13)+"px";
+    div.innerHTML = barSVG(row.w, h, item.label);
+    div.addEventListener("mouseenter", ()=> select(i));
+    div.addEventListener("click", ()=> confirm());
+    menuEl.appendChild(div);
+    bars.push(div);
+  });
+}
+
+function renderScreen(key){
+  const scr = SCREENS[key];
+  curScreen = key; cur = -1;
+  titleEl.textContent = scr.title;
+  buildBars(scr);
+  select(0, true);
+}
+
+function transitionTo(key, dir){
+  busy = true;
+  const scr = SCREENS[key];
+  curScreen = key; cur = -1;
+  titleEl.textContent = scr.title;
+  const first = scr.items[0];
+  previewList.classList.add("swap"); descText.classList.add("swap");
+  setTimeout(()=>{
+    renderPreview(first); descText.textContent = first.caption;
+    previewList.classList.remove("swap"); descText.classList.remove("swap");
+  },110);
+  menuEl.classList.add(dir>0 ? "wheelOutFwd" : "wheelOutBack");
+  setTimeout(()=>{
+    buildBars(scr);
+    select(0, true);
+    menuEl.classList.remove("wheelOutFwd","wheelOutBack");
+    menuEl.classList.add(dir>0 ? "wheelPreFwd" : "wheelPreBack");
+    void menuEl.offsetWidth;
+    menuEl.classList.add("wheelGo");
+    menuEl.classList.remove("wheelPreFwd","wheelPreBack");
+    setTimeout(()=>{ menuEl.classList.remove("wheelGo"); busy = false; }, 220);
+  }, 170);
+}
+
+function renderPreview(item){
+  if(item.preview === "graphic"){
+    previewList.innerHTML = `<div class="ghost"></div><div class="ghost"></div>`;
+  }else{
+    previewList.innerHTML = item.preview.map(t=>`<div>${t}</div>`).join("");
+  }
+}
+
+function select(i, instant){
+  if(busy && !instant) return;
+  if(i===cur) return;
+  cur = i;
+  bars.forEach((b,j)=> paintBar(b, j===i));
+  const item = SCREENS[curScreen].items[i];
+  applyTheme(item.theme || SCREENS[curScreen].theme);
+  if(instant){
+    renderPreview(item); descText.textContent = item.caption;
+  }else{
+    previewList.classList.add("swap"); descText.classList.add("swap");
+    setTimeout(()=>{
+      renderPreview(item); descText.textContent = item.caption;
+      previewList.classList.remove("swap"); descText.classList.remove("swap");
+    },110);
+  }
+}
+
+function confirm(){
+  if(busy) return;
+  const item = SCREENS[curScreen].items[cur];
+  if(item.goto){
+    transitionTo(item.goto, 1);
+  }else{
+    const b = bars[cur];
+    b.classList.add("blink");
+    setTimeout(()=> b.classList.remove("blink"), 220);
+  }
+}
+
+function goBack(){
+  if(busy) return;
+  const parent = SCREENS[curScreen].parent;
+  if(parent) transitionTo(parent, -1);
+}
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowDown"){ e.preventDefault(); select((cur+1)%bars.length); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); select((cur-1+bars.length)%bars.length); }
+  else if(e.key==="Enter" || e.key===" "){ e.preventDefault(); confirm(); }
+  else if(e.key==="Escape" || e.key==="Backspace"){ e.preventDefault(); goBack(); }
+  else if(e.key==="z" || e.key==="Z"){ setZoom(zoom % 3 + 1); }
+});
+
+/* zoom control: 1x = actual panel pixel count */
+let zoom = 1;
+function setZoom(z){
+  zoom = z;
+  document.getElementById("stage").style.transform = `scale(${z})`;
+  const w = document.getElementById("zoomwrap");
+  w.style.width = (320*z)+"px"; w.style.height = (240*z)+"px";
+  document.getElementById("zoomLabel").textContent = z===1 ? "actual size (1×)" : `shown at ${z}× zoom`;
+  document.querySelectorAll(".zbtn").forEach(b=> b.classList.toggle("on", +b.dataset.z===z));
+  fit();
+}
+document.querySelectorAll(".zbtn").forEach(b=>{
+  b.addEventListener("click", e=>{ e.stopPropagation(); setZoom(+b.dataset.z); b.blur(); });
+});
+function fit(){
+  const avail = Math.min((innerWidth-120)/(320*zoom+120), (innerHeight-190)/(240*zoom+70), 1);
+  document.getElementById("device").style.transform = `scale(${avail})`;
+}
+addEventListener("resize", fit); fit();
+
+renderScreen("main");
+</script>
+</body>
+</html>
