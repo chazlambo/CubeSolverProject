@@ -175,7 +175,14 @@ alongside the operation-screen ones.
 Build the descriptor, then create the image. If a runtime-drawn image is blank,
 check that order first.
 
-### 4.7 (bonus) `bake_theme.py --no-images` leaves the header stale
+### 4.7 No C99 compound literals in the sketches
+
+`(char[2]){ c, 0 }` is C99. In C++ it is a GNU extension with different lifetime
+rules, and GCC accepts it without a word — the string simply came out empty and
+the whole row vanished from the screen. Build the value into a named buffer, or
+use a table of `const char*`.
+
+### 4.8 (bonus) `bake_theme.py --no-images` leaves the header stale
 
 `CubeThemeAssets.h` carries both image placement constants and font
 declarations, and only the rasterizer can write the image half. If you add a

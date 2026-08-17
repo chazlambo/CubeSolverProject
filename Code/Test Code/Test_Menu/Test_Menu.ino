@@ -71,7 +71,8 @@ static TState state = TState::Menu;
 
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
-enum class Live : uint8_t { None, Input, Steps, Chips, Scramble, Fold, Step, Demo, Sensors };
+enum class Live : uint8_t { None, Input, Steps, Chips, Scramble, Fold, Step, Demo,
+                            Sensors, SensorRaw, Motors };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -107,7 +108,8 @@ static void actLoad();
 static void actEject();
 static void actReport();
 static void actInputReport();
-static void actSensorTest();
+static void actColourSensors();
+static void actMotorSensors();
 static void actDemoInfo();
 static void actDemoSteps();
 static void actDemoChips();
@@ -167,7 +169,7 @@ static const char* const kScrambleMoves[kScrambleLen] = {
     "U2", "F",  "D'", "L'", "B2", "R2", "U",  "F'", "D",  "L",
     "B",  "R",  "U2", "F2", "D'", "L2", "B'", "R2", "U'", "F",
 };
-static const char* const kPrevDiag[] = { "Navigation", "Input", "Sensors" };
+static const char* const kPrevDiag[] = { "Navigation", "Input", "Colour", "Motor" };
 
 // One caption per sticker on a colour board. Nine of them, in the order the
 // sensors are read.
@@ -209,10 +211,12 @@ static const MenuItem kDiagItems[] = {
       kPrevNav, 4, MenuTheme::Red },
     { "Input Report", nullptr,     actInputReport, "Live wheel and buttons.",
       nullptr, 0, MenuTheme::Purple },
-    { "Sensor Test",  nullptr,     actSensorTest,  "Live colour readings.",
+    { "Colour Sensors", nullptr,   actColourSensors, "Live, per board.",
       nullptr, 0, MenuTheme::Blue },
+    { "Motor Sensors",  nullptr,   actMotorSensors,  "Raw encoder angles.",
+      nullptr, 0, MenuTheme::Green },
 };
-const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 3, MenuTheme::Purple };
+const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 4, MenuTheme::Purple };
 
 // ---- navigation: one screen per item count ----
 //
@@ -634,40 +638,125 @@ static void updateInputReport() {
     cubeDisplay.setOpLines(lines, 6);
 }
 
-// Live colour readings, nine sensors per board.
+// ---------------------------------------------------------------------------
+//  Sensor screens
+// ---------------------------------------------------------------------------
+//  Split in two because they answer different questions. The colour boards want
+//  "is any sensor disagreeing with its neighbours", which is a picture. The
+//  motor encoders want "what angle is each one reading", which is a list of
+//  numbers.
 //
-// The two rows of chips ARE the readout: a wall of eighteen colour names would
-// take longer to read than the cube does to scan, and the thing you are looking
-// for — one sensor disagreeing with its neighbours — shows up instantly as a
-// chip of the wrong colour.
-//
-// Board 2 sensor 2 reads a dead green channel on this machine (see the README),
-// so it is drawn as a known-bad sensor rather than a plausible one. A diagnostic
-// that only ever shows healthy hardware is not a diagnostic.
-static void actSensorTest() {
-    showScreen(Op::Scan, "Sensor Test", nullptr, Live::Sensors);
+//  The readings here are canned but MOVING, so the screens are exercised as live
+//  ones rather than stills. On hardware they come from
+//  colorSensorN.getScanValRow(i) — four ints, R G B W — and
+//  MotorEncoders[i]->scan(), a raw 12-bit angle or a negative I2C error.
+static int8_t senSel = 0;          // 0..17 across both boards, or the raw view
+
+static void senReadings(uint32_t t, int8_t* b1, int8_t* b2) {
+    const int phase = (int)(t / 900);
+    for (int i = 0; i < 9; ++i) {
+        b1[i] = (int8_t)((i + phase) % 6);
+        // Board 2 sensor 2 has a dead green channel on this machine (README),
+        // so it never resolves to a colour. A diagnostic that only ever shows
+        // healthy hardware is not a diagnostic.
+        b2[i] = (i == 1) ? (int8_t)-1 : (int8_t)((i + phase + 3) % 6);
+    }
 }
 
-static void updateSensorTest(uint32_t t) {
+static void actColourSensors() {
+    senSel = 0;
+    showScreen(Op::Scan, "Colour Sensors", nullptr, Live::Sensors);
+}
+
+static void updateColourSensors(uint32_t t) {
     static const char* rows[2] = { "Board 1\t9/9 healthy, sep 165",
                                    "Board 2\t8/9 healthy, sep 3" };
     static const CubeDisplay::RowMark marks[2] = { CubeDisplay::RowMark::Good,
                                                    CubeDisplay::RowMark::Bad };
-
-    // Canned, but moving: the readings drift the way a face being turned under
-    // the sensors would, so the screen is exercised as a LIVE one rather than a
-    // still. The dead sensor stays hollow throughout.
-    const int phase = (int)(t / 900);
     int8_t b1[9], b2[9];
-    for (int i = 0; i < 9; ++i) {
-        b1[i] = (int8_t)((i + phase) % 6);
-        b2[i] = (i == 1) ? (int8_t)-1 : (int8_t)((i + phase + 3) % 6);
+    senReadings(t, b1, b2);
+
+    char hint[40];
+    snprintf(hint, sizeof(hint), "SELECT for board %d sensor %d",
+             (senSel < 9) ? 1 : 2, (senSel % 9) + 1);
+
+    cubeDisplay.showOperation(Op::Scan, "Colour Sensors", nullptr, hint);
+    cubeDisplay.setOpLines(rows, 2, marks);
+    cubeDisplay.setOpChipRow(0, b1, kSensorCaps, 9, (senSel < 9) ? senSel : -1, 104);
+    cubeDisplay.setOpChipRow(1, b2, nullptr,     9, (senSel < 9) ? -1 : senSel - 9, 140);
+    Cube.displayUpdate();
+}
+
+// One sensor, in the numbers behind the colour. This is the screen for "why did
+// it call that sticker orange" — the classification is a judgement made from
+// four values, and until you can see them the answer is a guess.
+static void updateSensorRaw(uint32_t t) {
+    const int board = (senSel < 9) ? 1 : 2;
+    const int idx   = senSel % 9;
+    const int phase = (int)(t / 900);
+
+    // Stand-ins with the shape of real readings: a dominant channel, a white
+    // channel that tracks the sum, and slow drift so the screen looks live.
+    const int8_t col = (board == 2 && idx == 1) ? -1 : (int8_t)((idx + phase + (board - 1) * 3) % 6);
+    int rgbw[4] = { 300, 300, 300, 900 };
+    if (col >= 0) {
+        static const int kBoost[6][3] = {
+            {700,700,700}, {800,750,200}, {900,250,220},
+            {880,480,200}, {250,780,300}, {230,300,820},
+        };
+        for (int k = 0; k < 3; ++k) rgbw[k] = kBoost[col][k] + (int)(t / 120) % 40;
+        rgbw[3] = rgbw[0] + rgbw[1] + rgbw[2];
     }
 
-    cubeDisplay.showOperation(Op::Scan, "Sensor Test", nullptr, "LEFT to go back");
-    cubeDisplay.setOpLines(rows, 2, marks);
-    cubeDisplay.setOpChipRow(0, b1, kSensorCaps, 9, -1, 104);
-    cubeDisplay.setOpChipRow(1, b2, nullptr, 9, -1, 140);
+    static char rows[5][40];
+    const char* lines[5];
+    CubeDisplay::RowMark marks[5] = { CubeDisplay::RowMark::Plain };
+    static const char* kChan[4] = { "Red", "Green", "Blue", "White" };
+    for (int k = 0; k < 4; ++k) {
+        snprintf(rows[k], sizeof(rows[k]), "%s\t%d", kChan[k], rgbw[k]);
+        lines[k] = rows[k];
+        marks[k] = CubeDisplay::RowMark::Plain;
+    }
+    static const char* const kLetters[6] = { "White", "Yellow", "Red",
+                                             "Orange", "Green", "Blue" };
+    snprintf(rows[4], sizeof(rows[4]), "Reads as\t%s",
+             (col >= 0) ? kLetters[col] : "unusable");
+    lines[4] = rows[4];
+    marks[4] = (col >= 0) ? CubeDisplay::RowMark::Good : CubeDisplay::RowMark::Bad;
+
+    char title[32];
+    snprintf(title, sizeof(title), "Board %d  Sensor %d", board, idx + 1);
+    cubeDisplay.showOperation(Op::Scan, title, nullptr, "LEFT to go back");
+    cubeDisplay.setOpLines(lines, 5, marks);
+    Cube.displayUpdate();
+}
+
+// Seven encoders, seven numbers. Nothing here is a picture, because an angle is
+// not one — what you are checking is whether a value moves when you turn a face,
+// and whether any of them is reporting an I2C error instead.
+static void actMotorSensors() {
+    showScreen(Op::Solve, "Motor Sensors", nullptr, Live::Motors);
+}
+
+static void updateMotorSensors(uint32_t t) {
+    static const char* const kMotor[7] = { "Up", "Right", "Front", "Down",
+                                           "Left", "Back", "Ring" };
+    static char rows[7][40];
+    const char* lines[7];
+    CubeDisplay::RowMark marks[7];
+
+    for (int i = 0; i < 7; ++i) {
+        // scan() returns a raw 12-bit angle, or a negative I2C error. Showing
+        // the error rather than a plausible number is the point of the screen.
+        const int raw = (int)((t / 3 + i * 517) % 4096);
+        snprintf(rows[i], sizeof(rows[i]), "%s\t%d", kMotor[i], raw);
+        lines[i] = rows[i];
+        marks[i] = CubeDisplay::RowMark::Plain;
+    }
+
+    cubeDisplay.showOperation(Op::Solve, "Motor Sensors", nullptr,
+                              "raw angle 0-4095   LEFT back");
+    cubeDisplay.setOpLines(lines, 7, marks);
     Cube.displayUpdate();
 }
 
@@ -927,7 +1016,15 @@ static void updateDemo() {
         break;
 
     case Live::Sensors:
-        updateSensorTest(t);
+        updateColourSensors(t);
+        break;
+
+    case Live::SensorRaw:
+        updateSensorRaw(t);
+        break;
+
+    case Live::Motors:
+        updateMotorSensors(t);
         break;
 
     case Live::Input:
@@ -1148,7 +1245,14 @@ void loop() {
         break;      // handled above; nothing here consumes a MenuEvent
 
     case TState::Screen:
-        if (live == Live::Step && ev == MenuEvent::Select) {
+        if (live == Live::Sensors && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
+            senSel = (int8_t)((senSel + (ev == MenuEvent::Down ? 1 : 17)) % 18);
+            updateColourSensors(millis() - liveStart);
+        } else if (live == Live::Sensors && ev == MenuEvent::Select) {
+            live = Live::SensorRaw;                 // drill into the one selected
+        } else if (live == Live::SensorRaw && ev == MenuEvent::Back) {
+            live = Live::Sensors;                   // and back out to the boards
+        } else if (live == Live::Step && ev == MenuEvent::Select) {
             // SELECT means "next move" here, not "done looking". Only LEFT
             // leaves, which is the one meaning it has everywhere.
             if (stepAt < 20) { stepAt++; drawStepSolve(); }

@@ -315,7 +315,12 @@ there is no one sentence true of both a servo and a face motor.
 the firmware's Diagnostics menu; the actions already call the real CubeSystem
 methods.
 
-### Sensor Test — Diagnostics — **BUILT**
+### Colour Sensors — Diagnostics — **BUILT**
+
+Two health rows and eighteen live chips, nine per board. The chips ARE the
+readout: eighteen colour names would take longer to read than the cube takes to
+scan, and the thing you are hunting — one sensor disagreeing with its
+neighbours — shows up instantly as a chip of the wrong colour.
 
 ```
    Board 1              9/9 healthy, sep 165     <- green
@@ -325,17 +330,37 @@ methods.
    [][][][][][][][][]                            <- board 2
 ```
 
-The two rows of chips ARE the readout. Eighteen colour names would take longer
-to read than the cube takes to scan, and the thing you are looking for — one
-sensor disagreeing with its neighbours — shows up instantly as a chip of the
-wrong colour.
+The wheel moves a cursor across all eighteen and **SELECT drills into one**:
 
-The demo draws board 2 sensor 2 as a known-bad sensor, because on this machine
-it is one (a dead green channel; see the README). A diagnostic that only ever
-shows healthy hardware is not a diagnostic.
+```
+   Board 1  Sensor 4
+   Red                              902
+   Green                            252
+   Blue                             222
+   White                           1376
+   Reads as                       Orange     <- green, or red for "unusable"
+```
 
-Wants a 3x3 grid per board eventually, to match the physical face — a linear row
-of nine reads fine but does not map to what you are looking at.
+That second screen is for "why did it call that sticker orange". The
+classification is a judgement made from four numbers, and until you can see them
+the answer is a guess.
+
+The demo draws board 2 sensor 2 as unusable, because on this machine it is (a
+dead green channel; see the README). A diagnostic that only ever shows healthy
+hardware is not a diagnostic.
+
+On hardware the values come from `colorSensorN.getScanValRow(i)` — four ints,
+R G B W. Wants a 3x3 grid per board eventually, to match the physical face.
+
+### Motor Sensors — Diagnostics — **BUILT**
+
+Seven encoders, seven numbers — six faces and the ring, raw 12-bit angles.
+
+Nothing here is a picture, because an angle is not one. What you are checking is
+whether a value moves when you turn a face, and whether any encoder is reporting
+an I2C error instead of an angle. `MotorEncoder::scan()` returns the angle or a
+negative error code, and showing the error rather than a plausible number is the
+point of the screen.
 
 ### Parameters / Servo Positions — Diagnostics, Calibration
 
@@ -382,9 +407,10 @@ Screens done, machine side outstanding:
 - **Step Solve** — the ribbon works; needs the moves actually executed.
 - **Demo Mode** — scramble and solve on a loop with a run counter, showing the
   moves rather than only a count. Needs the two operations behind it.
-- **Sensor Test** — two health rows and eighteen live colour chips. Needs the
-  sensors actually read, and **throttled**: every refresh is I²C traffic on the
-  bus the encoder is also using. `Test_Menu`'s Input Report shows the pattern.
+- **Colour Sensors** and **Motor Sensors** — both drawn, both on canned but
+  moving data. Need the sensors actually read, and **throttled**: every refresh
+  is I²C traffic on the bus the wheel is also using. `Test_Menu`'s Input Report
+  shows the pattern.
 - **Hardware Test** — the Actuators page drives real hardware already. What
   remains is porting the page into the firmware's Diagnostics menu.
 

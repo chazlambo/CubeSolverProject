@@ -44,7 +44,9 @@ public:
     // A row containing a '\t' is split: the part before it is left-aligned and
     // the part after is right-aligned, which is what makes a status list read
     // as a table instead of as a paragraph.
-    static const int kOpLines = 6;
+    // Seven, because the machine has seven motor encoders — six faces and the
+    // ring — and a screen listing them wants them all at once.
+    static const int kOpLines = 7;
 
     // What a status row's value is saying. Plain is the default; the rest tint
     // the value half so a checklist can be read by colour before it is read by
