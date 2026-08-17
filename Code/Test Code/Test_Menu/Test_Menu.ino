@@ -72,7 +72,7 @@ static TState state = TState::Menu;
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
 enum class Live : uint8_t { None, Input, Steps, Chips, Scramble, Fold, Step, Demo,
-                            Sensors, SensorRaw, Motors };
+                            Sensors, SensorRaw, Motors, Faults };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -110,6 +110,7 @@ static void actReport();
 static void actInputReport();
 static void actColorSensors();
 static void actMotorSensors();
+static void actFaultLog();
 static void actDemoInfo();
 static void actDemoSteps();
 static void actDemoChips();
@@ -169,7 +170,30 @@ static const char* const kScrambleMoves[kScrambleLen] = {
     "U2", "F",  "D'", "L'", "B2", "R2", "U",  "F'", "D",  "L",
     "B",  "R",  "U2", "F2", "D'", "L2", "B'", "R2", "U'", "F",
 };
-static const char* const kPrevDiag[] = { "Navigation", "Input", "Color", "Motor" };
+static const char* const kPrevDiag[] = { "Navigation", "Input", "Color", "Motor",
+                                         "Faults" };
+
+// Canned fault history. Real codes and real wording, taken from the error
+// tables in the sketch and the README — a log full of invented faults would not
+// tell you whether the screen can show the ones you will actually meet.
+struct FaultEntry { const char* when; const char* what; int code; };
+static const FaultEntry kFaults[] = {
+    { "12:04", "Solve stopped",   122 },
+    { "11:58", "Scan failed",      60 },
+    { "11:51", "Aborted",          70 },
+    { "11:44", "Scan failed",      42 },
+    { "11:30", "Move failed",      81 },
+    { "11:12", "Solve stopped",   125 },
+    { "10:58", "Scan failed",      13 },
+    { "10:41", "Cal failed",       82 },
+    { "10:29", "Aborted",          70 },
+    { "10:02", "Scan failed",      60 },
+    { "09:47", "Encoder fault",    24 },
+    { "09:31", "Board offline",    90 },
+    { "09:15", "Solve stopped",   121 },
+    { "08:52", "Scan failed",      41 },
+};
+static const int kFaultCount = (int)(sizeof(kFaults) / sizeof(kFaults[0]));
 
 // One caption per sticker on a color board. Nine of them, in the order the
 // sensors are read.
@@ -215,8 +239,10 @@ static const MenuItem kDiagItems[] = {
       nullptr, 0, MenuTheme::Blue },
     { "Motor Sensors",  nullptr,   actMotorSensors,  "Raw encoder angles.",
       nullptr, 0, MenuTheme::Green },
+    { "Fault Log",      nullptr,   actFaultLog,      "What went wrong, recently.",
+      nullptr, 0, MenuTheme::Red },
 };
-const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 4, MenuTheme::Purple };
+const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 5, MenuTheme::Purple };
 
 // ---- navigation: one screen per item count ----
 //
@@ -760,6 +786,48 @@ static void updateMotorSensors(uint32_t t) {
     Cube.displayUpdate();
 }
 
+// A list nobody selects from, so status rows rather than bars — the same rule
+// the scan screen learned the hard way.
+//
+// More entries than fit, so it scrolls. The position goes in the HINT BAR
+// rather than beside a scrollbar: the theme has no scrollbar art, inventing
+// some would be a new shape for a one-off, and "7-13 of 14" says more than a
+// thumb on a track does anyway.
+static int8_t faultTop = 0;
+
+static void drawFaultLog() {
+    const int rows = (kFaultCount < CubeDisplay::kOpLines)
+                   ? kFaultCount : CubeDisplay::kOpLines;
+
+    static char text[CubeDisplay::kOpLines][40];
+    const char* lines[CubeDisplay::kOpLines];
+    CubeDisplay::RowMark marks[CubeDisplay::kOpLines];
+
+    for (int i = 0; i < rows; ++i) {
+        const FaultEntry& f = kFaults[faultTop + i];
+        snprintf(text[i], sizeof(text[i]), "%s  %s\t%d", f.when, f.what, f.code);
+        lines[i] = text[i];
+        // An abort is the user stopping the machine, not the machine failing.
+        // Colouring it like a fault would teach the wrong thing.
+        marks[i] = (f.code == 70) ? CubeDisplay::RowMark::Plain
+                                  : CubeDisplay::RowMark::Bad;
+    }
+
+    char hint[40];
+    snprintf(hint, sizeof(hint), "%d-%d of %d   wheel scrolls",
+             faultTop + 1, faultTop + rows, kFaultCount);
+
+    cubeDisplay.showOperation(Op::Info, "Fault Log", nullptr, hint);
+    cubeDisplay.setOpLines(lines, rows, marks);
+    Cube.displayUpdate();
+}
+
+static void actFaultLog() {
+    faultTop = 0;
+    showScreen(Op::Info, "Fault Log", nullptr, Live::Faults);
+    drawFaultLog();
+}
+
 // ---------------------------------------------------------------------------
 //  Actions — screen demos, all from canned data
 // ---------------------------------------------------------------------------
@@ -1245,7 +1313,17 @@ void loop() {
         break;      // handled above; nothing here consumes a MenuEvent
 
     case TState::Screen:
-        if (live == Live::Sensors && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
+        if (live == Live::Faults && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
+            // Clamped, not wrapped: a log has a top and a bottom, and wrapping
+            // from the oldest entry back to the newest would misread as more
+            // history than there is.
+            const int span = kFaultCount - CubeDisplay::kOpLines;
+            int top = faultTop + (ev == MenuEvent::Down ? 1 : -1);
+            if (top < 0)    top = 0;
+            if (top > span) top = span;
+            faultTop = (int8_t)top;
+            drawFaultLog();
+        } else if (live == Live::Sensors && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
             senSel = (int8_t)((senSel + (ev == MenuEvent::Down ? 1 : 17)) % 18);
             updateColorSensors(millis() - liveStart);
         } else if (live == Live::Sensors && ev == MenuEvent::Select) {

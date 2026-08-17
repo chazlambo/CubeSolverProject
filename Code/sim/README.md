@@ -97,23 +97,35 @@ drives the pre-scan vs post-scan main menu.
 
 ## Driving it from a script
 
-Screenshots and regression walkthroughs work with `xdotool`, with two traps:
+Screenshots and regression walkthroughs work with `xdotool`, with three traps.
+All three fail the same way — silently. Keys go nowhere and the run finishes
+looking successful, so a walkthrough that captures no screenshots is far more
+likely to be a driver problem than a firmware one. Check the shot count first.
 
 ```sh
 ./Code/sim/build/cubesim --scale 2 &
 sleep 14                        # let the servo sweeps finish
 
-# Trap 1: SDL creates more than one X window. Take the LAST match.
-WID=$(xdotool search --name "CubeSolver menu simulator" | tail -1)
-xdotool windowfocus "$WID"      # XTEST needs focus; synthetic
-                                # `xdotool key --window` events are ignored by SDL
+# Trap 1: SDL creates more than one X window and only one of them takes
+# keyboard focus. Do not guess which — try each and keep the one that sticks.
+for W in $(xdotool search --name "CubeSolver menu simulator"); do
+    xdotool windowactivate --sync "$W" 2>/dev/null; sleep 0.3
+    [ "$(xdotool getwindowfocus)" = "$W" ] && WID=$W
+done
 
 # Trap 2: buttons are LEVEL-sampled every 25 ms by the firmware, so a press must
 # be HELD. `xdotool key Return` is far too brief and is silently dropped.
-hold() { xdotool keydown "$1"; sleep 0.12; xdotool keyup "$1"; sleep 0.45; }
+#
+# Trap 3: focus DRIFTS. Focusing once at the start is not enough — a few keys in,
+# focus lands on some other window and the rest of the walkthrough types into it.
+# Re-assert focus before every key; it costs a few ms and removes the whole class
+# of "it worked yesterday" failures.
+act()  { xdotool windowactivate --sync "$WID" 2>/dev/null; }
+tap()  { act; xdotool key "$1"; sleep 0.7; }
+hold() { act; xdotool keydown "$1"; sleep 0.16; xdotool keyup "$1"; sleep 1.0; }
 
 hold Return                     # SELECT
-xdotool key p                   # screenshot (the wheel/encoder path IS
+tap p                           # screenshot (the wheel/encoder path IS
                                 # event-driven, so brief keys work for it)
 ```
 
