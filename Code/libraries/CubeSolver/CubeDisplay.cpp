@@ -987,7 +987,7 @@ void CubeDisplay::setOpLines(const char* const* lines, int count,
             lv_label_set_text(lbl_line[i], key);
             lv_label_set_text(lbl_lineVal[i], tab + 1);
 
-            uint32_t ink = COL_OP_VALUE;
+            uint32_t ink = 0;
             if (marks) {
                 switch (marks[i]) {
                 case RowMark::Good: ink = COL_MARK_GOOD; break;
@@ -997,7 +997,16 @@ void CubeDisplay::setOpLines(const char* const* lines, int count,
                 default: break;
                 }
             }
-            lv_obj_set_style_text_color(lbl_lineVal[i], lv_color_hex(ink), 0);
+
+            // Mark the value if there IS one, otherwise the label. A row like
+            // "Load cube" with nothing in its value column would otherwise show
+            // no mark at all — which is exactly what happened when it was used
+            // as a cursor and those rows stayed grey while everything else lit.
+            const bool haveVal = (tab[1] != '\0');
+            lv_obj_set_style_text_color(lbl_lineVal[i],
+                                        lv_color_hex(ink ? ink : COL_OP_VALUE), 0);
+            lv_obj_set_style_text_color(lbl_line[i],
+                                        lv_color_hex((ink && !haveVal) ? ink : COL_OP_KEY), 0);
 
             show(lbl_line[i]);
             show(lbl_lineVal[i]);

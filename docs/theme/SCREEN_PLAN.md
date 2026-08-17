@@ -242,32 +242,38 @@ A menu collapses them into one meaning; a jog page gives them two:
     LEFT         back, exactly as everywhere else
 ```
 
-**One page, no submenu at all.** Thirteen things on one wheel — three grippers,
-load, eject, six face motors, two whole-cube rotations — and it wraps.
+**One page, no submenu at all.** Twelve things on one wheel — three grippers,
+the cube button, six face motors, two whole-cube rotations — and it wraps.
 
 ```
    Top servo                  < Extend >     <- entered: the candidate
    Bottom servo                       ?
    Ring                          Middle
-   Load cube
-   Eject cube
+   Eject cube                                <- named for what it will DO
    [U] [R] [F] [D] [L] [B] [RotX] [RotZ]
 ```
+
+Load and eject are ONE row, because the cube is either in the machine or it is
+not. It is named for what pressing it will do, so there is nothing to read twice.
 
 Keeping them together is not only tidiness. **A face motor cannot turn until the
 grippers are clear**, so seeing where the grippers are WHILE jogging a face is
 the difference between a considered press and a jam.
 
-**Two levels, because a position is a choice and a turn is not.** Scroll to a
-servo or the ring, SELECT to enter it, pick the position, SELECT again to send —
-and the frame goes yellow while you are inside one, so "I am about to move
-something" reads without a word. LEFT backs out without moving anything.
+**Two levels everywhere: scroll to a thing, SELECT to enter it, LEFT to leave.**
+The frame goes yellow while you are inside something, so "I am about to move
+this" reads without a word.
 
-Faces and rotations are momentary: UP/DOWN fires them where they stand, because
-a turn you want to repeat should not cost three presses. On a gripper row those
-buttons do nothing — a position is a choice, and SELECT is how you make it.
+What the wheel then does depends on what you entered, and that difference is the
+whole design:
 
-The grippers are a status table with the cursor as a **marked row**, not a bar:
+- A **gripper is a position**. The wheel picks one, SELECT sends it, and nothing
+  moves until you say so.
+- A **motor is a thing you turn**. Once you have taken the wheel, every detent
+  IS a turn — which is what a jog wheel should feel like, and it means watching
+  a motor through several turns costs no button presses at all.
+
+The cursor is a **marked row**, not a bar:
 they are a readout you are steering, and bar art would promise a selection that
 is not what is happening. Position reads "?" until it is known — the servos
 remember across a reset but nothing exposes it, and guessing is worse than
