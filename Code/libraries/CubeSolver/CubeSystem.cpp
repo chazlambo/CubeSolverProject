@@ -1075,12 +1075,24 @@ int CubeSystem::calibrateColorSensors(){
     // ------------ STEP 1 ------------
     // Scan first 4 sides
 
-    // Order of faces being scanned in step 1
+    // What each sensor is expected to be looking at, per rotation.
+    //
+    // These are COLOUR labels, not positions: whatever sensor 1 returns is
+    // filed as the first colour and sensor 2's as the second, with no check
+    // that the cube is actually turned that way. Getting it wrong writes a bad
+    // calibration to EEPROM silently, so the required loading orientation is
+    // part of the procedure — see CubeSystem::kCalStartFacelets, which the
+    // panel shows before this runs.
+    //
+    // The positions named here are POST-rotation: the colour scanner was turned
+    // 90 degrees in CAD, so sensor 1 now reads Back and sensor 2 reads Right,
+    // where they used to read Left and Back. The table itself did not have to
+    // change for that — only the orientation the cube is loaded in.
     const char faceColors[4][2] = {
-        {'R', 'G'}, // Red Left, Green Back
-        {'B', 'R'}, // Blue Left, Red Back
-        {'O', 'B'}, // Orange Left, Blue Back
-        {'G', 'O'}  // Green Left, Orange Back
+        {'R', 'G'}, // Red Back, Green Right
+        {'B', 'R'}, // Blue Back, Red Right
+        {'O', 'B'}, // Orange Back, Blue Right
+        {'G', 'O'}  // Green Back, Orange Right
     };
 
     // Center cube in chamber
@@ -1160,12 +1172,13 @@ int CubeSystem::calibrateColorSensors(){
     // ------------ STEP 3 ------------
     // Scan remaining top/bottom faces
 
-    // Order of faces being scanned in step 3
+    // Same again for the top and bottom faces, after the re-grip above.
+    // Sensor 1 reads Back, sensor 2 reads Right.
     const char topFaces[4][2] = {
-        {'Y', 'O'}, // Yellow Left, Orange Back
-        {'R', 'Y'}, // Red Left, Yellow Back
-        {'W', 'R'}, // White Left, Red Back
-        {'O', 'W'}  // Orange Left, White Back
+        {'Y', 'O'}, // Yellow Back, Orange Right
+        {'R', 'Y'}, // Red Back, Yellow Right
+        {'W', 'R'}, // White Back, Red Right
+        {'O', 'W'}  // Orange Back, White Right
     };
     
     // Scan the remaining top/bottom faces

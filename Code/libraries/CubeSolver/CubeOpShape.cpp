@@ -71,28 +71,38 @@ const uint8_t CubeSystem::kCalTopColors[CubeSystem::kCalTopRots][2] = {
 // with nothing to notice. So the orientation is not advice, it is part of the
 // procedure, and this is it.
 //
-// Derived from the tables themselves rather than measured, and it is worth
-// being able to re-derive:
+// NOTE the tables above are COLOUR labels, not positions. Nothing in
+// calibrateColorSensors() names a face except in its comments, so the colour
+// scanner being rotated 90 degrees (see scanCube()) did not require the tables
+// to change — it required the CUBE to be loaded 90 degrees round to match. That
+// is the whole of the fix, and this constant is where it lives.
 //
-//   Step 1 reads (Left, Back) at four rotations: (R,G) (B,R) (O,B) (G,O).
-//   Each rotation takes new Back = old Left and new Left = old Front, so the
-//   start must be Left=Red, Front=Blue, Right=Orange, Back=Green.
+// Derivation, which needs no assumption about rotation direction:
 //
-//   Step 3 reads (Y,O) (R,Y) (W,R) (O,W), i.e. it starts Left=Yellow,
-//   Front=Red, Right=White, Back=Orange. Step 1 ended Left=Green, Front=Red,
-//   Right=Blue, Back=Orange — Front and Back are unchanged, so the machine
-//   turned the cube about the Front-Back axis. That cycle is U->L and D->R,
-//   which makes Up=Yellow and Down=White. ROTZ never touches Up or Down, so
-//   those hold from the start too.
+//   The sensors moved one 90-degree step: sensor 1 Left->Back, sensor 2
+//   Back->Right. The old procedure wanted Red at Left and Green at Back, so the
+//   cube turns the same step: Red to Back, Green to Right. Opposites then pin
+//   two more — Orange to Front, Blue to Left.
 //
-// Every opposite pair checks out (Y/W, R/O, B/G), so this is a real cube and
-// not an arithmetic accident.
+//   Up and Down are the remaining pair. Step 1 never sees them: every rotation
+//   there is a ROTZ, which leaves Up and Down alone. They are only read in
+//   step 3, after the re-grip in step 2. Across that re-grip Left and Right are
+//   unchanged (Red and Orange both before and after), so it turns about the
+//   Left-Right axis — which is exactly what rotOrientX describes, and it has
+//   new Front = old Up. Step 3 opens with White at Front, so Up is White.
+//
+// Every opposite pair checks out (W/Y, G/B, O/R), so this is a real cube.
+//
+// The Up/Down half is the one part resting on the machine's ROTX matching
+// rotOrientX rather than being its mirror. The Left/Right invariance across the
+// re-grip is good evidence that it does, but if a calibration ever comes out
+// with White and Yellow swapped, this is the line to turn over.
 const char CubeSystem::kCalStartFacelets[55] =
-    "YYYYYYYYY"   // U  Yellow
-    "OOOOOOOOO"   // R  Orange
-    "BBBBBBBBB"   // F  Blue
-    "WWWWWWWWW"   // D  White
-    "RRRRRRRRR"   // L  Red
-    "GGGGGGGGG";  // B  Green
+    "WWWWWWWWW"   // U  White
+    "GGGGGGGGG"   // R  Green
+    "OOOOOOOOO"   // F  Orange
+    "YYYYYYYYY"   // D  Yellow
+    "BBBBBBBBB"   // L  Blue
+    "RRRRRRRRR";  // B  Red
 
-const char* const CubeSystem::kCalStartText = "Yellow up, Red left, Blue front";
+const char* const CubeSystem::kCalStartText = "White up, Orange front, Blue left";
