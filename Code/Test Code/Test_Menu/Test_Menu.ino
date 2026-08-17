@@ -8,12 +8,14 @@
 //
 //  WHAT IT DOES
 //  ------------
-//  Nothing to the cube except LOAD and EJECT. There is no scan, no solve, no
-//  calibration, and no stepper motion of any kind — the only things that move
-//  are the two servos and the ring, and only when you pick Load or Eject.
+//  No scan, no solve, no calibration. What it does do is drive the actuators
+//  directly, one at a time, from the Actuators menu — every servo position,
+//  every ring position, every face motor in both directions, and both whole-
+//  cube rotations. That is the panel version of Test Code/Actuator_Test, and it
+//  is the reason this sketch is worth flashing to a real machine.
 //
-//  Everything else on the menu is either navigation (which is the point) or a
-//  screen demo that draws the panel without touching hardware.
+//  THE ACTUATORS MENU AND Load/Eject MOVE REAL HARDWARE. Everything under
+//  Screens and Diagnostics is drawing and navigation only.
 //
 //  WHY THE SCREEN DEMOS ARE HERE
 //  -----------------------------
@@ -68,7 +70,7 @@ static TState state = TState::Menu;
 
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
-enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble, Fold, Hardware };
+enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble, Fold };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -92,6 +94,16 @@ extern const MenuScreen kScreenOps;
 extern const MenuScreen kScreenCube;
 extern const MenuScreen kScreenMsg;
 extern const MenuScreen kScreenPatterns;
+extern const MenuScreen kScreenAct;
+extern const MenuScreen kScreenTopServo;
+extern const MenuScreen kScreenBotServo;
+extern const MenuScreen kScreenRing;
+extern const MenuScreen kScreenFaces;
+extern const MenuScreen kScreenAxisUD;
+extern const MenuScreen kScreenAxisLR;
+extern const MenuScreen kScreenAxisFB;
+extern const MenuScreen kScreenRotate;
+extern const MenuScreen kScreenDiag;
 extern const MenuScreen kScreenThree;
 extern const MenuScreen kScreenFour;
 extern const MenuScreen kScreenFive;
@@ -112,7 +124,11 @@ static void actDemoNetSolved();
 static void actDemoNetScrambled();
 static void actDemoNetLoad();
 static void actFoldPattern();
-static void actHardwareTest();
+static void actTopServo();
+static void actBotServo();
+static void actRing();
+static void actFaceMove();
+static void actCubeRotate();
 
 // ---------------------------------------------------------------------------
 //  Menu tables
@@ -139,31 +155,123 @@ static const char kPatSixSpot[55] =
     "GGGGWGGGG" "WWWWRWWWW" "RRRRGRRRR" "BBBBYBBBB" "YYYYOYYYY" "OOOOBOOOO";
 static const char kPatSuperflip[55] =
     "WBWOWRWGW" "RWRGRBRYR" "GWGOGRGYG" "YGYOYRYBY" "OWOBOGOYO" "BWBRBOBYB";
-static const char* const kPrevOps[]     = { "Faces", "Chips", "Bar", "Scramble",
-                                            "Hardware" };
-
-// What Hardware Test walks through. Named for the thing an operator would go
-// and look at, not for the class that drives it.
-static const char* const kHwParts[6] = {
-    "Top servo", "Bottom servo", "Ring", "Face motors", "Colour boards", "Wheel",
-};
+static const char* const kPrevOps[]  = { "Faces", "Chips", "Bar", "Scramble" };
+static const char* const kPrevAct[]  = { "Top servo", "Bottom servo", "Ring",
+                                         "Face motors", "Rotate" };
+static const char* const kPrevDiag[] = { "Navigation", "Input" };
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
 static const char* const kPrevDeep[]    = { "Deeper", "and", "deeper" };
 
 // ---- root ----
 static const MenuItem kMainItems[] = {
-    { "Load Cube",   nullptr,          actLoad,        "Clamp the cube. Moves servos.",
+    { "Load Cube",   nullptr,         actLoad,  "Clamp the cube. Moves servos.",
       nullptr, 0, MenuTheme::Blue },
-    { "Eject Cube",  nullptr,          actEject,       "Release and present it.",
+    { "Eject Cube",  nullptr,         actEject, "Release and present it.",
       nullptr, 0, MenuTheme::Violet },
-    { "Navigation",  &kScreenNav,      nullptr,        "Screens of every size.",
-      kPrevNav, 4, MenuTheme::Red },
-    { "Screens",     &kScreenScreens,  nullptr,        "Draw the panel, no hardware.",
-      kPrevScreens, 3, MenuTheme::Yellow },
-    { "Input Report", nullptr,         actInputReport, "Live wheel and buttons.",
-      nullptr, 0, MenuTheme::Purple },
+    { "Actuators",   &kScreenAct,     nullptr,  "Drive each part by hand.",
+      kPrevAct, 5, MenuTheme::Red },
+    { "Screens",     &kScreenScreens, nullptr,  "Draw the panel, no hardware.",
+      kPrevScreens, 4, MenuTheme::Yellow },
+    { "Diagnostics", &kScreenDiag,    nullptr,  "Navigation and input.",
+      kPrevDiag, 2, MenuTheme::Purple },
 };
 static const MenuScreen kScreenMain = { "Menu Test", kMainItems, 5, MenuTheme::Green };
+
+// ---------------------------------------------------------------------------
+//  Actuators — the panel version of Test Code/Actuator_Test
+// ---------------------------------------------------------------------------
+//  Direct manual control of every moving part, one position or one turn at a
+//  time. This is the bench tool for "does that servo actually reach retract"
+//  and for showing the machine off a piece at a time, and it replaces squinting
+//  at a numbered list over Serial.
+//
+//  THESE MOVE REAL HARDWARE. Everything else in this sketch is drawing.
+//
+//  The tree is grouped by part rather than flattened, because five items is the
+//  screen limit and there are six face motors. Opposite faces share a screen —
+//  they are the same axis, so it is a grouping that means something rather than
+//  an arbitrary split.
+static const MenuItem kActItems[] = {
+    { "Top Servo",    &kScreenTopServo, nullptr, "Gripper above the cube.",
+      nullptr, 0, MenuTheme::Blue },
+    { "Bottom Servo", &kScreenBotServo, nullptr, "Gripper below the cube.",
+      nullptr, 0, MenuTheme::Blue },
+    { "Ring",         &kScreenRing,     nullptr, "The rotating track.",
+      nullptr, 0, MenuTheme::Violet },
+    { "Face Motors",  &kScreenFaces,    nullptr, "Turn one face at a time.",
+      nullptr, 0, MenuTheme::Yellow },
+    { "Cube Rotate",  &kScreenRotate,   nullptr, "Reorient the whole cube.",
+      nullptr, 0, MenuTheme::Green },
+};
+const MenuScreen kScreenAct = { "Actuators", kActItems, 5, MenuTheme::Red };
+
+// Each of these dispatches on the selected index, so one action serves a whole
+// screen instead of a function per button.
+static const MenuItem kTopServoItems[] = {
+    { "Extend",  nullptr, actTopServo, "Grip the cube." },
+    { "Partial", nullptr, actTopServo, "Halfway." },
+    { "Retract", nullptr, actTopServo, "Clear of the cube." },
+};
+const MenuScreen kScreenTopServo = { "Top Servo", kTopServoItems, 3, MenuTheme::Blue };
+
+static const MenuItem kBotServoItems[] = {
+    { "Extend",  nullptr, actBotServo, "Lift and grip." },
+    { "Partial", nullptr, actBotServo, "Halfway." },
+    { "Retract", nullptr, actBotServo, "Drop clear." },
+};
+const MenuScreen kScreenBotServo = { "Bottom Servo", kBotServoItems, 3, MenuTheme::Blue };
+
+static const MenuItem kRingItems[] = {
+    { "Extend",  nullptr, actRing, "Ring in to the cube." },
+    { "Middle",  nullptr, actRing, "Halfway position." },
+    { "Retract", nullptr, actRing, "Ring clear." },
+};
+const MenuScreen kScreenRing = { "Ring", kRingItems, 3, MenuTheme::Violet };
+
+static const MenuItem kFacesItems[] = {
+    { "Up / Down",    &kScreenAxisUD, nullptr, "The vertical axis." },
+    { "Left / Right", &kScreenAxisLR, nullptr, "The horizontal axis." },
+    { "Front / Back", &kScreenAxisFB, nullptr, "The depth axis." },
+};
+const MenuScreen kScreenFaces = { "Face Motors", kFacesItems, 3, MenuTheme::Yellow };
+
+static const MenuItem kAxisUDItems[] = {
+    { "Up  90",    nullptr, actFaceMove, "Sends U" },
+    { "Up  -90",   nullptr, actFaceMove, "Sends U-prime" },
+    { "Down  90",  nullptr, actFaceMove, "Sends D" },
+    { "Down  -90", nullptr, actFaceMove, "Sends D-prime" },
+};
+const MenuScreen kScreenAxisUD = { "Up / Down", kAxisUDItems, 4, MenuTheme::Yellow };
+
+static const MenuItem kAxisLRItems[] = {
+    { "Left  90",   nullptr, actFaceMove, "Sends L" },
+    { "Left  -90",  nullptr, actFaceMove, "Sends L-prime" },
+    { "Right  90",  nullptr, actFaceMove, "Sends R" },
+    { "Right  -90", nullptr, actFaceMove, "Sends R-prime" },
+};
+const MenuScreen kScreenAxisLR = { "Left / Right", kAxisLRItems, 4, MenuTheme::Yellow };
+
+static const MenuItem kAxisFBItems[] = {
+    { "Front  90",  nullptr, actFaceMove, "Sends F" },
+    { "Front  -90", nullptr, actFaceMove, "Sends F-prime" },
+    { "Back  90",   nullptr, actFaceMove, "Sends B" },
+    { "Back  -90",  nullptr, actFaceMove, "Sends B-prime" },
+};
+const MenuScreen kScreenAxisFB = { "Front / Back", kAxisFBItems, 4, MenuTheme::Yellow };
+
+static const MenuItem kRotateItems[] = {
+    { "Rotate X", nullptr, actCubeRotate, "Tip the cube forward." },
+    { "Rotate Z", nullptr, actCubeRotate, "Spin the cube." },
+};
+const MenuScreen kScreenRotate = { "Cube Rotate", kRotateItems, 2, MenuTheme::Green };
+
+static const MenuItem kDiagItems[] = {
+    { "Navigation",   &kScreenNav, nullptr,        "Screens of every size.",
+      kPrevNav, 4, MenuTheme::Red },
+    { "Input Report", nullptr,     actInputReport, "Live wheel and buttons.",
+      nullptr, 0, MenuTheme::Purple },
+};
+const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 2, MenuTheme::Purple };
 
 // ---- navigation: one screen per item count ----
 //
@@ -257,9 +365,8 @@ static const MenuItem kOpsItems[] = {
     { "Colour Chips",   nullptr, actDemoChips,    "Two boards, six colours." },
     { "Progress Bar",   nullptr, actDemoProgress, "Fills over four seconds." },
     { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colours." },
-    { "Hardware Test",  nullptr, actHardwareTest, "A checklist, ticked live." },
 };
-const MenuScreen kScreenOps = { "Operations", kOpsItems, 5, MenuTheme::Blue };
+const MenuScreen kScreenOps = { "Operations", kOpsItems, 4, MenuTheme::Blue };
 
 static const MenuItem kCubeItems[] = {
     { "Solved Cube",     nullptr, actDemoNetSolved,    "Every face one colour." },
@@ -325,6 +432,104 @@ static void actEject() {
     Cube.clearAbort();
     showOp(Op::Info, "Eject", "Releasing the cube");
     state = TState::Ejecting;
+}
+
+// ---------------------------------------------------------------------------
+//  Actions — driving the actuators
+// ---------------------------------------------------------------------------
+//  Every one of these moves real hardware. They draw a "moving" screen and push
+//  it to the panel BEFORE starting, because the servo sweeps take seconds and
+//  the pump refreshes the display during them — without this the panel would
+//  sit on the old menu looking frozen for the whole travel.
+
+// What happens after a manual action.
+//
+// A move that worked goes STRAIGHT back to the menu, with the cursor still on
+// the thing you just fired. This is a jog tool — you press it repeatedly to
+// watch a motor, and a result screen demanding SELECT between every press would
+// make that miserable. The menu repaints itself because CubeMenu marks the
+// screen dirty before running an action, so there is nothing to do here.
+//
+// A move that FAILED stops and says so. That one you want to read.
+static void afterAction(const char* title, const char* what, int code) {
+    if (code == 0) return;
+
+    char sub[48];
+    snprintf(sub, sizeof(sub), "%s  -  code %d", what, code);
+    showScreen(Op::Error, title, "Move failed");
+    cubeDisplay.setStatus(sub);
+    Cube.displayUpdate();
+}
+
+static void showMoving(const char* title, const char* what) {
+    cubeDisplay.showOperation(Op::Calibrate, title, what, "Working");
+    Cube.displayUpdate();
+}
+
+static const char* selectedLabel() {
+    const MenuItem* it = Menu.selectedItem();
+    return (it && it->label) ? it->label : "?";
+}
+
+static void actTopServo() {
+    const char* what = selectedLabel();
+    showMoving("Top Servo", what);
+    switch (Menu.selectedIndex()) {
+    case 0:  Cube.topServoExtend();  break;
+    case 1:  Cube.topServoPartial(); break;
+    default: Cube.topServoRetract(); break;
+    }
+    afterAction("Top Servo", what, 0);
+}
+
+static void actBotServo() {
+    const char* what = selectedLabel();
+    showMoving("Bottom Servo", what);
+    switch (Menu.selectedIndex()) {
+    case 0:  Cube.botServoExtend();  break;
+    case 1:  Cube.botServoPartial(); break;
+    default: Cube.botServoRetract(); break;
+    }
+    afterAction("Bottom Servo", what, 0);
+}
+
+static void actRing() {
+    const char* what = selectedLabel();
+    showMoving("Ring", what);
+    switch (Menu.selectedIndex()) {
+    case 0:  Cube.ringExtend();  break;
+    case 1:  Cube.ringMiddle();  break;
+    default: Cube.ringRetract(); break;
+    }
+    afterAction("Ring", what, 0);
+}
+
+// One action for all three axis screens: which screen we are on picks the row
+// of moves, and the cursor picks the column. Twelve menu entries, one function.
+static void actFaceMove() {
+    static const char* const kMoves[3][4] = {
+        { "U", "U'", "D", "D'" },
+        { "L", "L'", "R", "R'" },
+        { "F", "F'", "B", "B'" },
+    };
+    const MenuScreen* scr = Menu.current();
+    const int axis = (scr == &kScreenAxisUD) ? 0
+                   : (scr == &kScreenAxisLR) ? 1 : 2;
+    const int idx  = Menu.selectedIndex() & 3;
+    const char* mv = kMoves[axis][idx];
+
+    showMoving("Face Motors", selectedLabel());
+    // align = true: this is the screen for checking a motor actually lands on
+    // its detent, so let the alignment pass run and report if it cannot.
+    const int e = Cube.executeMove(mv, false, true);
+    afterAction("Face Motors", mv, e);
+}
+
+static void actCubeRotate() {
+    const char* mv = (Menu.selectedIndex() == 0) ? "ROTX" : "ROTZ";
+    showMoving("Cube Rotate", selectedLabel());
+    const int e = Cube.executeMove(mv, false, true);
+    afterAction("Cube Rotate", mv, e);
 }
 
 // ---------------------------------------------------------------------------
@@ -485,54 +690,6 @@ static void actFoldPattern() {
     Cube.displayUpdate();
 }
 
-// A checklist that ticks itself off. The rows ARE the progress here, so there
-// is no bar: a second indicator saying the same thing would only compete with
-// them. One part fails on purpose, because a checklist that can only go green
-// has not been tested.
-static void actHardwareTest() {
-    showScreen(Op::Info, "Hardware Test", nullptr, Live::Hardware);
-    cubeDisplay.setStatus("Starting");
-    Cube.displayUpdate();
-}
-
-static void updateHardwareTest(uint32_t t) {
-    const uint32_t per = 900;
-    const int kFails = 3;                      // Face motors, to show the red
-
-    static char rows[6][40];
-    CubeDisplay::RowMark marks[6];
-    const char* lines[6];
-
-    const int active = (int)(t / per);         // which part is under test now
-    for (int i = 0; i < 6; ++i) {
-        const char* value;
-        if (i < active) {
-            const bool bad = (i == kFails);
-            value    = bad ? "FAIL" : "OK";
-            marks[i] = bad ? CubeDisplay::RowMark::Bad : CubeDisplay::RowMark::Good;
-        } else if (i == active) {
-            value    = "testing";
-            marks[i] = CubeDisplay::RowMark::Busy;
-        } else {
-            value    = "-";
-            marks[i] = CubeDisplay::RowMark::Plain;
-        }
-        snprintf(rows[i], sizeof(rows[i]), "%s\t%s", kHwParts[i], value);
-        lines[i] = rows[i];
-    }
-
-    if (active < 6) {
-        char sub[40];
-        snprintf(sub, sizeof(sub), "Testing %d of 6", active + 1);
-        cubeDisplay.setStatus(sub);
-    } else {
-        // The frame reports the verdict, so it reads from across the room.
-        cubeDisplay.setOpKind(Op::Error);
-        cubeDisplay.setStatus("1 of 6 failed");
-    }
-    cubeDisplay.setOpLines(lines, 6, marks);
-}
-
 static void actDemoError() {
     showScreen(Op::Error, "Stopped", "Move failed - cube released");
     const char* lines[] = { "Canned - nothing actually failed." };
@@ -652,10 +809,6 @@ static void updateDemo() {
         }
         break;
     }
-
-    case Live::Hardware:
-        updateHardwareTest(t);
-        break;
 
     case Live::Input:
         updateInputReport();

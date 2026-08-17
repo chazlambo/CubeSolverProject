@@ -221,22 +221,38 @@ Six rows at a time, wheel scrolls, and the position goes in the hint box —
 
 ### Hardware Test — Diagnostics
 
-Exercise each actuator in turn and report. A checklist, not a menu.
+**Not a self-test.** It is manual control: drive each actuator to each position,
+by hand, one at a time. The panel version of `Test Code/Actuator_Test`, which is
+a numbered list over Serial. It is where you go to answer "does that servo
+actually reach retract", and where you drive one part at a time to show the
+machine off.
+
+So it is a MENU, and bars are correct throughout. Grouped by part, because five
+items is the screen limit and there are six face motors — opposite faces share a
+screen, which is a grouping that means something rather than an arbitrary split:
 
 ```
-        Top servo      OK                  <- value in green
-        Bottom servo   OK
-        Ring           testing…            <- value in cursor yellow
-        Face motors    –
-        ▓▓▓▓▓▓▓▓░░░░░░░░░░░░
+   Actuators
+   ├─ Top Servo      -> Extend / Partial / Retract
+   ├─ Bottom Servo   -> Extend / Partial / Retract
+   ├─ Ring           -> Extend / Middle / Retract
+   ├─ Face Motors    -> Up/Down -> U 90, U -90, D 90, D -90
+   │                    Left/Right, Front/Back likewise
+   └─ Cube Rotate    -> Rotate X / Rotate Z
 ```
 
-**Built.** `setOpLines(lines, count, marks)` tints the value half per row.
-Prototyped in `Test_Menu` (Screens > Operations > Hardware Test); what remains
-is driving it from real actuators rather than a timer.
+A move that works goes **straight back to the menu**, cursor still on the item
+you fired. This is a jog tool: you press it repeatedly to watch a motor, and a
+result screen demanding SELECT between presses would make that miserable. Only a
+FAILURE stops and says so, with the move and the code.
 
-No progress bar: the rows ARE the progress here, and a second indicator saying
-the same thing would only compete with them.
+While a part is moving the panel says so — the servo sweeps take seconds, and
+the cooperative pump refreshes the display throughout, so without it the panel
+would sit on the old menu looking frozen.
+
+**Built** in `Test_Menu` under Actuators. What remains is porting the tree into
+the firmware's Diagnostics menu; the actions already call the real CubeSystem
+methods.
 
 ### Sensor Test — Diagnostics
 
@@ -301,9 +317,10 @@ time. Six rows is exactly enough, so resist adding a seventh.
    frame without tearing the screen down, which is what makes the phase change
    free. What remains is the machine side — generating a scramble and running
    it — not the screen.
-~~Row status marks, Hardware Test~~ — done. `setOpLines()` takes an optional
-`RowMark` per row and tints the value half; the checklist ticks itself off in
-green, amber and red, and the frame goes red at the end if anything failed.
+~~Hardware Test~~ — built in `Test_Menu` as the Actuators tree. `setOpLines()`
+also gained an optional `RowMark` per row along the way, which tints the value
+half green/red/amber; nothing uses it yet, but **Sensor Test** wants exactly
+that.
 
 2. **Move ribbon** then **Step Solve**; Demo Mode falls out nearly free.
 4. **Scrolling list** then **Fault Log**.

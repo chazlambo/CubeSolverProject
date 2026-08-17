@@ -375,6 +375,18 @@ int CubeSystem::calibrateColorSensors() {
     return 0;
 }
 
+// A single move, for the manual actuator screens. The real one drives a
+// stepper and checks the encoder; here it just takes a plausible amount of time
+// and can be aborted, which is enough to exercise the screens that call it.
+// Whole-cube rotations take longer because they re-grip.
+int CubeSystem::executeMove(const String& move, bool moveVirtual, bool align) {
+    (void)moveVirtual;
+    (void)align;
+    const bool whole = move.startsWith("ROT");
+    if (!simWait(whole ? kRingMoveMs : kPerMoveMs)) return 20 + ERR_ABORTED;
+    return 0;
+}
+
 int CubeSystem::homeMotors() {
     if (!simWait(1200)) return ERR_ABORTED;
     motorHomeState = 0;
