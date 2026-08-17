@@ -96,6 +96,13 @@ public:
     static const int kNetFacelets = 54;
     void setOpCubeNet(const char* facelets, bool labelFaces = true);
 
+    // A move sequence with a cursor on the one being run: a window of moves
+    // centred on `current`, past dimmed, future plain, current in cursor
+    // yellow. Deliberately PLAIN TEXT with no boxes — boxed tokens would drift
+    // back toward looking like buttons, and colour alone carries the cursor.
+    static const int kRibbonSlots = 7;
+    void setOpRibbon(const char* const* moves, int count, int current);
+
     // A filled bar, for operations with a countable end — the solve knows how
     // many moves it has to run, and a number alone does not show how far along
     // that is at a glance.
@@ -223,6 +230,7 @@ private:
     lv_obj_t* chip[2][kChipCount];
     lv_obj_t* lbl_chipRow[2];
     lv_obj_t* lbl_faceCap[kChipMax];
+    lv_obj_t* lbl_ribbon[kRibbonSlots];
     lv_obj_t* bar_track;
     lv_obj_t* bar_fill;
     lv_obj_t* img_net;

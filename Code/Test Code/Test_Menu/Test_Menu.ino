@@ -71,7 +71,7 @@ static TState state = TState::Menu;
 
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
-enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble, Fold };
+enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble, Fold, Step };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -113,6 +113,7 @@ static void actDemoChips();
 static void actDemoProgress();
 static void actDemoError();
 static void actDemoScramble();
+static void actStepSolve();
 static void actDemoNetSolved();
 static void actDemoNetScrambled();
 static void actDemoNetLoad();
@@ -144,7 +145,16 @@ static const char kPatSixSpot[55] =
     "GGGGWGGGG" "WWWWRWWWW" "RRRRGRRRR" "BBBBYBBBB" "YYYYOYYYY" "OOOOBOOOO";
 static const char kPatSuperflip[55] =
     "WBWOWRWGW" "RWRGRBRYR" "GWGOGRGYG" "YGYOYRYBY" "OWOBOGOYO" "BWBRBOBYB";
-static const char* const kPrevOps[]  = { "Faces", "Chips", "Bar", "Scramble" };
+static const char* const kPrevOps[]  = { "Faces", "Chips", "Bar", "Scramble",
+                                         "Step" };
+
+// A canned solution for the Step Solve screen. Real notation, real length —
+// twenty-one moves is what the solver typically returns — so the ribbon is
+// exercised at the size it will actually see.
+static const char* const kStepMoves[21] = {
+    "R", "U2", "F'", "L", "D", "B2", "R'", "U", "F2", "L'", "D2",
+    "B", "R2", "U'", "F", "L2", "D'", "B'", "R", "U2", "F'",
+};
 static const char* const kPrevDiag[] = { "Navigation", "Input" };
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
 static const char* const kPrevDeep[]    = { "Deeper", "and", "deeper" };
@@ -278,8 +288,9 @@ static const MenuItem kOpsItems[] = {
     { "Colour Chips",   nullptr, actDemoChips,    "Two boards, six colours." },
     { "Progress Bar",   nullptr, actDemoProgress, "Fills over four seconds." },
     { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colours." },
+    { "Step Solve",     nullptr, actStepSolve,    "One move per press." },
 };
-const MenuScreen kScreenOps = { "Operations", kOpsItems, 4, MenuTheme::Blue };
+const MenuScreen kScreenOps = { "Operations", kOpsItems, 5, MenuTheme::Blue };
 
 static const MenuItem kCubeItems[] = {
     { "Solved Cube",     nullptr, actDemoNetSolved,    "Every face one colour." },
@@ -745,6 +756,28 @@ static void actFoldPattern() {
     Cube.displayUpdate();
 }
 
+// One move per press. The ribbon is the whole screen: where you are in the
+// solution, what just happened, and what is coming — which a "Move 7/21"
+// counter alone cannot show.
+static int8_t stepAt = 0;
+
+static void drawStepSolve() {
+    char head[32];
+    snprintf(head, sizeof(head), "Move %d of 21", stepAt + 1);
+    cubeDisplay.showOperation(Op::Solve, "Step Solve", head,
+                              (stepAt < 20) ? "SELECT for the next move"
+                                            : "SELECT to finish");
+    cubeDisplay.setOpRibbon(kStepMoves, 21, stepAt);
+    cubeDisplay.setOpProgress(stepAt, 20);
+    Cube.displayUpdate();
+}
+
+static void actStepSolve() {
+    stepAt = 0;
+    showScreen(Op::Solve, "Step Solve", nullptr, Live::Step);
+    drawStepSolve();
+}
+
 static void actDemoError() {
     showScreen(Op::Error, "Stopped", "Move failed - cube released");
     const char* lines[] = { "Canned - nothing actually failed." };
@@ -1083,7 +1116,12 @@ void loop() {
         break;      // handled above; nothing here consumes a MenuEvent
 
     case TState::Screen:
-        if (ev == MenuEvent::Select || ev == MenuEvent::Back) {
+        if (live == Live::Step && ev == MenuEvent::Select) {
+            // SELECT means "next move" here, not "done looking". Only LEFT
+            // leaves, which is the one meaning it has everywhere.
+            if (stepAt < 20) { stepAt++; drawStepSolve(); }
+            else             { toMenu(); }
+        } else if (ev == MenuEvent::Select || ev == MenuEvent::Back) {
             toMenu();
         } else if (live != Live::None && millis() - lastLive >= 50) {
             // Throttled to ~20 Hz. The input report reads the seesaw over I2C

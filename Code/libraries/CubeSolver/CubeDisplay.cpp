@@ -38,6 +38,7 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
         for (int i = 0; i < kChipCount; ++i) chip[b][i] = nullptr;
     }
     for (int i = 0; i < kChipMax; ++i) lbl_faceCap[i] = nullptr;
+    for (int i = 0; i < kRibbonSlots; ++i) lbl_ribbon[i] = nullptr;
     bar_track = nullptr;
     bar_fill  = nullptr;
     img_net     = nullptr;
@@ -225,6 +226,11 @@ namespace {
                               114u * ( bg        & 0xFF)) / 1000u;
         return (lum > 145u) ? 0x101018 : 0xF4F6FF;
     }
+
+    // The move ribbon: seven fixed slots so the tokens do not shuffle sideways
+    // as the cursor advances. A move is one to three characters, and a slot
+    // wide enough for the longest keeps the row still.
+    const int RIB_SLOT = 32, RIB_Y = 112;
 
     // Progress bar, and where the sub-line goes when step rows own the middle
     // of the screen instead of a headline.
@@ -659,6 +665,17 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
         hide(lbl_faceCap[i]);
     }
 
+    for (int i = 0; i < kRibbonSlots; ++i) {
+        lbl_ribbon[i] = lv_label_create(scr);
+        lv_obj_set_size(lbl_ribbon[i], RIB_SLOT, 20);
+        lv_obj_set_pos(lbl_ribbon[i],
+                       (320 - kRibbonSlots * RIB_SLOT) / 2 + i * RIB_SLOT, RIB_Y);
+        lv_obj_set_style_text_font(lbl_ribbon[i], &lv_font_bar_12, 0);
+        lv_obj_set_style_text_align(lbl_ribbon[i], LV_TEXT_ALIGN_CENTER, 0);
+        lv_label_set_text(lbl_ribbon[i], "");
+        hide(lbl_ribbon[i]);
+    }
+
     bar_track = lv_obj_create(scr);
     makeBare(bar_track);
     lv_obj_set_size(bar_track, PBAR_W, PBAR_H);
@@ -732,6 +749,41 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
     hide(bar_fill);
 }
 
+void CubeDisplay::setOpRibbon(const char* const* moves, int count, int current) {
+    if (!lbl_ribbon[0]) return;
+    if (!moves || count <= 0) {
+        for (int i = 0; i < kRibbonSlots; ++i) hide(lbl_ribbon[i]);
+        return;
+    }
+
+    // Centre the window on the current move, then clamp to the ends so the
+    // ribbon stops scrolling once the sequence does — otherwise the last few
+    // moves would drift off one side with blank slots behind them.
+    int first = current - kRibbonSlots / 2;
+    if (first > count - kRibbonSlots) first = count - kRibbonSlots;
+    if (first < 0) first = 0;
+
+    for (int i = 0; i < kRibbonSlots; ++i) {
+        const int m = first + i;
+        if (m < 0 || m >= count) {
+            lv_label_set_text(lbl_ribbon[i], "");
+            show(lbl_ribbon[i]);
+            continue;
+        }
+
+        // Done, doing, still to do — three states, told by colour alone.
+        uint32_t ink = COL_OP_VALUE;
+        lv_opa_t opa = LV_OPA_COVER;
+        if (m == current)     { ink = 0xFBFF47; }
+        else if (m < current) { ink = COL_OP_KEY; opa = 120; }
+
+        lv_obj_set_style_text_color(lbl_ribbon[i], lv_color_hex(ink), 0);
+        lv_obj_set_style_text_opa(lbl_ribbon[i], opa, 0);
+        lv_label_set_text(lbl_ribbon[i], moves[m] ? moves[m] : "");
+        show(lbl_ribbon[i]);
+    }
+}
+
 void CubeDisplay::setOpProgress(int done, int total) {
     if (!bar_track) return;
     if (total <= 0) { hide(bar_track); hide(bar_fill); return; }
@@ -772,6 +824,7 @@ void CubeDisplay::clearOpExtras() {
     hide(img_comma);
     hide(img_sonar[0]);
     hide(img_sonar[1]);
+    for (int i = 0; i < kRibbonSlots; ++i) hide(lbl_ribbon[i]);
     hide(bar_track);
     hide(bar_fill);
     hide(img_net);
