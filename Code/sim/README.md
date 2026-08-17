@@ -15,6 +15,16 @@ cmake --build Code/sim/build -j
 ./Code/sim/build/cubesim            # --scale 1..8, default 3
 ```
 
+By default this builds the firmware sketch. `-DSIM_SKETCH=Test_Menu` builds
+`Code/Test Code/Test_Menu` instead — the bench sketch for the wheel, the buttons
+and the panel, including canned demos of every operation screen. Use a separate
+build directory so the two do not fight over one CMake cache:
+
+```sh
+cmake -S Code/sim -B Code/sim/build-test -DSIM_SKETCH=Test_Menu
+cmake --build Code/sim/build-test -j && ./Code/sim/build-test/cubesim
+```
+
 Needs `cmake`, a C++17 compiler, `libsdl2-dev`, and network access on the first
 configure (LVGL is fetched, not vendored).
 

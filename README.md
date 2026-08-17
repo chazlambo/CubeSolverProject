@@ -41,6 +41,26 @@ still worth keeping:
 | `Test Code/Test_Motor_Calibrate` | Motor encoder calibration (also on the main menu) |
 | `Test Code/Test_Color_Calibrate` | Colour calibration (also on the main menu) |
 | `Test Code/I2C_Search` | Bus scanner — genuinely useful on a five-mux rig |
+| `Test Code/Test_Menu` | Menu, wheel and panel bench test — see below |
+
+**`Test Code/Test_Menu`** drives the same `CubeMenu` and `CubeDisplay` the
+firmware does, so anything that feels wrong there feels wrong in the firmware.
+It touches no hardware except **Load** and **Eject** — no scan, no solve, no
+calibration, no stepper motion at all.
+
+It also carries a `Screens` submenu that draws each operation screen (scan step
+rows, calibration colour chips, the solve progress bar, the error look) from
+canned data, so the panel can be judged and photographed in seconds instead of
+by running a 40-second scan to check one label. `Input Report` is a live
+readout of the wheel count and every button — the fastest way to spot a flaky
+encoder or a dead button.
+
+It runs in the simulator too, with no machine at all:
+
+```sh
+cmake -S Code/sim -B Code/sim/build-test -DSIM_SKETCH=Test_Menu
+cmake --build Code/sim/build-test -j && ./Code/sim/build-test/cubesim
+```
 
 `Test Code/_Archive/` does not compile against the current tree (it includes a
 `Cube.h` that no longer exists). Git history is the archive.

@@ -1,7 +1,14 @@
-// Compiles the real sketch into the simulator.
+// Compiles a sketch into the simulator.
 //
-// CubeSolver.ino is ordinary C++ — it carries its own forward declarations
+// The sketches are ordinary C++ — they carry their own forward declarations
 // rather than relying on the Arduino IDE's prototype injection — so including
-// it here is enough. This is what guarantees the simulator is exercising the
+// one here is enough. This is what guarantees the simulator exercises the
 // shipping sketch and not a copy of it.
-#include "CubeSolver.ino"
+//
+// Which sketch is a build option, so the menu test bench can be driven on a PC
+// too. See SIM_SKETCH in CMakeLists.txt.
+#ifndef SIM_SKETCH_FILE
+#define SIM_SKETCH_FILE "CubeSolver.ino"
+#endif
+
+#include SIM_SKETCH_FILE

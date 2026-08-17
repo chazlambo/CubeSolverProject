@@ -25,7 +25,23 @@ endif()
 
 set(FW   ${CMAKE_CURRENT_SOURCE_DIR}/../libraries/CubeSolver)
 set(LIBS ${CMAKE_CURRENT_SOURCE_DIR}/../libraries)
-set(SKETCH ${CMAKE_CURRENT_SOURCE_DIR}/../Firmware/CubeSolver)
+
+# Which sketch to compile in. The firmware by default; Test_Menu is the bench
+# sketch for the wheel, the buttons and the panel, and being able to run it
+# here is most of its value — it needs no cube and no machine.
+#
+#     cmake -S Code/sim -B Code/sim/build-test -DSIM_SKETCH=Test_Menu
+set(SIM_SKETCH "CubeSolver" CACHE STRING "Sketch to build: CubeSolver or Test_Menu")
+
+if(SIM_SKETCH STREQUAL "CubeSolver")
+    set(SKETCH ${CMAKE_CURRENT_SOURCE_DIR}/../Firmware/CubeSolver)
+else()
+    set(SKETCH "${CMAKE_CURRENT_SOURCE_DIR}/../Test Code/${SIM_SKETCH}")
+endif()
+if(NOT EXISTS "${SKETCH}/${SIM_SKETCH}.ino")
+    message(FATAL_ERROR "No sketch at ${SKETCH}/${SIM_SKETCH}.ino")
+endif()
+message(STATUS "Simulator sketch: ${SIM_SKETCH}")
 
 # ---------------------------------------------------------------------------
 #  LVGL
@@ -108,6 +124,8 @@ target_include_directories(cubesim PRIVATE
     ${SKETCH}
     ${LIBS}/kociemba
 )
+
+target_compile_definitions(cubesim PRIVATE SIM_SKETCH_FILE="${SIM_SKETCH}.ino")
 
 target_link_libraries(cubesim PRIVATE lvgl PkgConfig::SDL2)
 

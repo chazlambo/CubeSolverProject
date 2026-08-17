@@ -55,6 +55,7 @@ desktop.ini
 # CMake build tree, including the LVGL checkout FetchContent pulls in. LVGL is
 # deliberately NOT vendored: it is pinned by commit in Code/sim/CMakeLists.txt.
 Code/sim/build/
+Code/sim/build-*/
 
 # Simulated EEPROM and screenshots, written into whatever directory the
 # simulator is run from.

@@ -32,6 +32,16 @@ g++ -fsyntax-only -std=c++17 -DLV_CONF_INCLUDE_SIMPLE -ICode/sim/shim \
   Code/libraries/CubeSolver/CubeSystem.cpp
 ```
 
+`-DSIM_SKETCH=Test_Menu` builds `Code/Test Code/Test_Menu` into the simulator
+instead of the firmware — a menu/panel bench sketch whose `Screens` submenu
+draws every operation screen from canned data. It is usually the fastest way to
+see a UI change, and to check one against every frame colour and item count:
+
+```sh
+cmake -S Code/sim -B Code/sim/build-test -DSIM_SKETCH=Test_Menu
+cmake --build Code/sim/build-test -j && ./Code/sim/build-test/cubesim
+```
+
 Menu navigation has host-side tests needing neither hardware nor LVGL — see the
 header comment in `Code/tests/test_menu.cpp`. Run them after touching `CubeMenu`.
 
