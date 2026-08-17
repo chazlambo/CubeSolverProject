@@ -164,7 +164,7 @@ public:
     // Progress decorations for the themed operation screen. The long
     // operations live in this file, so this is the only place that knows how
     // far through one the machine actually is.
-    void displaySteps(const char* const* steps, int count, int active, int done);
+    void displayFaces(const int8_t* faces, int activeA = -1, int activeB = -1);
     void displayChips(const uint8_t* bits, int boards);
     void displayProgress(int done, int total);
 
@@ -181,6 +181,21 @@ public:
     // scan loop in scanCube().
     static const int kScanPasses = 3;
     static const char* const kScanPassLabels[kScanPasses];
+
+    // Which face each sensor reads on each pass, as indices into the display's
+    // face row (U R F D L B). Sensor 1 first, sensor 2 second.
+    static const uint8_t kScanPassFaces[kScanPasses][2];
+
+    // A colour letter as the sensors report it ('W','Y','R','O','G','B') mapped
+    // to the display's chip index, or -1 if it is not a colour. Lives here
+    // because the scan is what produces those letters.
+    static int8_t chipIndexForColor(char c);
+
+    // What the last scan read, per face, in face-row order (U R F D L B) as
+    // chip colour indices; -1 where nothing was read. Kept after scanCube()
+    // returns so the result screen can show the cube it just found rather than
+    // an empty frame saying "complete".
+    int8_t scanFaceChips[6] = { -1, -1, -1, -1, -1, -1 };
 
     // Colour calibration is four side rotations, one empty-slot reference,
     // then four top/bottom rotations. Every rotation samples both boards at

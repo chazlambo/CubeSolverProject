@@ -36,6 +36,7 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
         lbl_chipRow[b] = nullptr;
         for (int i = 0; i < kChipCount; ++i) chip[b][i] = nullptr;
     }
+    for (int i = 0; i < kFaceCount; ++i) lbl_faceCap[i] = nullptr;
     bar_track = nullptr;
     bar_fill  = nullptr;
     instance = this;  // Set static instance for callbacks
@@ -133,6 +134,17 @@ namespace {
     // at 9 px is about 34 px wide, so the strip starts clear of it.
     const int CHIP_W = 20, CHIP_H = 14, CHIP_GAP = 5;
     const int CHIP_X = 96, CHIP_Y = 108, CHIP_ROW_STEP = 22;
+
+    // The scan's face row reuses the same chip objects at a different size and
+    // position, so both layouts are set on every call rather than assumed.
+    // Bigger than the calibration chips because there is only one row of them
+    // and each carries a caption.
+    const int FACE_W = 26, FACE_H = 18, FACE_GAP = 8;
+    const int FACE_X = 62, FACE_Y = 100, FACE_CAP_Y = 121;
+
+    // Face order for the scan row. Not the scan ORDER — the cube's own naming,
+    // so the row reads U R F D L B however the machine happens to visit them.
+    const char* const kFaceNames[6] = { "U", "R", "F", "D", "L", "B" };
 
     // Progress bar, and where the sub-line goes when step rows own the middle
     // of the screen instead of a headline.
@@ -553,6 +565,17 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
         }
     }
 
+    for (int i = 0; i < kFaceCount; ++i) {
+        lbl_faceCap[i] = lv_label_create(scr);
+        lv_obj_set_size(lbl_faceCap[i], FACE_W, 12);
+        lv_obj_set_pos(lbl_faceCap[i], FACE_X + i * (FACE_W + FACE_GAP), FACE_CAP_Y);
+        lv_obj_set_style_text_font(lbl_faceCap[i], &lv_font_prev_9, 0);
+        lv_obj_set_style_text_color(lbl_faceCap[i], lv_color_hex(COL_OP_KEY), 0);
+        lv_obj_set_style_text_align(lbl_faceCap[i], LV_TEXT_ALIGN_CENTER, 0);
+        lv_label_set_text(lbl_faceCap[i], kFaceNames[i]);
+        hide(lbl_faceCap[i]);
+    }
+
     bar_track = lv_obj_create(scr);
     makeBare(bar_track);
     lv_obj_set_size(bar_track, PBAR_W, PBAR_H);
@@ -609,6 +632,7 @@ void CubeDisplay::clearOpExtras() {
         hide(lbl_chipRow[b]);
         for (int i = 0; i < kChipCount; ++i) hide(chip[b][i]);
     }
+    for (int i = 0; i < kFaceCount; ++i) hide(lbl_faceCap[i]);
     for (int i = 0; i < kRows; ++i) hide(barBox[i]);
     hide(img_orb);
     hide(img_comma);
@@ -735,46 +759,53 @@ void CubeDisplay::setOpLines(const char* const* lines, int count) {
     }
 }
 
-void CubeDisplay::setOpSteps(const char* const* steps, int count, int active, int done) {
-    if (!barBox[0] || !steps) return;
-    if (count > kRows) count = kRows;
-    if (count < 0)     count = 0;
+void CubeDisplay::setOpFaces(const int8_t* faces, int activeA, int activeB) {
+    if (!chip[0][0] || !faces) return;
 
-    // The rows ARE the content, so they take the space a headline would have
-    // used and push the sub-line below them. Leaving both in place put the
-    // headline straight through the first bar.
-    hide(lbl_msg);
-    lv_obj_set_pos(lbl_status, 48, OP_SUB_BELOW_STEPS_Y);
-    show(lbl_status);
+    // The face row and the calibration rows share these chip objects, so both
+    // set size and position every time rather than trusting what was left.
+    hide(lbl_chipRow[0]);
+    hide(lbl_chipRow[1]);
+    for (int i = 0; i < kChipCount; ++i) hide(chip[1][i]);
 
-    for (int i = 0; i < kRows; ++i) {
-        if (i >= count) { hide(barBox[i]); continue; }
+    for (int i = 0; i < kFaceCount; ++i) {
+        lv_obj_t* c = chip[0][i];
+        lv_obj_set_size(c, FACE_W, FACE_H);
+        lv_obj_set_pos(c, FACE_X + i * (FACE_W + FACE_GAP), FACE_Y);
 
-        int x, y;
-        barBoxPos(i, count, x, y);
-        lv_obj_set_pos(barBox[i], x, y);
+        const int8_t col = faces[i];
+        const bool   got = (col >= 0 && col < 6);
+        const bool   busy = (i == activeA || i == activeB);
 
-        // A finished step wears the selected bar — the same yellow the menu
-        // uses for "this is the one" — so completion reads at a glance.
-        const bool lit = (i < done);
-        lv_image_set_src(img_bar[i], lit ? &theme_bar_sel : &theme_bar_unsel);
-        lv_label_set_text(lbl_bar[i], steps[i] ? steps[i] : "");
-        lv_obj_set_style_text_color(lbl_bar[i],
-                                    lv_color_hex(lit ? COL_LABEL_ON : COL_LABEL_OFF), 0);
-        lv_obj_set_style_image_opa(img_bar[i], LV_OPA_COVER, 0);
-        lv_obj_set_style_text_opa(lbl_bar[i], LV_OPA_COVER, 0);
-        show(barBox[i]);
-    }
+        // A read face is filled with the colour its centre sticker actually
+        // came back as — so the row is a readout, not just a tally. One that
+        // has not been read yet is an empty outline.
+        if (got) {
+            lv_obj_set_style_bg_color(c, lv_color_hex(kChipColors[col]), 0);
+            lv_obj_set_style_bg_opa(c, LV_OPA_COVER, 0);
+            lv_obj_set_style_border_color(c, lv_color_hex(kChipColors[col]), 0);
+            lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
+            lv_obj_set_style_border_width(c, 1, 0);
+        } else {
+            lv_obj_set_style_bg_opa(c, LV_OPA_TRANSP, 0);
+            lv_obj_set_style_border_color(c, lv_color_hex(COL_OP_KEY), 0);
+            lv_obj_set_style_border_opa(c, busy ? LV_OPA_COVER : 110, 0);
+            lv_obj_set_style_border_width(c, busy ? 2 : 1, 0);
+        }
 
-    // The cursor marks the step actually running, which is the one thing a
-    // static list of ticks cannot show.
-    if (active >= 0 && active < count) {
-        placeCursor(active, count);
-    } else {
-        hide(img_orb);
-        hide(img_comma);
-        hide(img_sonar[0]);
-        hide(img_sonar[1]);
+        // The pair under the sensors right now gets a bright rim, which is what
+        // the old step rows were really communicating.
+        if (busy) {
+            lv_obj_set_style_border_color(c, lv_color_hex(0xFBFF47), 0);
+            lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
+            lv_obj_set_style_border_width(c, 2, 0);
+        }
+
+        lv_obj_set_pos(lbl_faceCap[i], FACE_X + i * (FACE_W + FACE_GAP), FACE_CAP_Y);
+        lv_obj_set_style_text_color(lbl_faceCap[i],
+                                    lv_color_hex(busy ? 0xFBFF47 : COL_OP_KEY), 0);
+        show(c);
+        show(lbl_faceCap[i]);
     }
 }
 
@@ -790,6 +821,15 @@ void CubeDisplay::setOpChips(const uint8_t* bits, int boards) {
         }
         show(lbl_chipRow[b]);
         for (int i = 0; i < kChipCount; ++i) {
+            // Restore this row's own geometry: setOpFaces() borrows these same
+            // objects at a different size and position.
+            lv_obj_set_size(chip[b][i], CHIP_W, CHIP_H);
+            lv_obj_set_pos(chip[b][i], CHIP_X + i * (CHIP_W + CHIP_GAP),
+                           CHIP_Y + b * CHIP_ROW_STEP);
+            lv_obj_set_style_bg_color(chip[b][i], lv_color_hex(kChipColors[i]), 0);
+            lv_obj_set_style_border_color(chip[b][i], lv_color_hex(kChipColors[i]), 0);
+            lv_obj_set_style_border_width(chip[b][i], 1, 0);
+
             const bool got = (bits[b] >> i) & 1u;
             // Captured colours are solid; the rest are just their own outline,
             // so the row reads as a checklist rather than as decoration.

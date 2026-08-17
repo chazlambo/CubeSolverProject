@@ -14,6 +14,26 @@ const char* const CubeSystem::kScanPassLabels[CubeSystem::kScanPasses] = {
     "Down + Right",
 };
 
+// Scan order is [L, B], [U, F], [D, R] — see scanCube(). As face-row indices,
+// where the row reads U R F D L B: L=4 B=5, U=0 F=2, D=3 R=1.
+const uint8_t CubeSystem::kScanPassFaces[CubeSystem::kScanPasses][2] = {
+    { 4, 5 },
+    { 0, 2 },
+    { 3, 1 },
+};
+
+int8_t CubeSystem::chipIndexForColor(char c) {
+    switch (c) {
+    case 'W': return 0;
+    case 'Y': return 1;
+    case 'R': return 2;
+    case 'O': return 3;
+    case 'G': return 4;
+    case 'B': return 5;
+    default:  return -1;    // 'U' — the sensors' "unknown"
+    }
+}
+
 // From calibrateColorSensors(): faceColors then topFaces, mapped to chip
 // indices. Between them each board sees all six colours.
 //   side: {R,G} {B,R} {O,B} {G,O}

@@ -225,6 +225,12 @@ int CubeSystem::scanCube(){
     char lastface1 = 'X';
     char lastface2 = 'X';
 
+    // What the panel shows: one chip per face, filled with the colour that
+    // face's centre sticker actually came back as. -1 is "not read yet".
+    // Lives on the object so the result screen can still show it afterwards.
+    int8_t* faceChips = scanFaceChips;
+    for (int f = 0; f < 6; ++f) faceChips[f] = -1;
+
     for (int i = 0; i < 3; i++) {
         // Between scan orientations: nothing is mid-travel, so this is a safe
         // point to honour an abort.
@@ -234,11 +240,11 @@ int CubeSystem::scanCube(){
             return 70;
         }
 
-        // Tell the panel which pass this is before the ~5.4 s of colour
+        // Light the pair about to be read BEFORE the ~5.4 s of colour
         // integration below, not after: that wait is most of a scan, and a
         // progress display that only updates once it is over is no display.
-        displaySteps(kScanPassLabels, kScanPasses, i, i);
-        displaySetStatus("Reading two faces");
+        displayFaces(faceChips, kScanPassFaces[i][0], kScanPassFaces[i][1]);
+        displaySetStatus(kScanPassLabels[i]);
         displayUpdate();
 
         // Scan Sensors
@@ -262,6 +268,14 @@ int CubeSystem::scanCube(){
         char face1 = r1[4].color;
         char face2 = r2[4].color;
         lastface1 = face1; lastface2 = face2;
+
+        // Fill the two chips in with what was actually read. A face whose
+        // centre came back unknown stays hollow, which is a useful thing to see
+        // before the validation below rejects the scan for it.
+        faceChips[kScanPassFaces[i][0]] = chipIndexForColor(face1);
+        faceChips[kScanPassFaces[i][1]] = chipIndexForColor(face2);
+        displayFaces(faceChips);
+        displayUpdate();
 
         if (!r1[4].ok || !r2[4].ok) {
             Serial.println(F("WARNING: low confidence identifying a face centre"));
@@ -352,8 +366,6 @@ int CubeSystem::scanCube(){
         }
 
         if (i < 2) {
-            // The pass just finished counts as done while the cube turns.
-            displaySteps(kScanPassLabels, kScanPasses, i, i + 1);
             displaySetStatus("Rotating cube");
             displayUpdate();
 
@@ -403,7 +415,7 @@ int CubeSystem::scanCube(){
         }
     }
 
-    displaySteps(kScanPassLabels, kScanPasses, -1, kScanPasses);
+    displayFaces(faceChips);
     displaySetStatus("Checking the cube");
     displayUpdate();
 
@@ -1571,9 +1583,9 @@ void CubeSystem::displayClearStatus() {
     }
 }
 
-void CubeSystem::displaySteps(const char* const* steps, int count, int active, int done) {
+void CubeSystem::displayFaces(const int8_t* faces, int activeA, int activeB) {
     if (displayInitialized) {
-        cubeDisplay.setOpSteps(steps, count, active, done);
+        cubeDisplay.setOpFaces(faces, activeA, activeB);
     }
 }
 

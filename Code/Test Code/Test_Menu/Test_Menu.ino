@@ -190,7 +190,7 @@ const MenuScreen kScreenDeep = { "Depth Test", kDeepItems, 2, MenuTheme::Green }
 // ---- screen demos ----
 static const MenuItem kScreensItems[] = {
     { "Info Panel",   nullptr, actDemoInfo,     "Aligned label/value rows." },
-    { "Scan Steps",   nullptr, actDemoSteps,    "Three passes, lit in turn." },
+    { "Scan Faces",   nullptr, actDemoSteps,    "Faces fill as they are read." },
     { "Colour Chips", nullptr, actDemoChips,    "Two boards, six colours." },
     { "Progress Bar", nullptr, actDemoProgress, "Fills over four seconds." },
     { "Error Screen", nullptr, actDemoError,    "The red stopped look." },
@@ -320,7 +320,7 @@ static void actDemoInfo() {
 }
 
 static void actDemoSteps() {
-    showScreen(Op::Scan, "Scan Steps", nullptr, Live::Steps);
+    showScreen(Op::Scan, "Scan Faces", "Reading the cube", Live::Steps);
 }
 
 static void actDemoChips() {
@@ -348,15 +348,28 @@ static void updateDemo() {
     switch (live) {
 
     case Live::Steps: {
-        // Three passes, ~1.6 s each, with a rotation between them — the shape
-        // of the real scan, played back.
-        const uint32_t cycle = t % 6400;
-        const int      pass  = (int)(cycle / 1600);
-        const bool     rotating = (cycle % 1600) > 1100 && pass < 2;
+        // Three passes, ~1.8 s each, with a rotation between them — the shape
+        // of the real scan, played back against a solved cube's colours.
+        static const char kFaceColor[6] = { 'W', 'R', 'G', 'Y', 'O', 'B' };
+        const uint32_t cycle    = t % 7200;
+        const int      pass     = (int)(cycle / 1800);
+        const bool     rotating = (cycle % 1800) > 1200;
 
-        Cube.displaySteps(CubeSystem::kScanPassLabels, CubeSystem::kScanPasses,
-                          (pass < 3) ? pass : -1, rotating ? pass + 1 : pass);
-        cubeDisplay.setStatus(rotating ? "Rotating cube" : "Reading two faces");
+        int8_t faces[6] = { -1, -1, -1, -1, -1, -1 };
+        const int done = rotating ? pass + 1 : pass;
+        for (int p = 0; p < done && p < CubeSystem::kScanPasses; ++p) {
+            for (int k = 0; k < 2; ++k) {
+                const int f = CubeSystem::kScanPassFaces[p][k];
+                faces[f] = CubeSystem::chipIndexForColor(kFaceColor[f]);
+            }
+        }
+
+        const bool reading = !rotating && pass < CubeSystem::kScanPasses;
+        Cube.displayFaces(faces,
+                          reading ? CubeSystem::kScanPassFaces[pass][0] : -1,
+                          reading ? CubeSystem::kScanPassFaces[pass][1] : -1);
+        cubeDisplay.setStatus(reading ? CubeSystem::kScanPassLabels[pass]
+                                      : "Rotating cube");
         break;
     }
 

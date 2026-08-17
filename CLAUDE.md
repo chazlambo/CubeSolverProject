@@ -61,7 +61,13 @@ several failure modes that are completely silent:
   Arduino 1.0 library format compiles no other subdirectory.
 
 That document also has the palette, the type scale, the size limits, and recipes
-for adding a menu item, a screen, or an operation screen.
+for adding a menu item, a screen, or an operation screen. Its most-broken rule:
+**bar art means "you can select this"** — status uses chips, the progress bar or
+the status table, never bars.
+
+`docs/theme/SCREEN_PLAN.md` designs every screen behind a "Not implemented yet"
+menu item, and ranks the shared pieces they need. Check it before designing a
+new screen.
 
 ## Conventions worth keeping
 

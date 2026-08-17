@@ -41,10 +41,16 @@ public:
     static const int kOpLines = 6;
     void setOpLines(const char* const* lines, int count);
 
-    // Progress as a list of named steps, drawn with the menu's own bar art:
-    // finished steps use the selected bar, the running one carries the cursor,
-    // the rest sit unlit. Reuses the bar widgets, which are idle in this mode.
-    void setOpSteps(const char* const* steps, int count, int active, int done);
+    // The six cube faces as a row of chips, each showing the colour actually
+    // read from that face's centre sticker, hollow until it has been. `active`
+    // are the two faces being read right now, or -1.
+    //
+    // faces[] is indexed U R F D L B and holds a chip colour index (0..5) or
+    // -1 for "not yet". This deliberately does NOT use the menu's bar art: in
+    // this theme a bar means "you can select this", and borrowing it for status
+    // made a scan look like a screen full of buttons.
+    static const int kFaceCount = 6;
+    void setOpFaces(const int8_t* faces, int activeA = -1, int activeB = -1);
 
     // Per-board colour capture for the sensor calibration, as two rows of six
     // chips. bits[b] holds one bit per colour in kChipOrder, low bit first.
@@ -177,6 +183,7 @@ private:
     lv_obj_t* lbl_lineVal[kOpLines];
     lv_obj_t* chip[2][kChipCount];
     lv_obj_t* lbl_chipRow[2];
+    lv_obj_t* lbl_faceCap[kFaceCount];
     lv_obj_t* bar_track;
     lv_obj_t* bar_fill;
 

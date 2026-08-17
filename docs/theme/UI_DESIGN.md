@@ -71,8 +71,19 @@ the hint ("Press SELECT", "SELECT+LEFT to abort"). Same box, same place, always
 program.
 
 **The cursor means "this is the one".** Orb + inward sonar rings + spinning
-comma. It marks the selected menu item, or the step currently running. Do not
-use it decoratively.
+comma. It marks the selected menu item. Do not use it decoratively.
+
+**Bar art means "you can select this".** The glowing bar with the socket is the
+menu's vocabulary for a *choice*. It was briefly reused to show scan progress
+and the result read as a screen full of buttons that did nothing — the shape
+promised an interaction that was not there. Status belongs to chips, the
+progress bar, the status table or plain text. When something genuinely is a list
+of choices, bars are right and should be used.
+
+`docs/theme/SCREEN_PLAN.md` designs the screens that do not exist yet — Patterns,
+Idle, Step Solve, Cube State, Parameters and the rest — and ranks the shared
+pieces they are waiting on. Read it before designing a new screen; the one you
+want may already be sketched.
 
 ---
 

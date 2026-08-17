@@ -672,12 +672,9 @@ void loop() {
             // although the abort now needs LEFT as well, clearing here also
             // discards any latch left over from a previous operation.
             Cube.clearAbort();
-            // The step rows come from CubeSystem, which owns the scan
-            // sequence; this only opens the screen they draw into.
-            showOp(Op::Scan, "Scan", nullptr, "SELECT+LEFT to abort");
-            Cube.displaySteps(CubeSystem::kScanPassLabels,
-                              CubeSystem::kScanPasses, 0, 0);
-            Cube.displayUpdate();
+            // The face row is filled in from inside scanCube(), which is the
+            // only thing that knows what each face turned out to be.
+            showOp(Op::Scan, "Scan", "Reading the cube", "SELECT+LEFT to abort");
             state = AppState::Scanning;
         } else if (ev == MenuEvent::Back) {
             toMenu();
@@ -693,7 +690,11 @@ void loop() {
             // sticker was ambiguous instead of just a code.
             fail("Scan failed", scanErrorText(e), e);
         } else {
+            // Keep the face row up: this is the one moment the operator can
+            // check the machine read the cube it is actually holding.
             showOp(Op::Done, "Scan", "Scan complete", "Press SELECT");
+            Cube.displayFaces(Cube.scanFaceChips);
+            Cube.displayUpdate();
             state = AppState::Done;
         }
         break;

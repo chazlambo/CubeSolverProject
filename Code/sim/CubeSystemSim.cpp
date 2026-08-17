@@ -221,20 +221,32 @@ int CubeSystem::scanCube() {
     const bool injectFault = sim::consumeFaultInjection();
 
     // Same three passes the real scanCube() runs, so the progress display is
-    // exercised here exactly as it will be on the machine.
+    // exercised here exactly as it will be on the machine. The colours are the
+    // standard scheme for a solved cube: U white, R red, F green, D yellow,
+    // L orange, B blue.
+    static const char kSimFaceColor[6] = { 'W', 'R', 'G', 'Y', 'O', 'B' };
+    int8_t* faceChips = scanFaceChips;
+    for (int f = 0; f < 6; ++f) faceChips[f] = -1;
+
     for (int pass = 0; pass < CubeSystem::kScanPasses; ++pass) {
-        displaySteps(CubeSystem::kScanPassLabels, CubeSystem::kScanPasses, pass, pass);
-        displaySetStatus("Reading two faces");
+        const int fa = CubeSystem::kScanPassFaces[pass][0];
+        const int fb = CubeSystem::kScanPassFaces[pass][1];
+
+        displayFaces(faceChips, fa, fb);
+        displaySetStatus(CubeSystem::kScanPassLabels[pass]);
         if (!simWait(kScanPerFaceMs * 2)) return 70;      // "Scan aborted"
 
+        faceChips[fa] = CubeSystem::chipIndexForColor(kSimFaceColor[fa]);
+        faceChips[fb] = CubeSystem::chipIndexForColor(kSimFaceColor[fb]);
+        displayFaces(faceChips);
+
         if (pass < CubeSystem::kScanPasses - 1) {
-            displaySteps(CubeSystem::kScanPassLabels, CubeSystem::kScanPasses, pass, pass + 1);
-            displaySetStatus(pass == 0 ? "Rotating cube (X)" : "Rotating cube (Z)");
+            displaySetStatus("Rotating cube");
             if (!simWait(kScanReorientMs)) return 70;
         }
     }
 
-    displaySteps(CubeSystem::kScanPassLabels, CubeSystem::kScanPasses, -1, CubeSystem::kScanPasses);
+    displayFaces(faceChips);
 
     if (injectFault) {
         displaySetStatus("");
@@ -452,8 +464,8 @@ void CubeSystem::displaySetStatus(const char* msg) {
 void CubeSystem::displayClearStatus() {
     if (displayInitialized) cubeDisplay.clearStatus();
 }
-void CubeSystem::displaySteps(const char* const* steps, int count, int active, int done) {
-    if (displayInitialized) cubeDisplay.setOpSteps(steps, count, active, done);
+void CubeSystem::displayFaces(const int8_t* faces, int activeA, int activeB) {
+    if (displayInitialized) cubeDisplay.setOpFaces(faces, activeA, activeB);
 }
 void CubeSystem::displayChips(const uint8_t* bits, int boards) {
     if (displayInitialized) cubeDisplay.setOpChips(bits, boards);
