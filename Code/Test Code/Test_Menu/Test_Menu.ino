@@ -68,7 +68,7 @@ static TState state = TState::Menu;
 
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
-enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble, Fold };
+enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble, Fold, Hardware };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -112,6 +112,7 @@ static void actDemoNetSolved();
 static void actDemoNetScrambled();
 static void actDemoNetLoad();
 static void actFoldPattern();
+static void actHardwareTest();
 
 // ---------------------------------------------------------------------------
 //  Menu tables
@@ -138,7 +139,14 @@ static const char kPatSixSpot[55] =
     "GGGGWGGGG" "WWWWRWWWW" "RRRRGRRRR" "BBBBYBBBB" "YYYYOYYYY" "OOOOBOOOO";
 static const char kPatSuperflip[55] =
     "WBWOWRWGW" "RWRGRBRYR" "GWGOGRGYG" "YGYOYRYBY" "OWOBOGOYO" "BWBRBOBYB";
-static const char* const kPrevOps[]     = { "Faces", "Chips", "Bar", "Scramble" };
+static const char* const kPrevOps[]     = { "Faces", "Chips", "Bar", "Scramble",
+                                            "Hardware" };
+
+// What Hardware Test walks through. Named for the thing an operator would go
+// and look at, not for the class that drives it.
+static const char* const kHwParts[6] = {
+    "Top servo", "Bottom servo", "Ring", "Face motors", "Colour boards", "Wheel",
+};
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
 static const char* const kPrevDeep[]    = { "Deeper", "and", "deeper" };
 
@@ -249,8 +257,9 @@ static const MenuItem kOpsItems[] = {
     { "Colour Chips",   nullptr, actDemoChips,    "Two boards, six colours." },
     { "Progress Bar",   nullptr, actDemoProgress, "Fills over four seconds." },
     { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colours." },
+    { "Hardware Test",  nullptr, actHardwareTest, "A checklist, ticked live." },
 };
-const MenuScreen kScreenOps = { "Operations", kOpsItems, 4, MenuTheme::Blue };
+const MenuScreen kScreenOps = { "Operations", kOpsItems, 5, MenuTheme::Blue };
 
 static const MenuItem kCubeItems[] = {
     { "Solved Cube",     nullptr, actDemoNetSolved,    "Every face one colour." },
@@ -476,6 +485,54 @@ static void actFoldPattern() {
     Cube.displayUpdate();
 }
 
+// A checklist that ticks itself off. The rows ARE the progress here, so there
+// is no bar: a second indicator saying the same thing would only compete with
+// them. One part fails on purpose, because a checklist that can only go green
+// has not been tested.
+static void actHardwareTest() {
+    showScreen(Op::Info, "Hardware Test", nullptr, Live::Hardware);
+    cubeDisplay.setStatus("Starting");
+    Cube.displayUpdate();
+}
+
+static void updateHardwareTest(uint32_t t) {
+    const uint32_t per = 900;
+    const int kFails = 3;                      // Face motors, to show the red
+
+    static char rows[6][40];
+    CubeDisplay::RowMark marks[6];
+    const char* lines[6];
+
+    const int active = (int)(t / per);         // which part is under test now
+    for (int i = 0; i < 6; ++i) {
+        const char* value;
+        if (i < active) {
+            const bool bad = (i == kFails);
+            value    = bad ? "FAIL" : "OK";
+            marks[i] = bad ? CubeDisplay::RowMark::Bad : CubeDisplay::RowMark::Good;
+        } else if (i == active) {
+            value    = "testing";
+            marks[i] = CubeDisplay::RowMark::Busy;
+        } else {
+            value    = "-";
+            marks[i] = CubeDisplay::RowMark::Plain;
+        }
+        snprintf(rows[i], sizeof(rows[i]), "%s\t%s", kHwParts[i], value);
+        lines[i] = rows[i];
+    }
+
+    if (active < 6) {
+        char sub[40];
+        snprintf(sub, sizeof(sub), "Testing %d of 6", active + 1);
+        cubeDisplay.setStatus(sub);
+    } else {
+        // The frame reports the verdict, so it reads from across the room.
+        cubeDisplay.setOpKind(Op::Error);
+        cubeDisplay.setStatus("1 of 6 failed");
+    }
+    cubeDisplay.setOpLines(lines, 6, marks);
+}
+
 static void actDemoError() {
     showScreen(Op::Error, "Stopped", "Move failed - cube released");
     const char* lines[] = { "Canned - nothing actually failed." };
@@ -595,6 +652,10 @@ static void updateDemo() {
         }
         break;
     }
+
+    case Live::Hardware:
+        updateHardwareTest(t);
+        break;
 
     case Live::Input:
         updateInputReport();

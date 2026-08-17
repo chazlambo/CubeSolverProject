@@ -3,6 +3,7 @@
 #include "CubeHardwareConfig.h"  // For menuEncoder
 
 #include <math.h>
+#include <string.h>
 
 // Static instance pointer for callbacks
 CubeDisplay* CubeDisplay::instance = nullptr;
@@ -263,6 +264,9 @@ namespace {
     const int   COMMA_SPIN_MS  = 2600;
 
     const uint32_t COL_OP_HEAD = 0xF2F5FF;
+    const uint32_t COL_MARK_GOOD = 0x4ADE70;   // the palette's green edge
+    const uint32_t COL_MARK_BAD  = 0xF0603A;   // its red edge
+    const uint32_t COL_MARK_BUSY = 0xFBFF47;   // the cursor yellow
     const uint32_t COL_OP_KEY   = 0xA8B0C4;   // the label half of a status row
     const uint32_t COL_OP_VALUE = 0xEFF3FF;   // the value half
 
@@ -936,7 +940,8 @@ void CubeDisplay::setOpKind(OpKind kind) {
     if (opActive) applyTheme(themeForKind(kind));
 }
 
-void CubeDisplay::setOpLines(const char* const* lines, int count) {
+void CubeDisplay::setOpLines(const char* const* lines, int count,
+                             const RowMark* marks) {
     if (!lbl_line[0]) return;
     if (count > kOpLines) count = kOpLines;
     if (count < 0)        count = 0;
@@ -947,7 +952,14 @@ void CubeDisplay::setOpLines(const char* const* lines, int count) {
     const bool haveHead = (lbl_msg    && lv_label_get_text(lbl_msg)[0]    != '\0');
     const bool haveSub  = (lbl_status && lv_label_get_text(lbl_status)[0] != '\0');
     int top = haveHead ? OP_LINE_Y : 60;
-    if (haveSub) top += OP_LINE_STEP;
+
+    // The sub-line has to move with them. Left where showOperation() puts it
+    // (y=82, under a headline) it lands ON the first row of a headline-less
+    // screen — six rows from 77 would have run straight through it.
+    if (haveSub) {
+        lv_obj_set_pos(lbl_status, 48, haveHead ? OP_SUB_Y : top);
+        top += OP_LINE_STEP;
+    }
 
     for (int i = 0; i < kOpLines; ++i) {
         if (i >= count || lines[i] == nullptr) {
@@ -974,6 +986,19 @@ void CubeDisplay::setOpLines(const char* const* lines, int count) {
 
             lv_label_set_text(lbl_line[i], key);
             lv_label_set_text(lbl_lineVal[i], tab + 1);
+
+            uint32_t ink = COL_OP_VALUE;
+            if (marks) {
+                switch (marks[i]) {
+                case RowMark::Good: ink = COL_MARK_GOOD; break;
+                case RowMark::Bad:  ink = COL_MARK_BAD;  break;
+                case RowMark::Busy: ink = COL_MARK_BUSY; break;
+                case RowMark::Plain:
+                default: break;
+                }
+            }
+            lv_obj_set_style_text_color(lbl_lineVal[i], lv_color_hex(ink), 0);
+
             show(lbl_line[i]);
             show(lbl_lineVal[i]);
         } else {
@@ -1251,8 +1276,23 @@ void CubeDisplay::setMode(Mode m) {
 // title, hint bar and any step rows exactly as the caller that opened the
 // screen arranged them. Rebuilding the screen here instead would make every
 // progress tick flash the whole panel.
+// Echo to Serial only when the text actually changes.
+//
+// A live screen repaints at ~20 Hz, and these used to print every call — so a
+// running Hardware Test emitted the same line twenty times a second, burying
+// everything else in the console and spending real time on it. The panel is
+// idempotent; the log should be too.
+static bool changed(char* last, size_t cap, const char* msg) {
+    const char* s = msg ? msg : "";
+    if (strncmp(last, s, cap - 1) == 0) return false;
+    strncpy(last, s, cap - 1);
+    last[cap - 1] = '\0';
+    return true;
+}
+
 void CubeDisplay::setMessage(const char* msg) {
-    Serial.println(msg ? msg : "");
+    static char lastMsg[96] = { 1, 0 };
+    if (changed(lastMsg, sizeof(lastMsg), msg)) Serial.println(msg ? msg : "");
     if (!lbl_msg) return;
 
     if (opActive && mode == Mode::Message) {
@@ -1269,7 +1309,8 @@ void CubeDisplay::setMessage(const char* msg) {
 }
 
 void CubeDisplay::setStatus(const char* msg) {
-    Serial.println(msg ? msg : "");
+    static char lastStatus[96] = { 1, 0 };
+    if (changed(lastStatus, sizeof(lastStatus), msg)) Serial.println(msg ? msg : "");
     if (!lbl_status) return;
 
     if (opActive && mode == Mode::Message) {

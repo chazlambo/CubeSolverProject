@@ -231,8 +231,12 @@ Exercise each actuator in turn and report. A checklist, not a menu.
         ▓▓▓▓▓▓▓▓░░░░░░░░░░░░
 ```
 
-Needs the small `setOpLines()` addition for per-row value colour. Everything
-else exists.
+**Built.** `setOpLines(lines, count, marks)` tints the value half per row.
+Prototyped in `Test_Menu` (Screens > Operations > Hardware Test); what remains
+is driving it from real actuators rather than a timer.
+
+No progress bar: the rows ARE the progress here, and a second indicator saying
+the same thing would only compete with them.
 
 ### Sensor Test — Diagnostics
 
@@ -297,11 +301,13 @@ time. Six rows is exactly enough, so resist adding a seventh.
    frame without tearing the screen down, which is what makes the phase change
    free. What remains is the machine side — generating a scramble and running
    it — not the screen.
-3. **Row status marks** then **Hardware Test** — smallest new primitive, and
-   Hardware Test is the most useful diagnostic to have on the bench.
-4. **Move ribbon** then **Step Solve**; Demo Mode falls out nearly free.
-5. **Scrolling list** then **Fault Log**.
-6. **Value editor** then **Parameters** and **Servo Positions** — last because
+~~Row status marks, Hardware Test~~ — done. `setOpLines()` takes an optional
+`RowMark` per row and tints the value half; the checklist ticks itself off in
+green, amber and red, and the frame goes red at the end if anything failed.
+
+2. **Move ribbon** then **Step Solve**; Demo Mode falls out nearly free.
+4. **Scrolling list** then **Fault Log**.
+5. **Value editor** then **Parameters** and **Servo Positions** — last because
    it is a new interaction, and worth having the rest settled before adding a
    second thing the wheel can mean.
 

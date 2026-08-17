@@ -45,7 +45,14 @@ public:
     // the part after is right-aligned, which is what makes a status list read
     // as a table instead of as a paragraph.
     static const int kOpLines = 6;
-    void setOpLines(const char* const* lines, int count);
+
+    // What a status row's value is saying. Plain is the default; the rest tint
+    // the value half so a checklist can be read by colour before it is read by
+    // word — which is the whole point of a checklist you watch running.
+    enum class RowMark : uint8_t { Plain, Good, Bad, Busy };
+
+    void setOpLines(const char* const* lines, int count,
+                    const RowMark* marks = nullptr);
 
     // The six cube faces as a row of chips, each showing the colour actually
     // read from that face's centre sticker, hollow until it has been. `active`
