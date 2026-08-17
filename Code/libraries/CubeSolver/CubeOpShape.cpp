@@ -39,15 +39,9 @@ const uint8_t CubeSystem::kScanPassFaces[CubeSystem::kScanPasses][2] = {
 };
 
 int8_t CubeSystem::chipIndexForColor(char c) {
-    switch (c) {
-    case 'W': return 0;
-    case 'Y': return 1;
-    case 'R': return 2;
-    case 'O': return 3;
-    case 'G': return 4;
-    case 'B': return 5;
-    default:  return -1;    // 'U' — the sensors' "unknown"
-    }
+    // Forwarded, not duplicated: CubeDisplay owns the chip palette and its
+    // order, so it owns what a colour letter means.
+    return CubeDisplay::chipIndexForColor(c);
 }
 
 // From calibrateColorSensors(): faceColors then topFaces, mapped to chip

@@ -109,6 +109,7 @@ static void actCalStatus();
 static void actCalColors();
 static void actCalMotors();
 static void actNotImplemented();
+static void actCubeState();
 
 // ---------------------------------------------------------------------------
 //  Menu tables
@@ -210,7 +211,7 @@ static const MenuItem kDiagnosticsItems[] = {
     { "Hardware Test", nullptr, actNotImplemented, "Exercise every actuator." },
     { "Sensor Test",   nullptr, actNotImplemented, "Watch the sensors live." },
     { "Parameters",    nullptr, actNotImplemented, "Tunable machine settings." },
-    { "Cube State",    nullptr, actNotImplemented, "Show the stored cube." },
+    { "Cube State",    nullptr, actCubeState,      "Show the stored cube." },
     { "Fault Log",     nullptr, actNotImplemented, "Recent faults and errors." },
 };
 const MenuScreen kScreenDiagnostics = { "Diagnostics", kDiagnosticsItems, 5, MenuTheme::Purple };
@@ -346,13 +347,21 @@ static const char* execErrorText(int code) {
 
 static void fail(const char* what, const char* detail, int code) {
     lastError = code;
-    char sub[96];
+
+    // The detail goes on the sub-line and only the code goes in the hint box.
+    // Both used to share the hint, which is 182 px wide — long fault strings
+    // like "Impossible cube, repair failed. Rescan." were ellipsised away
+    // exactly when they were most worth reading.
+    char hint[48];
     if (Cube.lastFault != 0 && Cube.lastFault != code) {
-        snprintf(sub, sizeof(sub), "%s  (code %d, fault %d)", detail, code, Cube.lastFault);
+        snprintf(hint, sizeof(hint), "code %d, fault %d - SELECT", code, Cube.lastFault);
     } else {
-        snprintf(sub, sizeof(sub), "%s  (code %d)", detail, code);
+        snprintf(hint, sizeof(hint), "code %d - SELECT to continue", code);
     }
-    showOp(Op::Error, "Stopped", what, sub);
+
+    showOp(Op::Error, "Stopped", what, hint);
+    cubeDisplay.setStatus(detail);
+    Cube.displayUpdate();
     state = AppState::Error;
 }
 
@@ -454,6 +463,72 @@ static void actStats() {
         "block is still to be added.",
     };
     showInfo("Stats", rows, 6);
+}
+
+// The stored virtual cube, unfolded. This is the screen that answers "does the
+// machine think it is holding the cube I am holding", which until now could only
+// be checked by reading a 54-character dump over Serial.
+static void actCubeState() {
+    char net[CubeDisplay::kNetFacelets];
+    const char* fac = nullptr;
+    const char* what = nullptr;
+
+    if (Cube.virtualCube.isReady()) {
+        fac  = Cube.virtualCube.getColorArray();
+        what = nullptr;
+    } else if (Cube.scanFacesRecorded > 0) {
+        // Nothing was built, but a scan was recorded — which is exactly when
+        // somebody wants to see it. Reassemble the raw per-face readings into
+        // net order using the same pass/sensor table the scan display uses.
+        //
+        // CAVEAT, and it is why this says "last scan" rather than "cube": each
+        // face is laid out as its sensor saw it, and the per-face rotation is
+        // only resolved later by setOrientation(). A stray sticker shows up
+        // here, but WHERE it sits within its face may be turned.
+        for (int i = 0; i < CubeDisplay::kNetFacelets; ++i) net[i] = 'X';
+        for (int pass = 0; pass < CubeSystem::kScanPasses; ++pass) {
+            for (int sen = 0; sen < 2; ++sen) {
+                const int f       = 2 * pass + sen;
+                const int netFace = CubeSystem::kScanPassFaces[pass][sen];
+                if (f >= Cube.scanFacesRecorded) continue;
+                for (int k = 0; k < 9; ++k) net[netFace * 9 + k] = Cube.scanColor[f][k];
+            }
+        }
+        fac  = net;
+        what = "last scan, not built";
+    } else {
+        const char* rows[] = {
+            "Nothing has been scanned yet, or the",
+            "last scan was discarded by a fault.",
+        };
+        showInfo("Cube State", rows, 2, "No cube state");
+        return;
+    }
+
+    // Nine of each colour is the cheapest check that the stored state is a
+    // cube at all, and the one an operator can act on: a count that is not nine
+    // says which colour was misread, which is more use than "invalid".
+    static const char kOrder[6] = { 'W', 'Y', 'R', 'O', 'G', 'B' };
+    int count[6] = { 0, 0, 0, 0, 0, 0 };
+    for (int i = 0; i < CubeDisplay::kNetFacelets; ++i) {
+        for (int c = 0; c < 6; ++c) if (fac[i] == kOrder[c]) count[c]++;
+    }
+
+    char sub[80];
+    if (what) {
+        snprintf(sub, sizeof(sub), "W%d Y%d R%d O%d G%d B%d  -  %s",
+                 count[0], count[1], count[2], count[3], count[4], count[5], what);
+    } else {
+        snprintf(sub, sizeof(sub), "W%d  Y%d  R%d  O%d  G%d  B%d",
+                 count[0], count[1], count[2], count[3], count[4], count[5]);
+    }
+
+    cubeDisplay.showOperation(Op::Info, "Cube State", nullptr,
+                              "SELECT or LEFT to go back");
+    cubeDisplay.setOpCubeNet(fac);
+    cubeDisplay.setStatus(sub);
+    Cube.displayUpdate();
+    state = AppState::Info;
 }
 
 // One placeholder for every unbuilt screen. It names itself from the item that

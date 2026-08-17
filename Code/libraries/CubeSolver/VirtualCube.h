@@ -106,6 +106,14 @@ public:
     const char* getCubeArray() const           { return cubeArray; }
     const char* getUnorientedCubeArray() const { return unorientedCubeArray; }
 
+    // The same 54 facelets as colour letters (W Y R O G B) rather than face
+    // letters. Same layout and the same lifetime caveats as the two above.
+    //
+    // This is what a display wants: cubeArray has already had its colours
+    // translated into U/R/F/D/L/B (via the 'B' -> 'P' placeholder dance in
+    // buildCubeArray), so it can no longer say what colour anything is.
+    const char* getColorArray() const           { return colorCubeArray; }
+
     // TODO: DEBUG REMOVE LATER
     void printUnorientedCubeArray();
     void printCubeArray();

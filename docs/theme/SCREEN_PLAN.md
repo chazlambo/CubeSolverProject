@@ -45,35 +45,53 @@ stopped. A new screen picks the one that already means what it means.
 
 ## Vocabulary we still need, ranked
 
-1. **Cube net** — 54 stickers, unfolded. Serves Cube State, Patterns previews,
-   and a scan-review screen. By far the highest-value missing piece; three
-   screens are waiting on it.
-2. **Move ribbon** — a sequence with a cursor on the current entry. Step Solve
+~~1. **Cube net**~~ — **BUILT.** `setOpCubeNet()`, and Cube State uses it. See
+   "On the cube net" below for how, and the one thing still missing from it.
+
+1. **Move ribbon** — a sequence with a cursor on the current entry. Step Solve
    needs it; Solve and Demo get better with it.
-3. **Scrolling status list** — Fault Log. More than six rows with a position
+2. **Scrolling status list** — Fault Log. More than six rows with a position
    readout.
-4. **Value editor** — Parameters and Servo Positions. The wheel changes a
+3. **Value editor** — Parameters and Servo Positions. The wheel changes a
    number instead of moving a cursor. This is a new *interaction*, not just new
    art, and is the one worth thinking hardest about.
-5. **Row status marks** — a status row whose value is green/red rather than
+4. **Row status marks** — a status row whose value is green/red rather than
    grey. Hardware Test wants it; small change to `setOpLines()`.
 
-### On the cube net
+### On the cube net — built, and how
 
-54 stickers cannot be 54 LVGL objects — that is most of the pool for one
-screen. Use `lv_canvas` with a **static buffer, not one from `LV_MEM`**: a
-12x9-sticker net at 8 px/sticker is 96x72, which is 13.8 KB of RGB565. That is
-nothing in Teensy RAM and three times the whole LVGL pool, so it must be a plain
-static array handed to `lv_canvas_set_buffer()`.
+`setOpCubeNet(facelets)` takes 54 colour letters in the standard order and draws
+the unfolded cross. `VirtualCube::getColorArray()` returns exactly that.
 
-Draw it once per change, not per frame. The net is static between moves.
+It is **not** LVGL primitives and **not** `lv_canvas`. It writes RGB565A8 into a
+plain static buffer and hands that to an `lv_image`. Three reasons, all of which
+apply to the next thing like it:
+
+- 54 stickers as objects would be most of the pool for one screen.
+- The buffer (39 KB at 10 px stickers) is several times the whole LVGL pool, so
+  it must be a static array, not an `LV_MEM` allocation. Teensy RAM has room;
+  the pool does not.
+- LVGL reads an uncompressed variable-source image **straight out of the buffer
+  without caching it** (`use_directly` in `lv_bin_decoder`). So redrawing is
+  "rewrite the bytes, call `lv_obj_invalidate()`" — no reallocation, no cache
+  invalidation dance.
+
+Gaps between stickers are alpha 0, so the net sits on the themed backdrop rather
+than on a grey slab. A facelet that is not a known colour is drawn as a hollow
+outline, so a bad sticker reads as wrong rather than as missing.
+
+**Still missing:** per-face rotation for a *raw* scan. Cube State falls back to
+showing the last scan when nothing was built, but each face is laid out as its
+sensor saw it — `setOrientation()` resolves that only when the cube is built. A
+stray sticker is visible; where it sits within its face may be turned. The
+screen says "last scan, not built" rather than pretending otherwise.
 
 ```
         ┌──┬──┬──┐
         │  U     │            standard unfolded cross:
         ├──┼──┼──┼──┬──┬──┐   4 faces wide, 3 tall
-        │  L  │  F  │  R  │  B     at 8 px/sticker -> 96 x 72
-        ├──┼──┼──┼──┴──┴──┘   fits the content area with room to spare
+        │  L  │  F  │  R  │  B     at 10 px/sticker -> 132 x 99
+        ├──┼──┼──┼──┴──┴──┘   centred, with the sub-line below it
         │  D     │
         └──┴──┴──┘
 ```
@@ -163,23 +181,23 @@ exactly what it was designed for.
 ```
 
 Running one is then just the solve screen with the headline naming the pattern.
-Blocked on the cube net.
+No longer blocked — the net exists. A pattern is a name plus a move sequence,
+and the preview needs the net drawn small enough for the pane (5 px stickers
+against the 10 px Cube State uses), so `setOpCubeNet()` grows a size argument.
 
-### Cube State — Diagnostics
+### Cube State — Diagnostics — **BUILT**
 
-The full net, as large as fits, plus whether the stored state is valid.
+The net plus a colour count. Nine of each is the cheapest check that the stored
+state is a cube at all, and unlike "invalid" it says *which* colour was misread.
 
-```
-        ┌────────────────────┐
-        │      cube net      │            8 px/sticker
-        └────────────────────┘
-        State      valid                   <- or "impossible"
-```
+It doubles as the **scan review**: with nothing built but a scan recorded, it
+shows the raw readings instead of an empty screen — which is the case where
+somebody most wants to look. See the caveat above.
 
-The most direct use of the net. Also the natural home for a **scan review**: the
-same screen, reachable after a failed scan, with the ambiguous stickers marked —
-`scanColor`/`scanAlt`/`scanConf` already record everything needed for that, and
-the TODO in `CubeSolver.ino` says as much.
+Still worth adding: mark the low-confidence stickers. `scanAlt` and `scanConf`
+already record the runner-up colour and the confidence for every sticker, so the
+data is there — a hollow or outlined sticker for "the classifier was unsure
+about this one" would turn this from *what it read* into *what to distrust*.
 
 ### Fault Log — Diagnostics
 
@@ -263,16 +281,22 @@ time. Six rows is exactly enough, so resist adding a seventh.
 
 ## Suggested order
 
-1. **Scramble Solve** — no new primitives, proves the phase-colour idea.
-2. **Row status marks** then **Hardware Test** — smallest new primitive, and
+~~Cube net, Cube State, scan review~~ — done.
+
+1. **Patterns** — now unblocked. The net exists; a pattern is a name plus a move
+   sequence, and the preview pane is the obvious home for a small one.
+2. **Scramble Solve** — no new primitives, proves the phase-colour idea (red
+   while scrambling, green the moment it starts solving).
+3. **Row status marks** then **Hardware Test** — smallest new primitive, and
    Hardware Test is the most useful diagnostic to have on the bench.
-3. **Cube net** — then **Cube State**, then **Patterns**, then scan review.
-   Three screens unblock at once.
 4. **Move ribbon** then **Step Solve**; Demo Mode falls out nearly free.
 5. **Scrolling list** then **Fault Log**.
 6. **Value editor** then **Parameters** and **Servo Positions** — last because
    it is a new interaction, and worth having the rest settled before adding a
    second thing the wheel can mean.
+
+Low-confidence marking on the Cube State net can slot in whenever; it needs no
+new primitive, only `scanConf` plumbed through.
 
 Idle Mode can slot in any time after Stats has real numbers.
 

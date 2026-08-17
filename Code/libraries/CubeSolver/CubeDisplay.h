@@ -57,6 +57,21 @@ public:
     static const int kChipCount = 6;
     void setOpChips(const uint8_t* bits, int boards);
 
+    // A colour letter as the sensors and the virtual cube use them
+    // ('W','Y','R','O','G','B') mapped to an index into the chip palette, or
+    // -1 for anything else. Lives here because this class defines that palette
+    // and its order; CubeSystem::chipIndexForColor() forwards to it.
+    static int8_t chipIndexForColor(char c);
+
+    // The cube as an unfolded net: 54 facelets in the standard order
+    // (U R F D L B, row-major within each face) as colour letters, exactly what
+    // VirtualCube::getColorArray() returns. nullptr hides it.
+    //
+    // A facelet that is not a known colour is drawn hollow, so a partial or
+    // impossible state shows WHICH stickers are the problem.
+    static const int kNetFacelets = 54;
+    void setOpCubeNet(const char* facelets);
+
     // A filled bar, for operations with a countable end — the solve knows how
     // many moves it has to run, and a number alone does not show how far along
     // that is at a glance.
@@ -186,6 +201,7 @@ private:
     lv_obj_t* lbl_faceCap[kFaceCount];
     lv_obj_t* bar_track;
     lv_obj_t* bar_fill;
+    lv_obj_t* img_net;
 
     lv_style_t white_style;
 

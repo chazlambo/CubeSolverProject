@@ -39,6 +39,7 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
     for (int i = 0; i < kFaceCount; ++i) lbl_faceCap[i] = nullptr;
     bar_track = nullptr;
     bar_fill  = nullptr;
+    img_net   = nullptr;
     instance = this;  // Set static instance for callbacks
 }
 
@@ -145,6 +146,49 @@ namespace {
     // Face order for the scan row. Not the scan ORDER — the cube's own naming,
     // so the row reads U R F D L B however the machine happens to visit them.
     const char* const kFaceNames[6] = { "U", "R", "F", "D", "L", "B" };
+
+    // ---- cube net --------------------------------------------------------
+    //
+    // An unfolded cube, 12 cells wide by 9 tall:
+    //
+    //          U
+    //     L    F    R    B
+    //          D
+    //
+    // Drawn by writing RGB565A8 straight into a static buffer rather than with
+    // LVGL primitives. 54 stickers would be 54 objects — most of the pool for
+    // one screen — and lv_canvas would need its buffer anyway. LVGL reads an
+    // uncompressed variable-source image directly out of the buffer without
+    // caching it (`use_directly` in lv_bin_decoder), so rewriting these bytes
+    // and invalidating the object is all it takes to show a new state.
+    //
+    // The buffer MUST NOT come from LV_MEM: at 32 KB it is two thirds of the
+    // whole pool. It is a plain static array, which on a Teensy 4.1 with 1 MB
+    // of RAM is not a constraint.
+    const int NET_CELL = 11;              // sticker 10 px plus a 1 px gap
+    const int NET_STICKER = 10;
+    const int NET_COLS = 12, NET_ROWS = 9;
+    const int NET_W = NET_COLS * NET_CELL;   // 120
+    const int NET_H = NET_ROWS * NET_CELL;   // 90
+    const int NET_X = (320 - NET_W) / 2, NET_Y = 48;
+
+    uint8_t  s_netBuf[NET_W * NET_H * 3];    // RGB565 plane, then the A8 plane
+    lv_image_dsc_t s_netDsc;
+
+    // Where each face sits in the net, in cells, and where it starts in the
+    // facelet string. Standard order: U R F D L B.
+    const struct { int col, row, base; } kNetFaces[6] = {
+        { 3, 0,  0 },   // U
+        { 6, 3,  9 },   // R
+        { 3, 3, 18 },   // F
+        { 3, 6, 27 },   // D
+        { 0, 3, 36 },   // L
+        { 9, 3, 45 },   // B
+    };
+
+    inline uint16_t rgb565(uint32_t c) {
+        return (uint16_t)(((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x001F));
+    }
 
     // Progress bar, and where the sub-line goes when step rows own the middle
     // of the screen instead of a headline.
@@ -588,6 +632,22 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
     lv_obj_set_style_border_width(bar_track, 1, 0);
     hide(bar_track);
 
+    // The net image points at the static buffer above and is never reallocated.
+    lv_memset(s_netBuf, 0, sizeof(s_netBuf));
+    s_netDsc.header.magic  = LV_IMAGE_HEADER_MAGIC;
+    s_netDsc.header.cf     = LV_COLOR_FORMAT_RGB565A8;
+    s_netDsc.header.flags  = 0;
+    s_netDsc.header.w      = NET_W;
+    s_netDsc.header.h      = NET_H;
+    s_netDsc.header.stride = NET_W * 2;
+    s_netDsc.data_size     = sizeof(s_netBuf);
+    s_netDsc.data          = s_netBuf;
+
+    img_net = lv_image_create(scr);
+    lv_image_set_src(img_net, &s_netDsc);
+    lv_obj_set_pos(img_net, NET_X, NET_Y);
+    hide(img_net);
+
     bar_fill = lv_obj_create(bar_track);
     makeBare(bar_fill);
     lv_obj_set_size(bar_fill, 0, PBAR_H - 4);
@@ -640,6 +700,73 @@ void CubeDisplay::clearOpExtras() {
     hide(img_sonar[1]);
     hide(bar_track);
     hide(bar_fill);
+    hide(img_net);
+}
+
+int8_t CubeDisplay::chipIndexForColor(char c) {
+    switch (c) {
+    case 'W': return 0;
+    case 'Y': return 1;
+    case 'R': return 2;
+    case 'O': return 3;
+    case 'G': return 4;
+    case 'B': return 5;
+    default:  return -1;    // 'U' from the sensors, 'X' from an unbuilt cube
+    }
+}
+
+// ---------------------------------------------------------------------------
+//  The cube as an unfolded net.
+// ---------------------------------------------------------------------------
+void CubeDisplay::setOpCubeNet(const char* facelets) {
+    if (!img_net) return;
+    if (!facelets) { hide(img_net); return; }
+
+    uint8_t* colour = s_netBuf;
+    uint8_t* alpha  = s_netBuf + (NET_W * NET_H * 2);
+
+    // Everything transparent first: the gaps between stickers are the panel's
+    // own background showing through, not a drawn colour, so the net sits on
+    // the themed backdrop instead of on a grey slab.
+    lv_memset(alpha, 0x00, NET_W * NET_H);
+
+    for (int f = 0; f < 6; ++f) {
+        for (int k = 0; k < 9; ++k) {
+            const int8_t ci = chipIndexForColor(facelets[kNetFaces[f].base + k]);
+
+            const int cx = (kNetFaces[f].col + (k % 3)) * NET_CELL;
+            const int cy = (kNetFaces[f].row + (k / 3)) * NET_CELL;
+
+            // A sticker whose colour is not known is drawn as a hollow outline
+            // rather than skipped, so a gap in the net reads as "this one is
+            // wrong" instead of as an empty space.
+            const uint16_t px = (ci >= 0) ? rgb565(kChipColors[ci]) : rgb565(0x30364A);
+
+            for (int y = 0; y < NET_STICKER; ++y) {
+                for (int x = 0; x < NET_STICKER; ++x) {
+                    const bool edge = (ci < 0) &&
+                                      (x != 0 && y != 0 &&
+                                       x != NET_STICKER - 1 && y != NET_STICKER - 1);
+                    if (edge) continue;               // hollow centre
+
+                    const int i = (cy + y) * NET_W + (cx + x);
+                    colour[i * 2 + 0] = (uint8_t)(px & 0xFF);
+                    colour[i * 2 + 1] = (uint8_t)(px >> 8);
+                    alpha[i] = 0xFF;
+                }
+            }
+        }
+    }
+
+    // The image reads this buffer at draw time, so the only thing needed to
+    // show the new state is telling LVGL the area is dirty.
+    lv_obj_invalidate(img_net);
+    show(img_net);
+
+    // The net owns the middle of the screen, so the sub-line moves below it
+    // rather than being drawn through the cube.
+    lv_obj_set_pos(lbl_status, 48, NET_Y + NET_H + 6);
+    show(lbl_status);
 }
 
 // ---------------------------------------------------------------------------

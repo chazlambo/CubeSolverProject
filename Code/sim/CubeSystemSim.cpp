@@ -240,6 +240,18 @@ int CubeSystem::scanCube() {
         faceChips[fb] = CubeSystem::chipIndexForColor(kSimFaceColor[fb]);
         displayFaces(faceChips);
 
+        // Record the pass the way the real scanCube() does — in SCAN order,
+        // incrementally. Without this a failed scan left nothing behind, and
+        // the screens that review one had nothing to show in the simulator
+        // even though the machine would have had a full set of readings.
+        for (int sen = 0; sen < 2; ++sen) {
+            const int f = 2 * pass + sen;
+            const char col = kSimFaceColor[CubeSystem::kScanPassFaces[pass][sen]];
+            for (int k = 0; k < 9; ++k) scanColor[f][k] = col;
+            scanFaceColor[f] = col;
+        }
+        scanFacesRecorded = 2 * pass + 2;
+
         if (pass < CubeSystem::kScanPasses - 1) {
             displaySetStatus("Rotating cube");
             if (!simWait(kScanReorientMs)) return 70;
@@ -249,6 +261,9 @@ int CubeSystem::scanCube() {
     displayFaces(faceChips);
 
     if (injectFault) {
+        // An impossible cube is diagnosed AFTER all six faces are read, so the
+        // readings survive — which is the whole point of being able to review
+        // them. Leave scanFacesRecorded alone.
         displaySetStatus("");
         return kFakeScanFault;
     }
