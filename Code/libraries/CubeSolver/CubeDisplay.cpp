@@ -1072,17 +1072,16 @@ void CubeDisplay::setOpLines(const char* const* lines, int count,
     }
 }
 
-void CubeDisplay::setOpChipRow(const int8_t* fill, const char* const* caps,
+void CubeDisplay::setOpChipRow(int row, const int8_t* fill, const char* const* caps,
                                int count, int active, int y) {
-    if (!chip[0][0] || !fill) return;
+    if (row < 0 || row > 1) return;
+    if (!chip[row][0] || !fill) return;
     if (count > kChipMax) count = kChipMax;
     if (count < 0)        count = 0;
 
-    // This row and the calibration rows share the same chip objects, so both
-    // set size and position every time rather than trusting what was left.
-    hide(lbl_chipRow[0]);
-    hide(lbl_chipRow[1]);
-    for (int i = 0; i < kChipCount; ++i) hide(chip[1][i]);
+    // Only this row is touched. A screen wanting two calls twice, and anything
+    // left over from the last screen was already cleared by showOperation().
+    hide(lbl_chipRow[row]);
 
     // Size the chips to the count so the row always clears the frame band.
     // Eight at the six-chip width overran it by a chip on each side — the last
@@ -1097,9 +1096,9 @@ void CubeDisplay::setOpChipRow(const int8_t* fill, const char* const* caps,
     const int x0   = (320 - span) / 2;
 
     for (int i = 0; i < kChipMax; ++i) {
-        if (i >= count) { hide(chip[0][i]); hide(lbl_faceCap[i]); continue; }
+        if (i >= count) { hide(chip[row][i]); if (row == 0) hide(lbl_faceCap[i]); continue; }
 
-        lv_obj_t* c = chip[0][i];
+        lv_obj_t* c = chip[row][i];
         const int cx = x0 + i * (w + gap);
         lv_obj_set_size(c, w, FACE_H);
         lv_obj_set_pos(c, cx, y);
@@ -1129,18 +1128,20 @@ void CubeDisplay::setOpChipRow(const int8_t* fill, const char* const* caps,
             lv_obj_set_style_border_width(c, 2, 0);
         }
 
-        lv_obj_set_size(lbl_faceCap[i], w, 12);
-        lv_obj_set_pos(lbl_faceCap[i], cx, y + FACE_H + 3);
-        lv_obj_set_style_text_color(lbl_faceCap[i],
-                                    lv_color_hex(busy ? 0xFBFF47 : COL_OP_KEY), 0);
-        lv_label_set_text(lbl_faceCap[i], caps && caps[i] ? caps[i] : "");
+        if (row == 0) {
+            lv_obj_set_size(lbl_faceCap[i], w, 12);
+            lv_obj_set_pos(lbl_faceCap[i], cx, y + FACE_H + 3);
+            lv_obj_set_style_text_color(lbl_faceCap[i],
+                                        lv_color_hex(busy ? 0xFBFF47 : COL_OP_KEY), 0);
+            lv_label_set_text(lbl_faceCap[i], caps && caps[i] ? caps[i] : "");
+            show(lbl_faceCap[i]);
+        }
         show(c);
-        show(lbl_faceCap[i]);
     }
 }
 
 void CubeDisplay::setOpFaces(const int8_t* faces, int activeA, int activeB) {
-    setOpChipRow(faces, kFaceNames, kFaceCount, activeA, FACE_Y);
+    setOpChipRow(0, faces, kFaceNames, kFaceCount, activeA, FACE_Y);
 
     // The scan lights BOTH faces under the sensors; the general row lights one.
     if (activeB >= 0 && activeB < kFaceCount) {

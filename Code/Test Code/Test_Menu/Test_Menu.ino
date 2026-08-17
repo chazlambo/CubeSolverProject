@@ -71,7 +71,7 @@ static TState state = TState::Menu;
 
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
-enum class Live : uint8_t { None, Input, Steps, Chips, Scramble, Fold, Step, Demo };
+enum class Live : uint8_t { None, Input, Steps, Chips, Scramble, Fold, Step, Demo, Sensors };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -107,6 +107,7 @@ static void actLoad();
 static void actEject();
 static void actReport();
 static void actInputReport();
+static void actSensorTest();
 static void actDemoInfo();
 static void actDemoSteps();
 static void actDemoChips();
@@ -166,7 +167,11 @@ static const char* const kScrambleMoves[kScrambleLen] = {
     "U2", "F",  "D'", "L'", "B2", "R2", "U",  "F'", "D",  "L",
     "B",  "R",  "U2", "F2", "D'", "L2", "B'", "R2", "U'", "F",
 };
-static const char* const kPrevDiag[] = { "Navigation", "Input" };
+static const char* const kPrevDiag[] = { "Navigation", "Input", "Sensors" };
+
+// One caption per sticker on a colour board. Nine of them, in the order the
+// sensors are read.
+static const char* const kSensorCaps[9] = { "1","2","3","4","5","6","7","8","9" };
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
 static const char* const kPrevDeep[]    = { "Deeper", "and", "deeper" };
 
@@ -204,8 +209,10 @@ static const MenuItem kDiagItems[] = {
       kPrevNav, 4, MenuTheme::Red },
     { "Input Report", nullptr,     actInputReport, "Live wheel and buttons.",
       nullptr, 0, MenuTheme::Purple },
+    { "Sensor Test",  nullptr,     actSensorTest,  "Live colour readings.",
+      nullptr, 0, MenuTheme::Blue },
 };
-const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 2, MenuTheme::Purple };
+const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 3, MenuTheme::Purple };
 
 // ---- navigation: one screen per item count ----
 //
@@ -491,7 +498,7 @@ static void drawJog(const char* busy) {
     // whole-cube rotations. Same gesture — point at a thing, turn it.
     const int8_t fill[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
     const int active = (jogSel >= kJogRows) ? jogSel - kJogRows : -1;
-    cubeDisplay.setOpChipRow(fill, kJogCaps, kJogFaces + kJogRots, active, 142);
+    cubeDisplay.setOpChipRow(0, fill, kJogCaps, kJogFaces + kJogRots, active, 142);
 
     Cube.displayUpdate();
 }
@@ -625,6 +632,43 @@ static void updateInputReport() {
     const char* lines[] = { rows[0], rows[1], rows[2], rows[3],
                             "", "Hold LEFT alone to leave." };
     cubeDisplay.setOpLines(lines, 6);
+}
+
+// Live colour readings, nine sensors per board.
+//
+// The two rows of chips ARE the readout: a wall of eighteen colour names would
+// take longer to read than the cube does to scan, and the thing you are looking
+// for — one sensor disagreeing with its neighbours — shows up instantly as a
+// chip of the wrong colour.
+//
+// Board 2 sensor 2 reads a dead green channel on this machine (see the README),
+// so it is drawn as a known-bad sensor rather than a plausible one. A diagnostic
+// that only ever shows healthy hardware is not a diagnostic.
+static void actSensorTest() {
+    showScreen(Op::Scan, "Sensor Test", nullptr, Live::Sensors);
+}
+
+static void updateSensorTest(uint32_t t) {
+    static const char* rows[2] = { "Board 1\t9/9 healthy, sep 165",
+                                   "Board 2\t8/9 healthy, sep 3" };
+    static const CubeDisplay::RowMark marks[2] = { CubeDisplay::RowMark::Good,
+                                                   CubeDisplay::RowMark::Bad };
+
+    // Canned, but moving: the readings drift the way a face being turned under
+    // the sensors would, so the screen is exercised as a LIVE one rather than a
+    // still. The dead sensor stays hollow throughout.
+    const int phase = (int)(t / 900);
+    int8_t b1[9], b2[9];
+    for (int i = 0; i < 9; ++i) {
+        b1[i] = (int8_t)((i + phase) % 6);
+        b2[i] = (i == 1) ? (int8_t)-1 : (int8_t)((i + phase + 3) % 6);
+    }
+
+    cubeDisplay.showOperation(Op::Scan, "Sensor Test", nullptr, "LEFT to go back");
+    cubeDisplay.setOpLines(rows, 2, marks);
+    cubeDisplay.setOpChipRow(0, b1, kSensorCaps, 9, -1, 104);
+    cubeDisplay.setOpChipRow(1, b2, nullptr, 9, -1, 140);
+    Cube.displayUpdate();
 }
 
 // ---------------------------------------------------------------------------
@@ -880,6 +924,10 @@ static void updateDemo() {
 
     case Live::Demo:
         updateDemoMode(t);
+        break;
+
+    case Live::Sensors:
+        updateSensorTest(t);
         break;
 
     case Live::Input:

@@ -30,12 +30,18 @@
  *                         transient draw layers on top of that took it over —
  *                         the firmware hung at startup with no output at all.
  *
- *                         48 KB was chosen against a measurement, not a guess:
- *                         press M in the desktop simulator to print live usage.
- *                         Peak is ~27 KB, leaving room for the 8 KB simple-layer
- *                         buffer and headroom on top. The Teensy 4.1 has 1 MB of
- *                         RAM and the framebuffers already account for ~195 KB,
- *                         so the extra 16 KB is not the constraint here.
+ *                         Raised again to 64 KB when the screens kept coming:
+ *                         the widget set reached 35 KB and the boot check below
+ *                         warned that under 8 KB was left, which is less than a
+ *                         draw layer needs. 64 KB puts ~28 KB back.
+ *
+ *                         Both figures were measurements, not guesses. Press M
+ *                         in the desktop simulator for live usage, and watch the
+ *                         line CubeDisplay::begin() prints at boot — it warns
+ *                         below 8 KB free, which is the number that matters.
+ *                         The Teensy 4.1 has 1 MB of RAM and the framebuffers
+ *                         already account for ~195 KB, so this is not where the
+ *                         pressure is.
  *
  *   - LV_USE_LOG 0 means LVGL failures are silent.
  * ---------------------------------------------------------------------------
@@ -67,7 +73,7 @@
 /* LOAD-BEARING. Static pool, separate from the ~200 KB of RAM2 heap that
  * CubeDisplay's framebuffer + lv_buf + diff buffers consume. Raise this if
  * widgets start failing to allocate (LV_USE_ASSERT_MALLOC below will catch it). */
-#define LV_MEM_SIZE (48 * 1024U)    /*see the note above*/
+#define LV_MEM_SIZE (64 * 1024U)    /*see the note above*/
 #define LV_MEM_POOL_EXPAND_SIZE 0
 
 /*====================

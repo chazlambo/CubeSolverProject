@@ -72,13 +72,15 @@ public:
     //
     // Used as a SELECTOR as well as a readout — a row of eight boxes holds what
     // eight menu bars could not.
-    static const int kChipMax = 8;
-    void setOpChipRow(const int8_t* fill, const char* const* caps, int count,
-                      int active, int y);
+    // Nine, because a colour board has nine sensors — one per sticker — and a
+    // live readout of them is the widest row anything asks for.
+    static const int kChipMax = 9;
+    void setOpChipRow(int row, const int8_t* fill, const char* const* caps,
+                      int count, int active, int y);
 
     // Per-board colour capture for the sensor calibration, as two rows of six
     // chips. bits[b] holds one bit per colour in kChipOrder, low bit first.
-    static const int kChipCount = 8;   // widest row any screen asks for
+    static const int kChipCount = kChipMax;
     void setOpChips(const uint8_t* bits, int boards);
 
     // A colour letter as the sensors and the virtual cube use them
