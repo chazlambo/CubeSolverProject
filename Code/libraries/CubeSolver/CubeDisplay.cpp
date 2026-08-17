@@ -171,7 +171,11 @@ namespace {
     const int NET_COLS = 12, NET_ROWS = 9;
     const int NET_W = NET_COLS * NET_CELL;   // 120
     const int NET_H = NET_ROWS * NET_CELL;   // 90
-    const int NET_X = (320 - NET_W) / 2, NET_Y = 48;
+    // Vertically centred in the frame's usable area rather than pushed to the
+    // top. That area runs from below the band's top horizontal run (master
+    // y=147, so 39 here) down to the description box at 199 — 160 px — and the
+    // net plus its gap and sub-line is 119, which centres the block at y=60.
+    const int NET_X = (320 - NET_W) / 2, NET_Y = 60;
 
     uint8_t  s_netBuf[NET_W * NET_H * 3];    // RGB565 plane, then the A8 plane
     lv_image_dsc_t s_netDsc;
