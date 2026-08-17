@@ -37,7 +37,7 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
         lbl_chipRow[b] = nullptr;
         for (int i = 0; i < kChipCount; ++i) chip[b][i] = nullptr;
     }
-    for (int i = 0; i < kFaceCount; ++i) lbl_faceCap[i] = nullptr;
+    for (int i = 0; i < kChipMax; ++i) lbl_faceCap[i] = nullptr;
     bar_track = nullptr;
     bar_fill  = nullptr;
     img_net     = nullptr;
@@ -648,14 +648,14 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
         }
     }
 
-    for (int i = 0; i < kFaceCount; ++i) {
+    for (int i = 0; i < kChipMax; ++i) {
         lbl_faceCap[i] = lv_label_create(scr);
         lv_obj_set_size(lbl_faceCap[i], FACE_W, 12);
         lv_obj_set_pos(lbl_faceCap[i], FACE_X + i * (FACE_W + FACE_GAP), FACE_CAP_Y);
         lv_obj_set_style_text_font(lbl_faceCap[i], &lv_font_prev_9, 0);
         lv_obj_set_style_text_color(lbl_faceCap[i], lv_color_hex(COL_OP_KEY), 0);
         lv_obj_set_style_text_align(lbl_faceCap[i], LV_TEXT_ALIGN_CENTER, 0);
-        lv_label_set_text(lbl_faceCap[i], kFaceNames[i]);
+        lv_label_set_text(lbl_faceCap[i], (i < 6) ? kFaceNames[i] : "");
         hide(lbl_faceCap[i]);
     }
 
@@ -766,7 +766,7 @@ void CubeDisplay::clearOpExtras() {
         hide(lbl_chipRow[b]);
         for (int i = 0; i < kChipCount; ++i) hide(chip[b][i]);
     }
-    for (int i = 0; i < kFaceCount; ++i) hide(lbl_faceCap[i]);
+    for (int i = 0; i < kChipMax; ++i) hide(lbl_faceCap[i]);
     for (int i = 0; i < kRows; ++i) hide(barBox[i]);
     hide(img_orb);
     hide(img_comma);
@@ -1010,27 +1010,44 @@ void CubeDisplay::setOpLines(const char* const* lines, int count,
     }
 }
 
-void CubeDisplay::setOpFaces(const int8_t* faces, int activeA, int activeB) {
-    if (!chip[0][0] || !faces) return;
+void CubeDisplay::setOpChipRow(const int8_t* fill, const char* const* caps,
+                               int count, int active, int y) {
+    if (!chip[0][0] || !fill) return;
+    if (count > kChipMax) count = kChipMax;
+    if (count < 0)        count = 0;
 
-    // The face row and the calibration rows share these chip objects, so both
+    // This row and the calibration rows share the same chip objects, so both
     // set size and position every time rather than trusting what was left.
     hide(lbl_chipRow[0]);
     hide(lbl_chipRow[1]);
     for (int i = 0; i < kChipCount; ++i) hide(chip[1][i]);
 
-    for (int i = 0; i < kFaceCount; ++i) {
+    // Size the chips to the count so the row always clears the frame band.
+    // Eight at the six-chip width overran it by a chip on each side — the last
+    // one sat underneath the band's right run. Six still comes out at exactly
+    // the width the scan screen has always used.
+    const int maxSpan = 232;                       // inside the band, both sides
+    const int gap = (count > 6) ? 5 : FACE_GAP;
+    int w = (count > 0) ? (maxSpan - (count - 1) * gap) / count : FACE_W;
+    if (w > FACE_W) w = FACE_W;
+
+    const int span = count * w + (count - 1) * gap;
+    const int x0   = (320 - span) / 2;
+
+    for (int i = 0; i < kChipMax; ++i) {
+        if (i >= count) { hide(chip[0][i]); hide(lbl_faceCap[i]); continue; }
+
         lv_obj_t* c = chip[0][i];
-        lv_obj_set_size(c, FACE_W, FACE_H);
-        lv_obj_set_pos(c, FACE_X + i * (FACE_W + FACE_GAP), FACE_Y);
+        const int cx = x0 + i * (w + gap);
+        lv_obj_set_size(c, w, FACE_H);
+        lv_obj_set_pos(c, cx, y);
 
-        const int8_t col = faces[i];
-        const bool   got = (col >= 0 && col < 6);
-        const bool   busy = (i == activeA || i == activeB);
+        const int8_t col  = fill[i];
+        const bool   got  = (col >= 0 && col < 6);
+        const bool   busy = (i == active);
 
-        // A read face is filled with the colour its centre sticker actually
-        // came back as — so the row is a readout, not just a tally. One that
-        // has not been read yet is an empty outline.
+        // A chip with a colour is a readout; a hollow one is a slot waiting to
+        // be filled, or — on a jog page — simply a thing you can point at.
         if (got) {
             lv_obj_set_style_bg_color(c, lv_color_hex(kChipColors[col]), 0);
             lv_obj_set_style_bg_opa(c, LV_OPA_COVER, 0);
@@ -1040,23 +1057,36 @@ void CubeDisplay::setOpFaces(const int8_t* faces, int activeA, int activeB) {
         } else {
             lv_obj_set_style_bg_opa(c, LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_color(c, lv_color_hex(COL_OP_KEY), 0);
-            lv_obj_set_style_border_opa(c, busy ? LV_OPA_COVER : 110, 0);
-            lv_obj_set_style_border_width(c, busy ? 2 : 1, 0);
+            lv_obj_set_style_border_opa(c, 110, 0);
+            lv_obj_set_style_border_width(c, 1, 0);
         }
 
-        // The pair under the sensors right now gets a bright rim, which is what
-        // the old step rows were really communicating.
         if (busy) {
             lv_obj_set_style_border_color(c, lv_color_hex(0xFBFF47), 0);
             lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
             lv_obj_set_style_border_width(c, 2, 0);
         }
 
-        lv_obj_set_pos(lbl_faceCap[i], FACE_X + i * (FACE_W + FACE_GAP), FACE_CAP_Y);
+        lv_obj_set_size(lbl_faceCap[i], w, 12);
+        lv_obj_set_pos(lbl_faceCap[i], cx, y + FACE_H + 3);
         lv_obj_set_style_text_color(lbl_faceCap[i],
                                     lv_color_hex(busy ? 0xFBFF47 : COL_OP_KEY), 0);
+        lv_label_set_text(lbl_faceCap[i], caps && caps[i] ? caps[i] : "");
         show(c);
         show(lbl_faceCap[i]);
+    }
+}
+
+void CubeDisplay::setOpFaces(const int8_t* faces, int activeA, int activeB) {
+    setOpChipRow(faces, kFaceNames, kFaceCount, activeA, FACE_Y);
+
+    // The scan lights BOTH faces under the sensors; the general row lights one.
+    if (activeB >= 0 && activeB < kFaceCount) {
+        lv_obj_t* c = chip[0][activeB];
+        lv_obj_set_style_border_color(c, lv_color_hex(0xFBFF47), 0);
+        lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(c, 2, 0);
+        lv_obj_set_style_text_color(lbl_faceCap[activeB], lv_color_hex(0xFBFF47), 0);
     }
 }
 

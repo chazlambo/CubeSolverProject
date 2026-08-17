@@ -242,31 +242,37 @@ A menu collapses them into one meaning; a jog page gives them two:
     LEFT         back, exactly as everywhere else
 ```
 
-Two pages, no submenu below either:
+**One page, no submenu at all.** Eleven things on one wheel — three grippers,
+six face motors, two whole-cube rotations — and it wraps, so nothing is more
+than five or six detents away:
 
 ```
-   Grippers                      Face Motors
-   Top servo      Extend            [U] R  F  D  L  B
-   Bottom servo   Retract
-   Ring           ?                 UP sends R   DOWN sends R'
-   Retract - Partial - Extend
+        Retract  -  Partial  -  Extend      <- what UP/DOWN will step through
+   Top servo                     Extend
+   Bottom servo                       ?
+   Ring                          Middle
+   [U] [R] [F] [D] [L] [B] [X] [Z]
 ```
 
-Grippers is a status table with the cursor as a **marked row** rather than a
-bar — these rows are a readout you are steering, not a list of choices, and bar
-art would promise the wrong thing. Position shows "?" until driven from here:
-the servos remember across a reset but nothing exposes it, and guessing is worse
-than admitting it.
+Keeping them together is not only tidiness. **A face motor cannot turn until the
+grippers are clear**, so seeing where the grippers are WHILE jogging a face is
+the difference between a considered press and a jam. Splitting them hid exactly
+the thing you need to check.
 
-Face Motors reuses the scan's face row as a selector — hollow boxes with their
-letters, bright rim on the one the wheel is on.
+The grippers are a status table with the cursor as a **marked row** rather than
+a bar — they are a readout you are steering, not a list of choices, and bar art
+would promise a selection that is not what is happening. Position reads "?"
+until driven from here: the servos remember across a reset but nothing exposes
+it, and guessing is worse than admitting it.
 
-The sub-line on each says the thing that is NOT already on screen: the range the
-buttons will step through, or the exact move strings they will send. Naming the
-selected part again would only repeat the row that is already lit.
+Everything that turns lives in one **chip strip**, faces and whole-cube
+rotations together, because they are the same gesture — point at a thing, turn
+it. Eight of anything does not fit five bars; as chips it fits with room. The
+strip sizes its chips to the count so it always clears the frame band, and six
+still comes out at exactly the width the scan screen has always used.
 
-A failed move stops and says so, with the move and the code. Everything else
-just happens, so jogging stays a single press.
+The sub-line says the thing that is NOT already on screen: the range the buttons
+will step through, or the exact move they will send.
 
 **Built** in `Test_Menu` under Actuators. What remains is porting the tree into
 the firmware's Diagnostics menu; the actions already call the real CubeSystem

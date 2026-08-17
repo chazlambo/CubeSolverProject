@@ -65,9 +65,20 @@ public:
     static const int kFaceCount = 6;
     void setOpFaces(const int8_t* faces, int activeA = -1, int activeB = -1);
 
+    // The general form: a row of captioned chips, one of which may be lit.
+    // `fill` is a chip colour index per chip, or -1 to draw it hollow; `caps`
+    // are the letters beneath them. setOpFaces() is this with the cube's face
+    // names at the scan screen's position.
+    //
+    // Used as a SELECTOR as well as a readout — a row of eight boxes holds what
+    // eight menu bars could not.
+    static const int kChipMax = 8;
+    void setOpChipRow(const int8_t* fill, const char* const* caps, int count,
+                      int active, int y);
+
     // Per-board colour capture for the sensor calibration, as two rows of six
     // chips. bits[b] holds one bit per colour in kChipOrder, low bit first.
-    static const int kChipCount = 6;
+    static const int kChipCount = 8;   // widest row any screen asks for
     void setOpChips(const uint8_t* bits, int boards);
 
     // A colour letter as the sensors and the virtual cube use them
@@ -211,7 +222,7 @@ private:
     lv_obj_t* lbl_lineVal[kOpLines];
     lv_obj_t* chip[2][kChipCount];
     lv_obj_t* lbl_chipRow[2];
-    lv_obj_t* lbl_faceCap[kFaceCount];
+    lv_obj_t* lbl_faceCap[kChipMax];
     lv_obj_t* bar_track;
     lv_obj_t* bar_fill;
     lv_obj_t* img_net;
