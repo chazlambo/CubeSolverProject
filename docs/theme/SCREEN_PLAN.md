@@ -315,22 +315,27 @@ there is no one sentence true of both a servo and a face motor.
 the firmware's Diagnostics menu; the actions already call the real CubeSystem
 methods.
 
-### Sensor Test — Diagnostics
-
-Live numbers, refreshed. **Throttle it** — every refresh is I²C traffic on the
-bus the encoder is also using; 20 Hz is plenty, and `Test_Menu`'s Input Report
-already demonstrates the pattern.
+### Sensor Test — Diagnostics — **BUILT**
 
 ```
-        Board 1        9/9 healthy
-        Board 2        8/9 healthy
-        Centre 1       R  (0.82)
-        Centre 2       G  (0.79)
-        ██ ██ ██ ██ ██ ██                  <- live detected colour per sensor
+   Board 1              9/9 healthy, sep 165     <- green
+   Board 2              8/9 healthy, sep 3       <- red
+   [][][][][][][][][]                            <- board 1, live
+    1  2  3  4  5  6  7  8  9
+   [][][][][][][][][]                            <- board 2
 ```
 
-The chip row doubling as a live colour readout is free and makes a wall of
-numbers legible at a glance.
+The two rows of chips ARE the readout. Eighteen colour names would take longer
+to read than the cube takes to scan, and the thing you are looking for — one
+sensor disagreeing with its neighbours — shows up instantly as a chip of the
+wrong colour.
+
+The demo draws board 2 sensor 2 as a known-bad sensor, because on this machine
+it is one (a dead green channel; see the README). A diagnostic that only ever
+shows healthy hardware is not a diagnostic.
+
+Wants a 3x3 grid per board eventually, to match the physical face — a linear row
+of nine reads fine but does not map to what you are looking at.
 
 ### Parameters / Servo Positions — Diagnostics, Calibration
 
@@ -377,19 +382,18 @@ Screens done, machine side outstanding:
 - **Step Solve** — the ribbon works; needs the moves actually executed.
 - **Demo Mode** — scramble and solve on a loop with a run counter, showing the
   moves rather than only a count. Needs the two operations behind it.
+- **Sensor Test** — two health rows and eighteen live colour chips. Needs the
+  sensors actually read, and **throttled**: every refresh is I²C traffic on the
+  bus the encoder is also using. `Test_Menu`'s Input Report shows the pattern.
 - **Hardware Test** — the Actuators page drives real hardware already. What
   remains is porting the page into the firmware's Diagnostics menu.
 
 Still to build:
 
-1. **Sensor Test** — no new primitive. Status rows refreshed live, with a chip
-   row doubling as a per-sensor colour readout. **Throttle it**: every refresh
-   is I²C traffic on the bus the encoder is also using, and `Test_Menu`'s Input
-   Report already shows the pattern.
-2. **Fault Log** — needs the scrolling status list.
-3. **Parameters** and **Servo Positions** — need the value editor, which the
+1. **Fault Log** — needs the scrolling status list.
+2. **Parameters** and **Servo Positions** — need the value editor, which the
    Actuators page has already proved the interaction for.
-4. **Stats**, then **Idle Mode** — the screens are drawn; the work is an EEPROM
+3. **Stats**, then **Idle Mode** — the screens are drawn; the work is an EEPROM
    block to put real numbers behind them.
 
 Low-confidence marking on the Cube State net can slot in whenever; it needs no
