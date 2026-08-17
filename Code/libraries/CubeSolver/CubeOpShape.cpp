@@ -61,3 +61,38 @@ const uint8_t CubeSystem::kCalTopColors[CubeSystem::kCalTopRots][2] = {
     { 0, 2 },   // White / Red
     { 3, 0 },   // Orange/ White
 };
+
+// How the solved cube has to be loaded for any of the above to be true.
+//
+// calibrateColorSensors() does not look at what it is seeing — it ASSERTS that
+// rotation 1 is showing it Red and Green, rotation 2 Blue and Red, and so on,
+// and writes whatever the sensors return under those names. Load the cube
+// turned the wrong way and it learns wrong colours and saves them to EEPROM,
+// with nothing to notice. So the orientation is not advice, it is part of the
+// procedure, and this is it.
+//
+// Derived from the tables themselves rather than measured, and it is worth
+// being able to re-derive:
+//
+//   Step 1 reads (Left, Back) at four rotations: (R,G) (B,R) (O,B) (G,O).
+//   Each rotation takes new Back = old Left and new Left = old Front, so the
+//   start must be Left=Red, Front=Blue, Right=Orange, Back=Green.
+//
+//   Step 3 reads (Y,O) (R,Y) (W,R) (O,W), i.e. it starts Left=Yellow,
+//   Front=Red, Right=White, Back=Orange. Step 1 ended Left=Green, Front=Red,
+//   Right=Blue, Back=Orange — Front and Back are unchanged, so the machine
+//   turned the cube about the Front-Back axis. That cycle is U->L and D->R,
+//   which makes Up=Yellow and Down=White. ROTZ never touches Up or Down, so
+//   those hold from the start too.
+//
+// Every opposite pair checks out (Y/W, R/O, B/G), so this is a real cube and
+// not an arithmetic accident.
+const char CubeSystem::kCalStartFacelets[55] =
+    "YYYYYYYYY"   // U  Yellow
+    "OOOOOOOOO"   // R  Orange
+    "BBBBBBBBB"   // F  Blue
+    "WWWWWWWWW"   // D  White
+    "RRRRRRRRR"   // L  Red
+    "GGGGGGGGG";  // B  Green
+
+const char* const CubeSystem::kCalStartText = "Yellow up, Red left, Blue front";

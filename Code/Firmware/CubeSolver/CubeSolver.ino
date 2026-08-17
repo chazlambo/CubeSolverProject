@@ -69,6 +69,7 @@ enum class AppState : uint8_t {
     Unloading,   // release the cube
     Ejecting,    // release + present for removal
     CalMotors,   // calibrateMotorRotations()
+    CalColorsPrompt, // "load the cube like THIS"        -> SELECT starts
     CalColors,   // calibrateColorSensors()
     Done,        // result                          -> SELECT returns to Menu
     Error        // human-readable fault            -> SELECT returns to Menu
@@ -397,11 +398,21 @@ static void actCalMotors() {
     state = AppState::CalMotors;
 }
 
+// Colour calibration cannot be started blind.
+//
+// calibrateColorSensors() does not identify what it is looking at — it assumes
+// the cube is loaded a particular way and files whatever the sensors return
+// under the colour it expects. Wrong orientation means a wrong calibration
+// written to EEPROM with nothing to catch it, which then misreads every scan
+// afterwards. So the machine shows the required orientation and waits.
 static void actCalColors() {
     Cube.clearAbort();
-    showOp(Op::Calibrate, "Colour Calibration", "Learning the six colours",
-           "Needs a SOLVED cube");
-    state = AppState::CalColors;
+    cubeDisplay.showOperation(Op::Calibrate, "Colour Calibration", nullptr,
+                              "SELECT to start, LEFT to cancel");
+    cubeDisplay.setOpCubeNet(CubeSystem::kCalStartFacelets);
+    cubeDisplay.setStatus(CubeSystem::kCalStartText);
+    Cube.displayUpdate();
+    state = AppState::CalColorsPrompt;
 }
 
 static void actCalStatus() {
@@ -857,6 +868,16 @@ void loop() {
                  state = AppState::Done; }
         break;
     }
+
+    case AppState::CalColorsPrompt:
+        if (ev == MenuEvent::Select) {
+            showOp(Op::Calibrate, "Colour Calibration", "Learning the six colours",
+                   "SELECT+LEFT to abort");
+            state = AppState::CalColors;
+        } else if (ev == MenuEvent::Back) {
+            toMenu();
+        }
+        break;
 
     case AppState::CalColors: {
         int e = Cube.calibrateColorSensors();

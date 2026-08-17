@@ -207,6 +207,16 @@ public:
     static const int kCalTopRots  = 4;
     static const uint8_t kCalSideColors[kCalSideRots][2];
     static const uint8_t kCalTopColors[kCalTopRots][2];
+
+    // The orientation a SOLVED cube must be loaded in before colour
+    // calibration, as 54 facelets in net order (U R F D L B). The tables above
+    // say which colour the machine expects to see at each rotation; this says
+    // how to make that true. They are two halves of one fact and must agree —
+    // see the derivation beside the definition.
+    static const char kCalStartFacelets[55];
+
+    // The same thing in words, for the line under the picture.
+    static const char* const kCalStartText;
     void displayWaitForSelect(const char* msg);
     bool displayReady();
 
