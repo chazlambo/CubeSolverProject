@@ -149,16 +149,27 @@ Scramble, solve, repeat, unattended. Both halves already existed — the phase
 colours from Scramble Solve, the ribbon from Step Solve — so it is a loop around
 them plus a run counter.
 
+Four phases, because the machine has four:
+
 ```
-              Solving                       <- phase, and the frame colour
-        Run 7   -   Move 14 of 21
-     F   L2   D'   B'   R   U2   F'         <- the moves, not just a count
-        [====================    ]
+   Scrambling            red      30 moves, ribbon + bar
+   Computing the         green    the handover: no ribbon, no bar
+     solution
+   Solving               green    21 moves, ribbon + bar
+   Solved!               green    the result, briefly
 ```
 
+The pause to compute is not padding. The real machine has to work out a solution
+before it can run one, and a demo that jumped from the last scramble move
+straight to the first solve move would be showing something the machine never
+does. The frame turns green THERE rather than at the first solve move, because
+that is the moment it stops scrambling — and the ribbon and bar go, because
+neither has anything true to say about a search that has not finished.
+
 It shows the MOVES because the whole point of leaving it running is that it
-should be worth watching. A separate scramble list, longer and more random than
-the solution, so the two halves do not look like the same thing twice.
+should be worth watching. The scramble is its own list — thirty moves, no two in
+a row on the same face, which is what a real scramble looks like and the reason
+it reads differently from a solution.
 
 ### Step Solve — Modes
 

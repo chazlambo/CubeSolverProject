@@ -156,11 +156,15 @@ static const char* const kStepMoves[21] = {
     "B", "R2", "U'", "F", "L2", "D'", "B'", "R", "U2", "F'",
 };
 
-// A scramble is longer than a solution and reads more randomly. Worth being a
-// separate list so Demo Mode's two halves do not look like the same thing twice.
-static const char* const kScrambleMoves[25] = {
-    "D2", "L", "B'", "R", "U'", "F2", "D", "L2", "B", "R'", "U2", "F",
-    "D'", "L'", "B2", "R2", "U", "F'", "D", "L", "B", "R", "U2", "F2", "D'",
+// Thirty moves, and no two in a row on the same face — which is what a real
+// scramble looks like, and the reason it reads differently from a solution.
+// A separate list so Demo Mode's two halves do not look like the same thing
+// twice.
+static const int kScrambleLen = 30;
+static const char* const kScrambleMoves[kScrambleLen] = {
+    "D2", "L",  "B'", "R",  "U'", "F2", "D",  "L2", "B",  "R'",
+    "U2", "F",  "D'", "L'", "B2", "R2", "U",  "F'", "D",  "L",
+    "B",  "R",  "U2", "F2", "D'", "L2", "B'", "R2", "U'", "F",
 };
 static const char* const kPrevDiag[] = { "Navigation", "Input" };
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
@@ -754,10 +758,16 @@ static void actStepSolve() {
 //
 // It shows the MOVES rather than only a counter, because the whole point of
 // leaving this running is that it should be worth watching.
-static const uint32_t kDemoScrambleMs = 3500;
+// Four phases, because the machine has four. The pause between scrambling and
+// solving is not padding: the real one has to work out a solution before it can
+// run one, and a demo that jumped straight from the last scramble move to the
+// first solve move would be showing something the machine never does.
+static const uint32_t kDemoScrambleMs = 4200;   // 30 moves at ~140 ms
+static const uint32_t kDemoComputeMs  = 1400;
 static const uint32_t kDemoSolveMs    = 3500;
 static const uint32_t kDemoRestMs     = 1500;
-static const uint32_t kDemoCycleMs    = kDemoScrambleMs + kDemoSolveMs + kDemoRestMs;
+static const uint32_t kDemoCycleMs    = kDemoScrambleMs + kDemoComputeMs +
+                                        kDemoSolveMs + kDemoRestMs;
 
 static void actDemoMode() {
     showScreen(Op::Error, "Demo Mode", "Scrambling", Live::Demo);
@@ -769,14 +779,26 @@ static void updateDemoMode(uint32_t t) {
 
     char sub[52];
     if (cycle < kDemoScrambleMs) {
-        const int m = (int)((cycle * 25) / kDemoScrambleMs);
+        const int m = (int)((cycle * kScrambleLen) / kDemoScrambleMs);
         cubeDisplay.setOpKind(Op::Error);                  // red: scrambling
         cubeDisplay.setMessage("Scrambling");
-        snprintf(sub, sizeof(sub), "Run %d   -   Move %d of 25", run, m + 1);
-        cubeDisplay.setOpRibbon(kScrambleMoves, 25, m);
-        Cube.displayProgress(m, 24);
-    } else if (cycle < kDemoScrambleMs + kDemoSolveMs) {
-        const int m = (int)(((cycle - kDemoScrambleMs) * 21) / kDemoSolveMs);
+        snprintf(sub, sizeof(sub), "Run %d   -   Move %d of %d",
+                 run, m + 1, kScrambleLen);
+        cubeDisplay.setOpRibbon(kScrambleMoves, kScrambleLen, m);
+        Cube.displayProgress(m, kScrambleLen - 1);
+    } else if (cycle < kDemoScrambleMs + kDemoComputeMs) {
+        // The handover. The frame turns green here rather than at the first
+        // solve move, because this is the moment it stops scrambling — and the
+        // ribbon and the bar go, because neither has anything true to say about
+        // a search that has not finished.
+        cubeDisplay.setOpKind(Op::Solve);
+        cubeDisplay.setMessage("Computing the solution");
+        snprintf(sub, sizeof(sub), "Run %d", run);
+        cubeDisplay.setOpRibbon(nullptr, 0, 0);
+        Cube.displayProgress(0, 0);
+    } else if (cycle < kDemoScrambleMs + kDemoComputeMs + kDemoSolveMs) {
+        const int m = (int)(((cycle - kDemoScrambleMs - kDemoComputeMs) * 21)
+                            / kDemoSolveMs);
         cubeDisplay.setOpKind(Op::Solve);                  // green: solving
         cubeDisplay.setMessage("Solving");
         snprintf(sub, sizeof(sub), "Run %d   -   Move %d of 21", run, m + 1);
