@@ -372,14 +372,28 @@ static void actEject() {
 // Keeping them on ONE page is not only tidiness. A face motor cannot turn until
 // the grippers are clear, so being able to see where the grippers are WHILE
 // jogging a face is the difference between a considered press and a jam.
-static const int kJogGrips = 3;
+//  Two levels, because a gripper POSITION is a choice and a face turn is not.
+//  Scroll to a servo or the ring, SELECT to enter it, pick the position, SELECT
+//  again to send. Faces and rotations are momentary — UP/DOWN fires them where
+//  they stand, because a turn you want to repeat should not cost three presses.
+//
+//  The frame goes yellow while a gripper is entered, so "I am about to move
+//  something" is visible without reading a word.
+static const int kJogGrips = 3;                        // rows 0..2
+static const int kJogLoad  = kJogGrips;                // row 3
+static const int kJogEject = kJogGrips + 1;            // row 4
+static const int kJogRows  = kJogGrips + 2;
 static const int kJogFaces = 6;
 static const int kJogRots  = 2;
-static const int kJogCount = kJogGrips + kJogFaces + kJogRots;   // 11
+static const int kJogCount = kJogRows + kJogFaces + kJogRots;   // 13
 
-static int8_t jogSel = 0;
+static int8_t jogSel    = 0;
+static bool   jogArmed  = false;   // a gripper is entered, picking a position
+static int8_t jogTarget = 0;       // the position SELECT would send
 
 static const char* const kGripName[3] = { "Top servo", "Bottom servo", "Ring" };
+static const char* const kJogRowName[5] = { "Top servo", "Bottom servo", "Ring",
+                                            "Load cube", "Eject cube" };
 static const char* const kGripPos[3][3] = {
     { "Retract", "Partial", "Extend" },
     { "Retract", "Partial", "Extend" },
@@ -399,19 +413,32 @@ static const char* const kFaceMove[6][2] = {
 
 // The chip strip: the six faces, then the two whole-cube rotations. They belong
 // in the same row because they are the same gesture — point at a thing, turn it.
-static const char* const kJogCaps[8] = { "U", "R", "F", "D", "L", "B", "X", "Z" };
+static const char* const kJogCaps[8] = { "U", "R", "F", "D", "L", "B",
+                                         "RotX", "RotZ" };
 static const char* const kRotMove[2] = { "ROTX", "ROTZ" };
 
 static void drawJog(const char* busy) {
-    static char rows[kJogGrips][40];
-    const char* lines[kJogGrips];
-    CubeDisplay::RowMark marks[kJogGrips];
+    static char rows[kJogRows][40];
+    const char* lines[kJogRows];
+    CubeDisplay::RowMark marks[kJogRows];
 
-    for (int i = 0; i < kJogGrips; ++i) {
-        const char* at = (i == jogSel && busy) ? busy
-                       : (gripAt[i] < 0)       ? "?"
-                       : kGripPos[i][gripAt[i]];
-        snprintf(rows[i], sizeof(rows[i]), "%s\t%s", kGripName[i], at);
+    for (int i = 0; i < kJogRows; ++i) {
+        char value[24] = "";
+        if (i < kJogGrips) {
+            if (i == jogSel && busy) {
+                snprintf(value, sizeof(value), "%s", busy);
+            } else if (i == jogSel && jogArmed) {
+                // The candidate, not the current position: this is what SELECT
+                // will send. Angle brackets in plain ASCII — the baked fonts
+                // carry 0x20-0x7F and nothing else, and a missing glyph draws
+                // as an empty box with no complaint.
+                snprintf(value, sizeof(value), "< %s >", kGripPos[i][jogTarget]);
+            } else {
+                snprintf(value, sizeof(value), "%s",
+                         (gripAt[i] < 0) ? "?" : kGripPos[i][gripAt[i]]);
+            }
+        }
+        snprintf(rows[i], sizeof(rows[i]), "%s\t%s", kJogRowName[i], value);
         lines[i] = rows[i];
         // The cursor is a marked row, not a bar: these are a readout you are
         // steering, and bar art would promise a selection that is not there.
@@ -419,32 +446,25 @@ static void drawJog(const char* busy) {
                                  : CubeDisplay::RowMark::Plain;
     }
 
-    // The sub-line says the thing that is NOT already on screen — the range the
-    // buttons will step through, or the exact move they will send.
-    char sub[52];
-    if (busy) {
-        snprintf(sub, sizeof(sub), "%s", busy);
-    } else if (jogSel < kJogGrips) {
-        snprintf(sub, sizeof(sub), "%s  -  %s  -  %s",
-                 kGripPos[jogSel][0], kGripPos[jogSel][1], kGripPos[jogSel][2]);
-    } else if (jogSel < kJogGrips + kJogFaces) {
-        const int f = jogSel - kJogGrips;
-        snprintf(sub, sizeof(sub), "%s      UP %s      DOWN %s",
-                 kFaceName[f], kFaceMove[f][0], kFaceMove[f][1]);
-    } else {
-        snprintf(sub, sizeof(sub), "Whole cube      sends %s",
-                 kRotMove[jogSel - kJogGrips - kJogFaces]);
-    }
+    // The hint bar carries what the buttons do, and it changes with what is
+    // selected — there is no one sentence true of a servo and a face motor.
+    const char* hint;
+    if (busy)                       hint = "Working";
+    else if (jogArmed)              hint = "wheel picks - SELECT sends";
+    else if (jogSel < kJogGrips)    hint = "SELECT to choose a position";
+    else if (jogSel < kJogRows)     hint = "SELECT to run it";
+    else if (jogSel < kJogRows + kJogFaces) hint = "UP turns 90 - DOWN turns -90";
+    else                            hint = "SELECT or UP/DOWN sends it";
 
-    cubeDisplay.showOperation(Op::Calibrate, "Actuators", nullptr,
-                              "wheel picks - UP/DOWN moves");
-    cubeDisplay.setStatus(sub);
-    cubeDisplay.setOpLines(lines, kJogGrips, marks);
+    cubeDisplay.showOperation(jogArmed ? Op::Info : Op::Calibrate,
+                              "Actuators", nullptr, hint);
+    cubeDisplay.setOpLines(lines, kJogRows, marks);
 
-    // Everything that is not a gripper lives in the strip below the rows.
+    // Everything that turns lives in the strip: the six faces, then the two
+    // whole-cube rotations. Same gesture — point at a thing, turn it.
     const int8_t fill[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-    const int active = (jogSel >= kJogGrips) ? jogSel - kJogGrips : -1;
-    cubeDisplay.setOpChipRow(fill, kJogCaps, kJogFaces + kJogRots, active, 134);
+    const int active = (jogSel >= kJogRows) ? jogSel - kJogRows : -1;
+    cubeDisplay.setOpChipRow(fill, kJogCaps, kJogFaces + kJogRots, active, 150);
 
     Cube.displayUpdate();
 }
@@ -465,33 +485,21 @@ static void driveGripper(int part, int pos) {
     }
 }
 
-static void jogMove(int dir) {
-    if (jogSel < kJogGrips) {
-        // From "unknown", either direction lands on the end it is heading for,
-        // so the first press always does something visible.
-        int pos = (gripAt[jogSel] < 0) ? (dir > 0 ? 2 : 0) : gripAt[jogSel] + dir;
-        if (pos < 0) pos = 0;
-        if (pos > 2) pos = 2;
-        if (pos == gripAt[jogSel]) return;          // already at the end stop
+// Send the entered gripper to its chosen position.
+static void jogSend() {
+    drawJog(kGripPos[jogSel][jogTarget]);
+    driveGripper(jogSel, jogTarget);
+    gripAt[jogSel] = jogTarget;
+    jogArmed = false;
+    drawJog(nullptr);
+}
 
-        char note[32];
-        snprintf(note, sizeof(note), "Moving to %s", kGripPos[jogSel][pos]);
-        drawJog(kGripPos[jogSel][pos]);
-        driveGripper(jogSel, pos);
-        gripAt[jogSel] = (int8_t)pos;
-        drawJog(nullptr);
-        return;
-    }
-
-    const char* mv;
-    if (jogSel < kJogGrips + kJogFaces) {
-        mv = kFaceMove[jogSel - kJogGrips][dir > 0 ? 0 : 1];
-    } else {
-        // The machine has no inverse for a whole-cube rotation, so both
-        // buttons send the same thing rather than one of them doing nothing.
-        mv = kRotMove[jogSel - kJogGrips - kJogFaces];
-    }
-
+// Fire whatever turns: a face in the given direction, or a whole-cube rotation,
+// which has no inverse in the move set so both buttons send the same thing.
+static void jogTurn(int dir) {
+    const int i = jogSel - kJogRows;
+    const char* mv = (i < kJogFaces) ? kFaceMove[i][dir > 0 ? 0 : 1]
+                                     : kRotMove[i - kJogFaces];
     drawJog(mv);
     // align = true: this is the screen for checking a motor lands on its
     // detent, so let the alignment pass run and report if it cannot.
@@ -502,14 +510,38 @@ static void jogMove(int dir) {
         showScreen(Op::Error, "Actuators", "Move failed");
         cubeDisplay.setStatus(sub);
         Cube.displayUpdate();
-        return;                                     // a failure is worth stopping for
+        return;                          // a failure is worth stopping for
     }
     drawJog(nullptr);
 }
 
+// Load and eject drive several parts in an order that is mechanically
+// load-bearing, so they go through the sequences that own it rather than being
+// reassembled here. Both end at a KNOWN state, so the rows can say so instead
+// of falling back to "?".
+static void jogLoad() {
+    drawJog("clamping");
+    Cube.botServoExtend();
+    Cube.ringExtend();
+    Cube.topServoExtend();
+    gripAt[0] = gripAt[1] = gripAt[2] = 2;          // all extended
+    drawJog(nullptr);
+}
+
+static void jogEject() {
+    drawJog("releasing");
+    Cube.unloadCube();          // ring, then top, then bottom - all retracted
+    Cube.botServoPartial();     // then present the cube
+    gripAt[0] = 0;              // top    retracted
+    gripAt[1] = 1;              // bottom partial
+    gripAt[2] = 0;              // ring   retracted
+    drawJog(nullptr);
+}
+
 static void actJog() {
-    jogSel = 0;
-    state  = TState::Jog;
+    jogSel   = 0;
+    jogArmed = false;
+    state    = TState::Jog;
     drawJog(nullptr);
 }
 
@@ -908,11 +940,12 @@ struct JogInput {
     int  turn;      // wheel detents, signed
     bool up;
     bool down;
+    bool select;
     bool back;
 };
 
 static JogInput pollJog() {
-    JogInput in = { 0, false, false, false };
+    JogInput in = { 0, false, false, false, false };
     if (!Cube.encoderInitialized) return in;
 
     const uint32_t now = millis();
@@ -925,9 +958,10 @@ static JogInput pollJog() {
     const bool leftDown = b & RotaryEncoder::BTN_LEFT;
     const bool selDown  = b & RotaryEncoder::BTN_SELECT;
 
-    in.up   = upDown   && !prevUp;
-    in.down = downDown && !prevDown;
-    in.back = leftDown && !prevLeft && !selDown;   // never the abort chord
+    in.up     = upDown   && !prevUp;
+    in.down   = downDown && !prevDown;
+    in.select = selDown  && !prevSelect && !leftDown;   // never the abort chord
+    in.back   = leftDown && !prevLeft   && !selDown;
 
     prevUp = upDown; prevDown = downDown; prevLeft = leftDown; prevSelect = selDown;
 
@@ -968,19 +1002,52 @@ void loop() {
     // buttons separated, which pollEvent() cannot give it.
     if (state == TState::Jog) {
         const JogInput in = pollJog();
+        const int step = (in.turn > 0) ? 1 : (in.turn < 0) ? -1 : 0;
+
+        if (jogArmed) {
+            // Inside a gripper: the wheel and the buttons both pick a position,
+            // SELECT sends it, LEFT backs out without moving anything.
+            if (in.back) {
+                jogArmed = false;
+                drawJog(nullptr);
+            } else if (in.select) {
+                jogSend();
+            } else {
+                const int d = step ? step : (in.up ? 1 : in.down ? -1 : 0);
+                if (d) {
+                    int t = jogTarget + d;
+                    if (t < 0) t = 0;           // clamp: a position has ends
+                    if (t > 2) t = 2;
+                    jogTarget = (int8_t)t;
+                    drawJog(nullptr);
+                }
+            }
+            return;
+        }
+
         if (in.back) {
             toMenu();
-        } else if (in.turn != 0) {
-            const int n = kJogCount;
-            int sel = jogSel + (in.turn > 0 ? 1 : -1);
-            if (sel < 0)  sel = n - 1;          // wrap, same as the menu does
-            if (sel >= n) sel = 0;
+        } else if (step) {
+            int sel = jogSel + step;
+            if (sel < 0)          sel = kJogCount - 1;   // wrap, as the menu does
+            if (sel >= kJogCount) sel = 0;
             jogSel = (int8_t)sel;
             drawJog(nullptr);
-        } else if (in.up) {
-            jogMove(+1);
-        } else if (in.down) {
-            jogMove(-1);
+        } else if (in.select) {
+            if (jogSel < kJogGrips) {
+                // Enter the gripper. Start from where it is, so the first turn
+                // of the wheel moves off the current position rather than
+                // re-proposing it.
+                jogArmed  = true;
+                jogTarget = (gripAt[jogSel] < 0) ? 0 : gripAt[jogSel];
+                drawJog(nullptr);
+            } else if (jogSel == kJogLoad)  { jogLoad();  }
+            else if (jogSel == kJogEject)   { jogEject(); }
+            else                            { jogTurn(+1); }
+        } else if (in.up || in.down) {
+            // Momentary turns fire where they stand. On a gripper row they do
+            // nothing: a position is a choice, and SELECT is how you make it.
+            if (jogSel >= kJogRows) jogTurn(in.up ? +1 : -1);
         }
         return;
     }

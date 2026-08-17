@@ -242,37 +242,46 @@ A menu collapses them into one meaning; a jog page gives them two:
     LEFT         back, exactly as everywhere else
 ```
 
-**One page, no submenu at all.** Eleven things on one wheel — three grippers,
-six face motors, two whole-cube rotations — and it wraps, so nothing is more
-than five or six detents away:
+**One page, no submenu at all.** Thirteen things on one wheel — three grippers,
+load, eject, six face motors, two whole-cube rotations — and it wraps.
 
 ```
-        Retract  -  Partial  -  Extend      <- what UP/DOWN will step through
-   Top servo                     Extend
+   Top servo                  < Extend >     <- entered: the candidate
    Bottom servo                       ?
    Ring                          Middle
-   [U] [R] [F] [D] [L] [B] [X] [Z]
+   Load cube
+   Eject cube
+   [U] [R] [F] [D] [L] [B] [RotX] [RotZ]
 ```
 
 Keeping them together is not only tidiness. **A face motor cannot turn until the
 grippers are clear**, so seeing where the grippers are WHILE jogging a face is
-the difference between a considered press and a jam. Splitting them hid exactly
-the thing you need to check.
+the difference between a considered press and a jam.
 
-The grippers are a status table with the cursor as a **marked row** rather than
-a bar — they are a readout you are steering, not a list of choices, and bar art
-would promise a selection that is not what is happening. Position reads "?"
-until driven from here: the servos remember across a reset but nothing exposes
-it, and guessing is worse than admitting it.
+**Two levels, because a position is a choice and a turn is not.** Scroll to a
+servo or the ring, SELECT to enter it, pick the position, SELECT again to send —
+and the frame goes yellow while you are inside one, so "I am about to move
+something" reads without a word. LEFT backs out without moving anything.
 
-Everything that turns lives in one **chip strip**, faces and whole-cube
-rotations together, because they are the same gesture — point at a thing, turn
-it. Eight of anything does not fit five bars; as chips it fits with room. The
-strip sizes its chips to the count so it always clears the frame band, and six
-still comes out at exactly the width the scan screen has always used.
+Faces and rotations are momentary: UP/DOWN fires them where they stand, because
+a turn you want to repeat should not cost three presses. On a gripper row those
+buttons do nothing — a position is a choice, and SELECT is how you make it.
 
-The sub-line says the thing that is NOT already on screen: the range the buttons
-will step through, or the exact move they will send.
+The grippers are a status table with the cursor as a **marked row**, not a bar:
+they are a readout you are steering, and bar art would promise a selection that
+is not what is happening. Position reads "?" until it is known — the servos
+remember across a reset but nothing exposes it, and guessing is worse than
+admitting it. Load and eject both end at a known state, so those rows can say so
+rather than falling back to "?".
+
+Everything that turns is one **chip strip**, faces and whole-cube rotations
+together, because they are the same gesture. Eight of anything does not fit five
+bars; as chips it fits with room. The strip sizes its chips to the count so it
+always clears the frame band, and six still comes out at exactly the width the
+scan screen has always used.
+
+The hint bar carries what the buttons do and changes with what is selected —
+there is no one sentence true of both a servo and a face motor.
 
 **Built** in `Test_Menu` under Actuators. What remains is porting the tree into
 the firmware's Diagnostics menu; the actions already call the real CubeSystem

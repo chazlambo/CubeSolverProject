@@ -64,6 +64,12 @@ without a reason; each costs ~20-40 KB of flash.
 | `lv_font_desc_11` | Anton 11 | the description/hint box |
 | `lv_font_prev_9` | Fira Sans Cond. Bold 9 | preview pane, chip row labels |
 
+**The baked fonts carry ASCII only** — `0x20-0x7F`, which is what the baker asks
+`lv_font_conv` for. Arrows, angle quotes and box-drawing characters are not in
+them, and a missing glyph draws as a blank box with no complaint (see 4.5). Use
+`<` and `>`, not `‹` and `›`, or widen the range in `bake_theme.py` and accept
+the flash.
+
 **The description box is always the bottom line.** 182x21 at (69, 199). In a
 menu it carries the selected item's caption; on an operation screen it carries
 the hint ("Press SELECT", "SELECT+LEFT to abort"). Same box, same place, always
