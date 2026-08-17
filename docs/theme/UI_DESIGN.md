@@ -158,7 +158,18 @@ image renders as nothing, a full pool hangs. **There is no error path that talks
 to you.** So: change one thing, look at it in the simulator, then continue.
 Never batch five visual changes and build once.
 
-### 4.6 (bonus) `bake_theme.py --no-images` leaves the header stale
+### 4.6 An `lv_image_dsc_t` must be complete BEFORE `lv_image_set_src()`
+
+`lv_image_set_src()` reads the header there and then, to size the widget. Point
+it at a descriptor you have not filled in yet and the widget is 0x0 and draws
+nothing — silently, of course. This bit the preview-pane cube net: the image was
+created up with the menu widgets, and its descriptor was populated later,
+alongside the operation-screen ones.
+
+Build the descriptor, then create the image. If a runtime-drawn image is blank,
+check that order first.
+
+### 4.7 (bonus) `bake_theme.py --no-images` leaves the header stale
 
 `CubeThemeAssets.h` carries both image placement constants and font
 declarations, and only the rasterizer can write the image half. If you add a

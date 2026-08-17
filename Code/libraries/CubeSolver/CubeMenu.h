@@ -79,6 +79,16 @@ struct MenuItem {
 
     // Frame colour while this item is selected. Inherit takes the screen's.
     MenuTheme          theme        = MenuTheme::Inherit;
+
+    // A cube state to draw in the preview pane instead of a list: 54 facelets
+    // as colour letters, same order as CubeDisplay::setOpCubeNet(). This is
+    // what lets a Patterns menu show what each pattern produces rather than
+    // naming it and hoping. Takes precedence over `preview` when both are set.
+    //
+    // Deliberately LAST. Every table in the tree writes its fields positionally
+    // and ends at `theme`, so a new field anywhere above it silently shifts
+    // what those braces mean.
+    const char*        previewNet   = nullptr;
 };
 
 struct MenuScreen {

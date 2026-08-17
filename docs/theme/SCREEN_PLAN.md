@@ -180,10 +180,16 @@ exactly what it was designed for.
    ...
 ```
 
-Running one is then just the solve screen with the headline naming the pattern.
-No longer blocked — the net exists. A pattern is a name plus a move sequence,
-and the preview needs the net drawn small enough for the pane (5 px stickers
-against the 10 px Cube State uses), so `setOpCubeNet()` grows a size argument.
+**Prototyped** in `Test_Menu` (Screens > Patterns). `MenuItem::previewNet` holds
+54 facelets and `setPreview()` draws them in the pane at 3 px stickers, sharing
+one `drawNet()` with the full-size version so the two cannot disagree about what
+a cube looks like.
+
+The four states are computed by applying each well-known sequence to a solved
+cube and checked for nine of every colour — a preview that is not a real cube
+would hide exactly the bugs this screen is for.
+
+What remains is the machine side: running the moves. The screen is done.
 
 ### Cube State — Diagnostics — **BUILT**
 
@@ -283,9 +289,9 @@ time. Six rows is exactly enough, so resist adding a seventh.
 
 ~~Cube net, Cube State, scan review~~ — done.
 
-1. **Patterns** — now unblocked. The net exists; a pattern is a name plus a move
-   sequence, and the preview pane is the obvious home for a small one.
-2. **Scramble Solve** — screen **prototyped** in `Test_Menu` (Screens >
+~~Patterns~~ — screen done; only running the moves remains.
+
+1. **Scramble Solve** — screen **prototyped** in `Test_Menu` (Screens >
    Operations > Scramble Solve): red frame while scrambling, green the moment
    it starts solving, one progress bar throughout. `setOpKind()` recolours the
    frame without tearing the screen down, which is what makes the phase change

@@ -39,7 +39,8 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
     for (int i = 0; i < kFaceCount; ++i) lbl_faceCap[i] = nullptr;
     bar_track = nullptr;
     bar_fill  = nullptr;
-    img_net   = nullptr;
+    img_net     = nullptr;
+    img_prevNet = nullptr;
     for (int i = 0; i < 6; ++i) lbl_netFace[i] = nullptr;
     instance = this;  // Set static instance for callbacks
 }
@@ -180,6 +181,17 @@ namespace {
     uint8_t  s_netBuf[NET_W * NET_H * 3];    // RGB565 plane, then the A8 plane
     lv_image_dsc_t s_netDsc;
 
+    // The same net at pane size, for a menu preview. 3 px stickers are small,
+    // but a pattern is recognised by its arrangement rather than by reading
+    // individual squares, and the pane has only ~62 px of usable width.
+    const int PNET_CELL = 4, PNET_STICKER = 3;
+    const int PNET_W = NET_COLS * PNET_CELL;   // 48
+    const int PNET_H = NET_ROWS * PNET_CELL;   // 36
+    const int PNET_X = 228, PNET_Y = 100;
+
+    uint8_t  s_pnetBuf[PNET_W * PNET_H * 3];
+    lv_image_dsc_t s_pnetDsc;
+
     // Where each face sits in the net, in cells, and where it starts in the
     // facelet string. Standard order: U R F D L B.
     const struct { int col, row, base; } kNetFaces[6] = {
@@ -190,6 +202,13 @@ namespace {
         { 0, 3, 36 },   // L
         { 9, 3, 45 },   // B
     };
+
+    // Draw an unfolded cube into an RGB565A8 buffer. Shared by both sizes: the
+    // only difference between the panel net and the pane preview is how big a
+    // cell is, and duplicating this to change one number is how the two would
+    // end up disagreeing about what a cube looks like.
+    void drawNet(uint8_t* buf, int w, int h, int cell, int sticker,
+                 const char* facelets);
 
     inline uint16_t rgb565(uint32_t c) {
         return (uint16_t)(((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x001F));
@@ -664,6 +683,25 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
     lv_obj_set_pos(img_net, NET_X, NET_Y);
     hide(img_net);
 
+    lv_memset(s_pnetBuf, 0, sizeof(s_pnetBuf));
+    s_pnetDsc.header.magic  = LV_IMAGE_HEADER_MAGIC;
+    s_pnetDsc.header.cf     = LV_COLOR_FORMAT_RGB565A8;
+    s_pnetDsc.header.flags  = 0;
+    s_pnetDsc.header.w      = PNET_W;
+    s_pnetDsc.header.h      = PNET_H;
+    s_pnetDsc.header.stride = PNET_W * 2;
+    s_pnetDsc.data_size     = sizeof(s_pnetBuf);
+    s_pnetDsc.data          = s_pnetBuf;
+
+    // Created HERE, after its descriptor is filled in, not up with the menu
+    // widgets. lv_image_set_src() reads the header immediately to size the
+    // widget, so pointing it at a half-built descriptor gives a 0x0 image that
+    // draws nothing — silently, like everything else in this stack.
+    img_prevNet = lv_image_create(scr);
+    lv_image_set_src(img_prevNet, &s_pnetDsc);
+    lv_obj_set_pos(img_prevNet, PNET_X, PNET_Y);
+    hide(img_prevNet);
+
     // Face letters, one per face, sitting on the centre sticker. The net alone
     // relies on the reader knowing the unfolded-cross convention; the machine
     // has U R F D L B written on it, so saying the same thing here turns an
@@ -748,6 +786,49 @@ int8_t CubeDisplay::chipIndexForColor(char c) {
     }
 }
 
+// Draw an unfolded cube into an RGB565A8 buffer, at whatever cell size the
+// caller wants. The panel net and the pane preview differ only in that number.
+namespace {
+void drawNet(uint8_t* buf, int w, int h, int cell, int sticker,
+             const char* facelets) {
+    uint8_t* colour = buf;
+    uint8_t* alpha  = buf + (w * h * 2);
+
+    // Everything transparent first: the gaps between stickers are the panel's
+    // own background showing through, not a drawn colour, so the net sits on
+    // the themed backdrop instead of on a grey slab.
+    lv_memset(alpha, 0x00, (size_t)(w * h));
+
+    for (int f = 0; f < 6; ++f) {
+        for (int k = 0; k < 9; ++k) {
+            const int8_t ci = CubeDisplay::chipIndexForColor(facelets[kNetFaces[f].base + k]);
+
+            const int cx = (kNetFaces[f].col + (k % 3)) * cell;
+            const int cy = (kNetFaces[f].row + (k / 3)) * cell;
+
+            // A sticker whose colour is not known is drawn as a hollow outline
+            // rather than skipped, so a gap in the net reads as "this one is
+            // wrong" instead of as an empty space.
+            const uint16_t px = (ci >= 0) ? rgb565(kChipColors[ci]) : rgb565(0x30364A);
+
+            for (int y = 0; y < sticker; ++y) {
+                for (int x = 0; x < sticker; ++x) {
+                    const bool edge = (ci < 0) &&
+                                      (x != 0 && y != 0 &&
+                                       x != sticker - 1 && y != sticker - 1);
+                    if (edge) continue;               // hollow centre
+
+                    const int i = (cy + y) * w + (cx + x);
+                    colour[i * 2 + 0] = (uint8_t)(px & 0xFF);
+                    colour[i * 2 + 1] = (uint8_t)(px >> 8);
+                    alpha[i] = 0xFF;
+                }
+            }
+        }
+    }
+}
+}  // namespace
+
 // ---------------------------------------------------------------------------
 //  The cube as an unfolded net.
 // ---------------------------------------------------------------------------
@@ -759,42 +840,7 @@ void CubeDisplay::setOpCubeNet(const char* facelets, bool labelFaces) {
         return;
     }
 
-    uint8_t* colour = s_netBuf;
-    uint8_t* alpha  = s_netBuf + (NET_W * NET_H * 2);
-
-    // Everything transparent first: the gaps between stickers are the panel's
-    // own background showing through, not a drawn colour, so the net sits on
-    // the themed backdrop instead of on a grey slab.
-    lv_memset(alpha, 0x00, NET_W * NET_H);
-
-    for (int f = 0; f < 6; ++f) {
-        for (int k = 0; k < 9; ++k) {
-            const int8_t ci = chipIndexForColor(facelets[kNetFaces[f].base + k]);
-
-            const int cx = (kNetFaces[f].col + (k % 3)) * NET_CELL;
-            const int cy = (kNetFaces[f].row + (k / 3)) * NET_CELL;
-
-            // A sticker whose colour is not known is drawn as a hollow outline
-            // rather than skipped, so a gap in the net reads as "this one is
-            // wrong" instead of as an empty space.
-            const uint16_t px = (ci >= 0) ? rgb565(kChipColors[ci]) : rgb565(0x30364A);
-
-            for (int y = 0; y < NET_STICKER; ++y) {
-                for (int x = 0; x < NET_STICKER; ++x) {
-                    const bool edge = (ci < 0) &&
-                                      (x != 0 && y != 0 &&
-                                       x != NET_STICKER - 1 && y != NET_STICKER - 1);
-                    if (edge) continue;               // hollow centre
-
-                    const int i = (cy + y) * NET_W + (cx + x);
-                    colour[i * 2 + 0] = (uint8_t)(px & 0xFF);
-                    colour[i * 2 + 1] = (uint8_t)(px >> 8);
-                    alpha[i] = 0xFF;
-                }
-            }
-        }
-    }
-
+    drawNet(s_netBuf, NET_W, NET_H, NET_CELL, NET_STICKER, facelets);
     // Letters take their ink from the centre sticker they land on, so a face
     // whose colour was not read (drawn hollow) gets the light one.
     for (int f = 0; f < 6; ++f) {
@@ -849,6 +895,7 @@ void CubeDisplay::showOperation(OpKind kind, const char* title,
     hide(img_nextLabel);
     for (int i = 0; i < kPreviewLines; ++i) hide(lbl_prev[i]);
     for (int i = 0; i < 2; ++i) hide(ghost[i]);
+    hide(img_prevNet);
 
     applyTheme(themeForKind(kind));
 
@@ -1039,6 +1086,18 @@ void CubeDisplay::applyTheme(MenuTheme t) {
 }
 
 void CubeDisplay::setPreview(const MenuItem* item) {
+    // A cube state wins over a list: an item that can show what it produces
+    // should, and nothing yet wants both in the same pane.
+    if (item && item->previewNet) {
+        drawNet(s_pnetBuf, PNET_W, PNET_H, PNET_CELL, PNET_STICKER, item->previewNet);
+        lv_obj_invalidate(img_prevNet);
+        show(img_prevNet);
+        for (int i = 0; i < kPreviewLines; ++i) hide(lbl_prev[i]);
+        for (int i = 0; i < 2; ++i) hide(ghost[i]);
+        return;
+    }
+    hide(img_prevNet);
+
     const int n = (item && item->preview) ? (int)item->previewCount : 0;
 
     for (int i = 0; i < kPreviewLines; ++i) {
@@ -1166,6 +1225,7 @@ void CubeDisplay::setMode(Mode m) {
         hide(box_desc);
         for (int i = 0; i < kPreviewLines; ++i) hide(lbl_prev[i]);
         for (int i = 0; i < 2; ++i) hide(ghost[i]);
+        hide(img_prevNet);
 
         // Cancel anything mid-flight and forget the frame. Without this, the
         // next return to the menu would either resume a transition against

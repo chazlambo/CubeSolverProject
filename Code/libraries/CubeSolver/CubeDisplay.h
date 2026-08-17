@@ -209,6 +209,7 @@ private:
     lv_obj_t* bar_fill;
     lv_obj_t* img_net;
     lv_obj_t* lbl_netFace[6];
+    lv_obj_t* img_prevNet;      // the same net, pane-sized, for menu previews
 
     lv_style_t white_style;
 

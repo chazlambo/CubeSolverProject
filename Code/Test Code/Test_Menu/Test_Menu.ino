@@ -68,7 +68,7 @@ static TState state = TState::Menu;
 
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
-enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble };
+enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble, Fold };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -91,6 +91,7 @@ extern const MenuScreen kScreenScreens;
 extern const MenuScreen kScreenOps;
 extern const MenuScreen kScreenCube;
 extern const MenuScreen kScreenMsg;
+extern const MenuScreen kScreenPatterns;
 extern const MenuScreen kScreenThree;
 extern const MenuScreen kScreenFour;
 extern const MenuScreen kScreenFive;
@@ -110,6 +111,7 @@ static void actDemoScramble();
 static void actDemoNetSolved();
 static void actDemoNetScrambled();
 static void actDemoNetLoad();
+static void actFoldPattern();
 
 // ---------------------------------------------------------------------------
 //  Menu tables
@@ -120,7 +122,22 @@ static void actDemoNetLoad();
 //  ellipsise, and a stack deep enough to hit CubeMenu's depth limit.
 
 static const char* const kPrevNav[]     = { "3 items", "4 items", "5 items", "Long" };
-static const char* const kPrevScreens[] = { "Operations", "Cube views", "Messages" };
+static const char* const kPrevScreens[] = { "Operations", "Cube views", "Messages",
+                                            "Patterns" };
+
+// Cube states for the pattern previews, in net order (U R F D L B).
+//
+// Computed by applying each sequence to a solved cube, not drawn by hand — and
+// every one checked for nine of each colour, because a preview that is not a
+// real cube would hide exactly the bugs this screen is for.
+static const char kPatCheckerboard[55] =
+    "WYWYWYWYW" "ROROROROR" "GBGBGBGBG" "YWYWYWYWY" "ORORORORO" "BGBGBGBGB";
+static const char kPatCubeInCube[55] =
+    "GGGGWWGWW" "RRWRRWWWW" "RGGRGGRRR" "BBBYYBYYB" "YYYOOYOOY" "OOOOBBOBB";
+static const char kPatSixSpot[55] =
+    "GGGGWGGGG" "WWWWRWWWW" "RRRRGRRRR" "BBBBYBBBB" "YYYYOYYYY" "OOOOBOOOO";
+static const char kPatSuperflip[55] =
+    "WBWOWRWGW" "RWRGRBRYR" "GWGOGRGYG" "YGYOYRYBY" "OWOBOGOYO" "BWBRBOBYB";
 static const char* const kPrevOps[]     = { "Faces", "Chips", "Bar", "Scramble" };
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
 static const char* const kPrevDeep[]    = { "Deeper", "and", "deeper" };
@@ -208,8 +225,24 @@ static const MenuItem kScreensItems[] = {
       kPrevCube, 3, MenuTheme::Green },
     { "Messages",    &kScreenMsg,  nullptr, "Status and faults.",
       nullptr,   0, MenuTheme::Red },
+    { "Patterns",    &kScreenPatterns, nullptr, "Previews in the side pane.",
+      nullptr,   0, MenuTheme::Violet },
 };
-const MenuScreen kScreenScreens = { "Screens", kScreensItems, 3, MenuTheme::Yellow };
+const MenuScreen kScreenScreens = { "Screens", kScreensItems, 4, MenuTheme::Yellow };
+
+// The point of this screen: the preview pane shows what each pattern PRODUCES.
+// A list of names would say nothing about what you are choosing between.
+static const MenuItem kPatternItems[] = {
+    { "Checkerboard", nullptr, actFoldPattern, "R2 L2 F2 B2 U2 D2",
+      nullptr, 0, MenuTheme::Blue,   kPatCheckerboard },
+    { "Cube in Cube", nullptr, actFoldPattern, "Fifteen moves.",
+      nullptr, 0, MenuTheme::Green,  kPatCubeInCube },
+    { "Six Spot",     nullptr, actFoldPattern, "U D' R L' F B' U D'",
+      nullptr, 0, MenuTheme::Yellow, kPatSixSpot },
+    { "Superflip",    nullptr, actFoldPattern, "Every edge flipped.",
+      nullptr, 0, MenuTheme::Purple, kPatSuperflip },
+};
+const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 4, MenuTheme::Violet };
 
 static const MenuItem kOpsItems[] = {
     { "Scan Faces",     nullptr, actDemoSteps,    "Faces fill as they are read." },
@@ -429,6 +462,20 @@ static void actDemoNetLoad() {
     Cube.displayUpdate();
 }
 
+// Folding a pattern: the solve screen with the pattern named, then the result.
+// Running the moves is all the machine side would add — they are already known.
+static const char* g_foldNet  = nullptr;
+static const char* g_foldName = nullptr;
+
+static void actFoldPattern() {
+    const MenuItem* it = Menu.selectedItem();
+    g_foldNet  = (it && it->previewNet) ? it->previewNet : nullptr;
+    g_foldName = (it && it->label) ? it->label : "Pattern";
+    showScreen(Op::Solve, "Patterns", "Folding", Live::Fold);
+    cubeDisplay.setStatus(g_foldName);
+    Cube.displayUpdate();
+}
+
 static void actDemoError() {
     showScreen(Op::Error, "Stopped", "Move failed - cube released");
     const char* lines[] = { "Canned - nothing actually failed." };
@@ -528,6 +575,23 @@ static void updateDemo() {
             cubeDisplay.setMessage("Solved!");
             cubeDisplay.setStatus("21 moves in 4.62 s");
             Cube.displayProgress(21, 21);
+        }
+        break;
+    }
+
+    case Live::Fold: {
+        const uint32_t ms = 3000;
+        if (t < ms) {
+            Cube.displayProgress((int)((t * 20) / ms), 20);
+        } else if (t < ms + 400) {
+            // Swap to the result once. showOperation() clears the bar and the
+            // headline, which is what this screen wants — the net needs the
+            // middle of the display and a headline would sit on top of it.
+            cubeDisplay.showOperation(Op::Done, "Patterns", nullptr,
+                                      "SELECT or LEFT to go back");
+            cubeDisplay.setOpCubeNet(g_foldNet);
+            cubeDisplay.setStatus(g_foldName);
+            liveStart = millis() - (ms + 5000);     // do not re-enter this arm
         }
         break;
     }
