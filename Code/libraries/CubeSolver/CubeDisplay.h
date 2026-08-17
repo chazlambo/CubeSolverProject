@@ -70,7 +70,7 @@ public:
     // A facelet that is not a known colour is drawn hollow, so a partial or
     // impossible state shows WHICH stickers are the problem.
     static const int kNetFacelets = 54;
-    void setOpCubeNet(const char* facelets);
+    void setOpCubeNet(const char* facelets, bool labelFaces = true);
 
     // A filled bar, for operations with a countable end — the solve knows how
     // many moves it has to run, and a number alone does not show how far along
@@ -202,6 +202,7 @@ private:
     lv_obj_t* bar_track;
     lv_obj_t* bar_fill;
     lv_obj_t* img_net;
+    lv_obj_t* lbl_netFace[6];
 
     lv_style_t white_style;
 

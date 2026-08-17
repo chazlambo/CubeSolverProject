@@ -40,6 +40,7 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
     bar_track = nullptr;
     bar_fill  = nullptr;
     img_net   = nullptr;
+    for (int i = 0; i < 6; ++i) lbl_netFace[i] = nullptr;
     instance = this;  // Set static instance for callbacks
 }
 
@@ -188,6 +189,17 @@ namespace {
 
     inline uint16_t rgb565(uint32_t c) {
         return (uint16_t)(((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x001F));
+    }
+
+    // A face letter is printed ON its centre sticker, so it has to survive
+    // being drawn over white, yellow, red, orange, green or blue. Pick by
+    // perceived brightness rather than by a per-colour table, which would need
+    // revisiting every time the palette moves.
+    inline uint32_t inkFor(uint32_t bg) {
+        const uint32_t lum = (299u * ((bg >> 16) & 0xFF) +
+                              587u * ((bg >>  8) & 0xFF) +
+                              114u * ( bg        & 0xFF)) / 1000u;
+        return (lum > 145u) ? 0x101018 : 0xF4F6FF;
     }
 
     // Progress bar, and where the sub-line goes when step rows own the middle
@@ -648,6 +660,22 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
     lv_obj_set_pos(img_net, NET_X, NET_Y);
     hide(img_net);
 
+    // Face letters, one per face, sitting on the centre sticker. The net alone
+    // relies on the reader knowing the unfolded-cross convention; the machine
+    // has U R F D L B written on it, so saying the same thing here turns an
+    // inferred instruction into a literal one.
+    for (int f = 0; f < 6; ++f) {
+        lbl_netFace[f] = lv_label_create(scr);
+        lv_obj_set_size(lbl_netFace[f], NET_STICKER, NET_STICKER);
+        lv_obj_set_pos(lbl_netFace[f],
+                       NET_X + (kNetFaces[f].col + 1) * NET_CELL,
+                       NET_Y + (kNetFaces[f].row + 1) * NET_CELL);
+        lv_obj_set_style_text_font(lbl_netFace[f], &lv_font_prev_9, 0);
+        lv_obj_set_style_text_align(lbl_netFace[f], LV_TEXT_ALIGN_CENTER, 0);
+        lv_label_set_text(lbl_netFace[f], kFaceNames[f]);
+        hide(lbl_netFace[f]);
+    }
+
     bar_fill = lv_obj_create(bar_track);
     makeBare(bar_fill);
     lv_obj_set_size(bar_fill, 0, PBAR_H - 4);
@@ -701,6 +729,7 @@ void CubeDisplay::clearOpExtras() {
     hide(bar_track);
     hide(bar_fill);
     hide(img_net);
+    for (int f = 0; f < 6; ++f) hide(lbl_netFace[f]);
 }
 
 int8_t CubeDisplay::chipIndexForColor(char c) {
@@ -718,9 +747,13 @@ int8_t CubeDisplay::chipIndexForColor(char c) {
 // ---------------------------------------------------------------------------
 //  The cube as an unfolded net.
 // ---------------------------------------------------------------------------
-void CubeDisplay::setOpCubeNet(const char* facelets) {
+void CubeDisplay::setOpCubeNet(const char* facelets, bool labelFaces) {
     if (!img_net) return;
-    if (!facelets) { hide(img_net); return; }
+    if (!facelets) {
+        hide(img_net);
+        for (int f = 0; f < 6; ++f) hide(lbl_netFace[f]);
+        return;
+    }
 
     uint8_t* colour = s_netBuf;
     uint8_t* alpha  = s_netBuf + (NET_W * NET_H * 2);
@@ -756,6 +789,17 @@ void CubeDisplay::setOpCubeNet(const char* facelets) {
                 }
             }
         }
+    }
+
+    // Letters take their ink from the centre sticker they land on, so a face
+    // whose colour was not read (drawn hollow) gets the light one.
+    for (int f = 0; f < 6; ++f) {
+        if (!labelFaces) { hide(lbl_netFace[f]); continue; }
+        const int8_t centre = chipIndexForColor(facelets[kNetFaces[f].base + 4]);
+        lv_obj_set_style_text_color(
+            lbl_netFace[f],
+            lv_color_hex(inkFor(centre >= 0 ? kChipColors[centre] : 0x30364A)), 0);
+        show(lbl_netFace[f]);
     }
 
     // The image reads this buffer at draw time, so the only thing needed to
