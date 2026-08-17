@@ -71,7 +71,7 @@ static TState state = TState::Menu;
 
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
-enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble, Fold, Step };
+enum class Live : uint8_t { None, Input, Steps, Chips, Scramble, Fold, Step, Demo };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -110,10 +110,10 @@ static void actInputReport();
 static void actDemoInfo();
 static void actDemoSteps();
 static void actDemoChips();
-static void actDemoProgress();
 static void actDemoError();
 static void actDemoScramble();
 static void actStepSolve();
+static void actDemoMode();
 static void actDemoNetSolved();
 static void actDemoNetScrambled();
 static void actDemoNetLoad();
@@ -145,8 +145,8 @@ static const char kPatSixSpot[55] =
     "GGGGWGGGG" "WWWWRWWWW" "RRRRGRRRR" "BBBBYBBBB" "YYYYOYYYY" "OOOOBOOOO";
 static const char kPatSuperflip[55] =
     "WBWOWRWGW" "RWRGRBRYR" "GWGOGRGYG" "YGYOYRYBY" "OWOBOGOYO" "BWBRBOBYB";
-static const char* const kPrevOps[]  = { "Faces", "Chips", "Bar", "Scramble",
-                                         "Step" };
+static const char* const kPrevOps[]  = { "Faces", "Chips", "Scramble", "Step",
+                                         "Demo" };
 
 // A canned solution for the Step Solve screen. Real notation, real length —
 // twenty-one moves is what the solver typically returns — so the ribbon is
@@ -154,6 +154,13 @@ static const char* const kPrevOps[]  = { "Faces", "Chips", "Bar", "Scramble",
 static const char* const kStepMoves[21] = {
     "R", "U2", "F'", "L", "D", "B2", "R'", "U", "F2", "L'", "D2",
     "B", "R2", "U'", "F", "L2", "D'", "B'", "R", "U2", "F'",
+};
+
+// A scramble is longer than a solution and reads more randomly. Worth being a
+// separate list so Demo Mode's two halves do not look like the same thing twice.
+static const char* const kScrambleMoves[25] = {
+    "D2", "L", "B'", "R", "U'", "F2", "D", "L2", "B", "R'", "U2", "F",
+    "D'", "L'", "B2", "R2", "U", "F'", "D", "L", "B", "R", "U2", "F2", "D'",
 };
 static const char* const kPrevDiag[] = { "Navigation", "Input" };
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
@@ -286,9 +293,9 @@ const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 4, MenuTheme::Vi
 static const MenuItem kOpsItems[] = {
     { "Scan Faces",     nullptr, actDemoSteps,    "Faces fill as they are read." },
     { "Colour Chips",   nullptr, actDemoChips,    "Two boards, six colours." },
-    { "Progress Bar",   nullptr, actDemoProgress, "Fills over four seconds." },
     { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colours." },
     { "Step Solve",     nullptr, actStepSolve,    "One move per press." },
+    { "Demo Mode",      nullptr, actDemoMode,     "Scramble and solve, looping." },
 };
 const MenuScreen kScreenOps = { "Operations", kOpsItems, 5, MenuTheme::Blue };
 
@@ -561,42 +568,8 @@ static void actJog() {
     drawJog(nullptr);
 }
 
-// ---------------------------------------------------------------------------
-//  Actions — driving the actuators
-// ---------------------------------------------------------------------------
-//  Every one of these moves real hardware. They draw a "moving" screen and push
-//  it to the panel BEFORE starting, because the servo sweeps take seconds and
-//  the pump refreshes the display during them — without this the panel would
-//  sit on the old menu looking frozen for the whole travel.
 
-// What happens after a manual action.
-//
-// A move that worked goes STRAIGHT back to the menu, with the cursor still on
-// the thing you just fired. This is a jog tool — you press it repeatedly to
-// watch a motor, and a result screen demanding SELECT between every press would
-// make that miserable. The menu repaints itself because CubeMenu marks the
-// screen dirty before running an action, so there is nothing to do here.
-//
-// A move that FAILED stops and says so. That one you want to read.
-static void afterAction(const char* title, const char* what, int code) {
-    if (code == 0) return;
 
-    char sub[48];
-    snprintf(sub, sizeof(sub), "%s  -  code %d", what, code);
-    showScreen(Op::Error, title, "Move failed");
-    cubeDisplay.setStatus(sub);
-    Cube.displayUpdate();
-}
-
-static void showMoving(const char* title, const char* what) {
-    cubeDisplay.showOperation(Op::Calibrate, title, what, "Working");
-    Cube.displayUpdate();
-}
-
-static const char* selectedLabel() {
-    const MenuItem* it = Menu.selectedItem();
-    return (it && it->label) ? it->label : "?";
-}
 
 // ---------------------------------------------------------------------------
 //  Actions — navigation feedback
@@ -677,9 +650,6 @@ static void actDemoChips() {
     showScreen(Op::Calibrate, "Colour Chips", "", Live::Chips);
 }
 
-static void actDemoProgress() {
-    showScreen(Op::Solve, "Progress Bar", "21 moves to run", Live::Progress);
-}
 
 // A scramble followed by a solve. The frame carries the phase — red while it is
 // scrambling, green the moment it starts solving — which is the whole idea the
@@ -778,6 +748,50 @@ static void actStepSolve() {
     drawStepSolve();
 }
 
+// Scramble, solve, repeat, unattended. Both halves already existed — the phase
+// colours from Scramble Solve, the ribbon from Step Solve — so this is a loop
+// around them plus a run counter.
+//
+// It shows the MOVES rather than only a counter, because the whole point of
+// leaving this running is that it should be worth watching.
+static const uint32_t kDemoScrambleMs = 3500;
+static const uint32_t kDemoSolveMs    = 3500;
+static const uint32_t kDemoRestMs     = 1500;
+static const uint32_t kDemoCycleMs    = kDemoScrambleMs + kDemoSolveMs + kDemoRestMs;
+
+static void actDemoMode() {
+    showScreen(Op::Error, "Demo Mode", "Scrambling", Live::Demo);
+}
+
+static void updateDemoMode(uint32_t t) {
+    const uint32_t cycle = t % kDemoCycleMs;
+    const int      run   = (int)(t / kDemoCycleMs) + 1;
+
+    char sub[52];
+    if (cycle < kDemoScrambleMs) {
+        const int m = (int)((cycle * 25) / kDemoScrambleMs);
+        cubeDisplay.setOpKind(Op::Error);                  // red: scrambling
+        cubeDisplay.setMessage("Scrambling");
+        snprintf(sub, sizeof(sub), "Run %d   -   Move %d of 25", run, m + 1);
+        cubeDisplay.setOpRibbon(kScrambleMoves, 25, m);
+        Cube.displayProgress(m, 24);
+    } else if (cycle < kDemoScrambleMs + kDemoSolveMs) {
+        const int m = (int)(((cycle - kDemoScrambleMs) * 21) / kDemoSolveMs);
+        cubeDisplay.setOpKind(Op::Solve);                  // green: solving
+        cubeDisplay.setMessage("Solving");
+        snprintf(sub, sizeof(sub), "Run %d   -   Move %d of 21", run, m + 1);
+        cubeDisplay.setOpRibbon(kStepMoves, 21, m);
+        Cube.displayProgress(m, 20);
+    } else {
+        cubeDisplay.setOpKind(Op::Done);
+        cubeDisplay.setMessage("Solved!");
+        snprintf(sub, sizeof(sub), "Run %d   -   21 moves in 4.62 s", run);
+        cubeDisplay.setOpRibbon(kStepMoves, 21, 20);
+        Cube.displayProgress(20, 20);
+    }
+    cubeDisplay.setStatus(sub);
+}
+
 static void actDemoError() {
     showScreen(Op::Error, "Stopped", "Move failed - cube released");
     const char* lines[] = { "Canned - nothing actually failed." };
@@ -842,61 +856,9 @@ static void updateDemo() {
         break;
     }
 
-    case Live::Progress: {
-        const uint32_t cycle = t % 5000;
-        int done = (int)((cycle * 21) / 4000);
-        if (done > 21) done = 21;
-        char sub[32];
-        snprintf(sub, sizeof(sub), "Move %d/21", done);
-        cubeDisplay.setStatus(sub);
-        Cube.displayProgress(done, 21);
+    case Live::Demo:
+        updateDemoMode(t);
         break;
-    }
-
-    case Live::Scramble: {
-        // 25 scramble moves, then 21 solve moves, then a beat on the result.
-        const uint32_t cycle = t % 10000;
-        if (cycle < 4000) {
-            const int done = (int)((cycle * 25) / 4000);
-            char sub[32];
-            snprintf(sub, sizeof(sub), "Move %d/25", done);
-            cubeDisplay.setOpKind(Op::Error);          // red: scrambling
-            cubeDisplay.setMessage("Scrambling");
-            cubeDisplay.setStatus(sub);
-            Cube.displayProgress(done, 25);
-        } else if (cycle < 8000) {
-            const int done = (int)(((cycle - 4000) * 21) / 4000);
-            char sub[32];
-            snprintf(sub, sizeof(sub), "Move %d/21", done);
-            cubeDisplay.setOpKind(Op::Solve);          // green: solving
-            cubeDisplay.setMessage("Solving");
-            cubeDisplay.setStatus(sub);
-            Cube.displayProgress(done, 21);
-        } else {
-            cubeDisplay.setOpKind(Op::Done);
-            cubeDisplay.setMessage("Solved!");
-            cubeDisplay.setStatus("21 moves in 4.62 s");
-            Cube.displayProgress(21, 21);
-        }
-        break;
-    }
-
-    case Live::Fold: {
-        const uint32_t ms = 3000;
-        if (t < ms) {
-            Cube.displayProgress((int)((t * 20) / ms), 20);
-        } else if (t < ms + 400) {
-            // Swap to the result once. showOperation() clears the bar and the
-            // headline, which is what this screen wants — the net needs the
-            // middle of the display and a headline would sit on top of it.
-            cubeDisplay.showOperation(Op::Done, "Patterns", nullptr,
-                                      "SELECT or LEFT to go back");
-            cubeDisplay.setOpCubeNet(g_foldNet);
-            cubeDisplay.setStatus(g_foldName);
-            liveStart = millis() - (ms + 5000);     // do not re-enter this arm
-        }
-        break;
-    }
 
     case Live::Input:
         updateInputReport();

@@ -143,17 +143,22 @@ screensaver. The slow frame cycle reuses `applyTheme()` on a timer — the one
 place a colour change is decorative rather than semantic, which is fine because
 nothing else is happening. Hint: "SELECT to wake".
 
-### Demo Mode — Modes
+### Demo Mode — Modes — **BUILT**
 
-Scramble, solve, repeat, unattended. Same as Scramble Solve plus a run counter,
-and the numbers people actually want to see when it is showing off.
+Scramble, solve, repeat, unattended. Both halves already existed — the phase
+colours from Scramble Solve, the ribbon from Step Solve — so it is a loop around
+them plus a run counter.
 
 ```
-              Solving                       <- phase
-             Move 14/21   L2
-        ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░
-        Run 7      Best 11.8 s              <- one compact status row
+              Solving                       <- phase, and the frame colour
+        Run 7   -   Move 14 of 21
+     F   L2   D'   B'   R   U2   F'         <- the moves, not just a count
+        [====================    ]
 ```
+
+It shows the MOVES because the whole point of leaving it running is that it
+should be worth watching. A separate scramble list, longer and more random than
+the solution, so the two halves do not look like the same thing twice.
 
 ### Step Solve — Modes
 
@@ -359,21 +364,21 @@ Screens done, machine side outstanding:
 - **Scramble Solve** — red while scrambling, green the moment it solves, one bar
   throughout. Needs a scramble generated and run.
 - **Step Solve** — the ribbon works; needs the moves actually executed.
+- **Demo Mode** — scramble and solve on a loop with a run counter, showing the
+  moves rather than only a count. Needs the two operations behind it.
 - **Hardware Test** — the Actuators page drives real hardware already. What
   remains is porting the page into the firmware's Diagnostics menu.
 
 Still to build:
 
-1. **Demo Mode** — nearly free. Scramble Solve's two phases on a loop with a run
-   counter, and both halves exist.
-2. **Sensor Test** — no new primitive. Status rows refreshed live, with a chip
+1. **Sensor Test** — no new primitive. Status rows refreshed live, with a chip
    row doubling as a per-sensor colour readout. **Throttle it**: every refresh
    is I²C traffic on the bus the encoder is also using, and `Test_Menu`'s Input
    Report already shows the pattern.
-3. **Fault Log** — needs the scrolling status list.
-4. **Parameters** and **Servo Positions** — need the value editor, which the
+2. **Fault Log** — needs the scrolling status list.
+3. **Parameters** and **Servo Positions** — need the value editor, which the
    Actuators page has already proved the interaction for.
-5. **Stats**, then **Idle Mode** — the screens are drawn; the work is an EEPROM
+4. **Stats**, then **Idle Mode** — the screens are drawn; the work is an EEPROM
    block to put real numbers behind them.
 
 Low-confidence marking on the Cube State net can slot in whenever; it needs no
