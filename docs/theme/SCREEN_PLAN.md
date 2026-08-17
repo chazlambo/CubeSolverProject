@@ -45,18 +45,24 @@ stopped. A new screen picks the one that already means what it means.
 
 ## Vocabulary we still need, ranked
 
-~~1. **Cube net**~~ — **BUILT.** `setOpCubeNet()`, and Cube State uses it. See
-   "On the cube net" below for how, and the one thing still missing from it.
+Built so far, and where each lives:
 
-1. **Move ribbon** — a sequence with a cursor on the current entry. Step Solve
-   needs it; Solve and Demo get better with it.
-2. **Scrolling status list** — Fault Log. More than six rows with a position
-   readout.
-3. **Value editor** — Parameters and Servo Positions. The wheel changes a
-   number instead of moving a cursor. This is a new *interaction*, not just new
-   art, and is the one worth thinking hardest about.
-4. **Row status marks** — a status row whose value is green/red rather than
-   grey. Hardware Test wants it; small change to `setOpLines()`.
+| Piece | Call | Built for |
+|---|---|---|
+| Cube net | `setOpCubeNet()` | Cube State, scan review, Patterns |
+| Chip row | `setOpChipRow()` / `setOpFaces()` | scan faces, calibration, the jog strip |
+| Move ribbon | `setOpRibbon()` | Step Solve |
+| Row status marks | `setOpLines(..., marks)` | the jog cursor; Sensor Test wants it too |
+| Frame recolour | `setOpKind()` | phase changes, and "you are editing" |
+
+Still missing:
+
+1. **Scrolling status list** — Fault Log. More than six rows with a position
+   readout in the hint bar rather than a scrollbar the theme has no art for.
+2. **Value editor** — Parameters and Servo Positions. Mostly solved already:
+   the Actuators page's enter-pick-send on a gripper IS this interaction, and it
+   proved out. What is left is a NUMBER rather than three named positions, and
+   deciding the step size.
 
 ### On the cube net — built, and how
 
@@ -346,31 +352,32 @@ time. Six rows is exactly enough, so resist adding a seventh.
 
 ## Suggested order
 
-~~Cube net, Cube State, scan review~~ — done.
+Screens done, machine side outstanding:
 
-~~Patterns~~ — screen done; only running the moves remains.
+- **Patterns** — the four states and the preview pane are built; running the
+  move sequence is not.
+- **Scramble Solve** — red while scrambling, green the moment it solves, one bar
+  throughout. Needs a scramble generated and run.
+- **Step Solve** — the ribbon works; needs the moves actually executed.
+- **Hardware Test** — the Actuators page drives real hardware already. What
+  remains is porting the page into the firmware's Diagnostics menu.
 
-1. **Scramble Solve** — screen **prototyped** in `Test_Menu` (Screens >
-   Operations > Scramble Solve): red frame while scrambling, green the moment
-   it starts solving, one progress bar throughout. `setOpKind()` recolours the
-   frame without tearing the screen down, which is what makes the phase change
-   free. What remains is the machine side — generating a scramble and running
-   it — not the screen.
-~~Hardware Test~~ — built in `Test_Menu` as the Actuators tree. `setOpLines()`
-also gained an optional `RowMark` per row along the way, which tints the value
-half green/red/amber; nothing uses it yet, but **Sensor Test** wants exactly
-that.
+Still to build:
 
-2. **Move ribbon** then **Step Solve**; Demo Mode falls out nearly free.
-4. **Scrolling list** then **Fault Log**.
-5. **Value editor** then **Parameters** and **Servo Positions** — last because
-   it is a new interaction, and worth having the rest settled before adding a
-   second thing the wheel can mean.
+1. **Demo Mode** — nearly free. Scramble Solve's two phases on a loop with a run
+   counter, and both halves exist.
+2. **Sensor Test** — no new primitive. Status rows refreshed live, with a chip
+   row doubling as a per-sensor colour readout. **Throttle it**: every refresh
+   is I²C traffic on the bus the encoder is also using, and `Test_Menu`'s Input
+   Report already shows the pattern.
+3. **Fault Log** — needs the scrolling status list.
+4. **Parameters** and **Servo Positions** — need the value editor, which the
+   Actuators page has already proved the interaction for.
+5. **Stats**, then **Idle Mode** — the screens are drawn; the work is an EEPROM
+   block to put real numbers behind them.
 
 Low-confidence marking on the Cube State net can slot in whenever; it needs no
 new primitive, only `scanConf` plumbed through.
-
-Idle Mode can slot in any time after Stats has real numbers.
 
 ## Where to build them
 
