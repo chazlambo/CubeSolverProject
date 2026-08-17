@@ -221,7 +221,12 @@ int CubeSystem::scanCube(){
     lastFault = 0;          // stale faults must not decorate a new scan's error
 
     // Move and scan the cube
-    // Scan order is [L, B], [U, F], [D, R]
+    //
+    // Two faces per pass, one per colour board, with a reorientation between:
+    // [Back, Right], [Left, Down], [Up, Front]. Nothing below depends on that
+    // being right — faces are recorded in scan order and identified afterwards
+    // from their centre colour — but the panel's face row does, via
+    // kScanPassFaces.
     char lastface1 = 'X';
     char lastface2 = 'X';
 

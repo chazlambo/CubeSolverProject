@@ -9,17 +9,27 @@
 #include "CubeSystem.h"
 
 const char* const CubeSystem::kScanPassLabels[CubeSystem::kScanPasses] = {
-    "Left + Back",
+    "Back + Right",
+    "Left + Down",
     "Up + Front",
-    "Down + Right",
 };
 
-// Scan order is [L, B], [U, F], [D, R] — see scanCube(). As face-row indices,
-// where the row reads U R F D L B: L=4 B=5, U=0 F=2, D=3 R=1.
+// Which face each sensor reads on each pass, as indices into the display's
+// face row (U R F D L B). Sensor 1 first, sensor 2 second.
+//
+// The physical scan order is [Back, Right], [Left, Down], [Up, Front]. This
+// table exists ONLY to fill the panel's face chips as the scan runs. The solver
+// does not use it and cannot: scanCube() records faces in scan order and works
+// out which logical face each one is from its centre colour and its neighbour
+// (scanFaceColor / scanLeftColor / setOrientation), so a wrong entry here
+// misdraws the panel and changes nothing else.
+//
+// If a pair ever comes up with its two colours swapped on screen, the sensors
+// are the other way round for that pass — swap the entry, not the sequence.
 const uint8_t CubeSystem::kScanPassFaces[CubeSystem::kScanPasses][2] = {
-    { 4, 5 },
-    { 0, 2 },
-    { 3, 1 },
+    { 5, 1 },   // Back  + Right
+    { 4, 3 },   // Left  + Down
+    { 0, 2 },   // Up    + Front
 };
 
 int8_t CubeSystem::chipIndexForColor(char c) {
