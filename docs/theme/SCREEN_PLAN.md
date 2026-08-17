@@ -362,31 +362,56 @@ an I2C error instead of an angle. `MotorEncoder::scan()` returns the angle or a
 negative error code, and showing the error rather than a plausible number is the
 point of the screen.
 
-### Parameters / Servo Positions — Diagnostics, Calibration
+### Parameters / Servo Positions — Diagnostics > Tuning — **BUILT**
 
-The one that needs a genuinely new interaction: the wheel has to change a
-*value*, not move a cursor.
+The one that needed a genuinely new interaction: the wheel changes a *value*,
+not a cursor.
 
-Proposal — a settings list, kept separate from `CubeMenu` rather than bolted
-onto it. `CubeMenu` is deliberately navigation-only and host-testable, and
-value editing is a different job.
+Built as a settings list kept separate from `CubeMenu` rather than bolted onto
+it. `CubeMenu` is deliberately navigation-only and host-testable, and value
+editing is a different job.
 
-- Rows are bars (they *are* selectable — this is legitimate bar use).
+Both tables reach their values through **accessors**, never through the config
+globals, and that is not a style preference. `CubeServo` copies `topExtPos` and
+friends at construction and never reads them again, and the `CubeMotors`
+tunables are private — so an editor written the obvious way would show numbers
+changing and move nothing. `CubeServo` and `CubeMotors` gained the small public
+accessors this needed, each clamping its own range.
+
+Servo rows are *live*: the setter records the endpoint and drives the horn to it
+in the same call, because finding an endpoint means watching it. That uses
+`CubeServo::previewRaw()`, which jumps rather than sweeps — so one wheel detent
+must be one step, however fast the wheel is spun. Honouring a burst of detents
+at once would turn a nudge into a slam.
+
+`previewRaw()` deliberately does not touch EEPROM; `parLeave()` calls
+`persist()` once on the way out. Per-detent writes would be flash wear for
+nothing, but skipping the write entirely is worse than either: `CubeServo::begin()`
+trusts the stored position to decide how far its first sweep travels, so a stale
+one is what arms a full-travel slam on the next power-up.
+
 - SELECT enters edit on the highlighted row; the frame goes **yellow** to say
-  "you are changing something", and the row shows `‹ 1450 ›`.
-- Wheel adjusts, SELECT commits, LEFT cancels and restores.
-- The hint box carries the units and the range: "µs · 900–2100".
+  "you are changing something", and the row shows `< 205 >`.
+- Wheel adjusts, SELECT commits, LEFT cancels and restores the old value — and
+  for a live row, drives the horn back to it too.
+- The hint box carries the units and the range: "deg - 0 to 270".
 
 ```
-   ╭─ Top servo extend    ‹ 1450 › ─╮      <- editing, frame yellow
-   ╰────────────────────────────────╯
-   ╭─ Top servo retract      1900  ─╮
-   ╰────────────────────────────────╯
+   Top extend                < 205 >       <- editing, frame yellow
+   Top retract                     0
+   Top sweep                      15
 ```
 
-Servo Positions additionally has to *move the servo* as the value changes, which
-is the whole point of setting it by eye. Rate-limit that, and never leave edit
-mode without either committing or restoring the previous position.
+The plan here originally called for bar art on every row, on the grounds that
+the rows are selectable and bars mean selectable. Built with marked rows
+instead, to match the Actuators page: that screen has the identical two-level
+interaction — scroll, SELECT to enter, wheel to change — and having the two
+look like different kinds of screen would be the bigger inconsistency. The
+yellow frame is what says "entered" on both.
+
+Angle brackets are plain ASCII `<` and `>`, not `‹ ›`. The baked fonts carry
+0x20-0x7F and nothing else, and a missing glyph draws as an empty box in
+silence.
 
 ### Stats — top level
 
@@ -413,13 +438,15 @@ Screens done, machine side outstanding:
   shows the pattern.
 - **Hardware Test** — the Actuators page drives real hardware already. What
   remains is porting the page into the firmware's Diagnostics menu.
+- **Parameters** and **Servo Positions** — both built under Diagnostics >
+  Tuning, both editing the real values. What they cannot do is *keep* them:
+  there is no EEPROM block for tuning, so every value is back to its compiled
+  default after a reset. Live tuning tools, not settings — and the sketch header
+  says so. The EEPROM block is the same piece of work Stats needs.
 
 Still to build:
 
-1. **Fault Log** — needs the scrolling status list.
-2. **Parameters** and **Servo Positions** — need the value editor, which the
-   Actuators page has already proved the interaction for.
-3. **Stats**, then **Idle Mode** — the screens are drawn; the work is an EEPROM
+1. **Stats**, then **Idle Mode** — the screens are drawn; the work is an EEPROM
    block to put real numbers behind them.
 
 Low-confidence marking on the Cube State net can slot in whenever; it needs no

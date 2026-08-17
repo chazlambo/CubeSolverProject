@@ -14,8 +14,14 @@
 //  cube rotations. That is the panel version of Test Code/Actuator_Test, and it
 //  is the reason this sketch is worth flashing to a real machine.
 //
-//  THE ACTUATORS MENU AND Load/Eject MOVE REAL HARDWARE. Everything under
-//  Screens and Diagnostics is drawing and navigation only.
+//  THESE MOVE REAL HARDWARE: the Actuators menu, Load/Eject, and Servo
+//  Positions under Diagnostics > Tuning, which drives a horn to each value as
+//  you dial it — that is the point of it. Everything else under Screens and
+//  Diagnostics is drawing and navigation only.
+//
+//  Tuning changes live values and does NOT store them. Endpoints and motion
+//  parameters are back to their compiled defaults after a reset; there is no
+//  EEPROM block for them yet. Write down anything you want to keep.
 //
 //  WHY THE SCREEN DEMOS ARE HERE
 //  -----------------------------
@@ -63,6 +69,7 @@ enum class TState : uint8_t {
     Menu,       // CubeMenu has the panel
     Screen,     // a full-screen view; SELECT or LEFT returns
     Jog,        // direct actuator control; see the note above pollJog()
+    Params,     // a settings list; the wheel changes a value, not a cursor
     Loading,    // clamp the cube, once
     Ejecting    // release and present it, once
 };
@@ -98,6 +105,7 @@ extern const MenuScreen kScreenMsg;
 extern const MenuScreen kScreenPatterns;
 
 extern const MenuScreen kScreenDiag;
+extern const MenuScreen kScreenTuning;
 extern const MenuScreen kScreenThree;
 extern const MenuScreen kScreenFour;
 extern const MenuScreen kScreenFive;
@@ -123,6 +131,8 @@ static void actDemoNetScrambled();
 static void actDemoNetLoad();
 static void actFoldPattern();
 static void actJog();
+static void actParams();
+static void actServoPos();
 
 // ---------------------------------------------------------------------------
 //  Menu tables
@@ -134,7 +144,7 @@ static void actJog();
 
 static const char* const kPrevNav[]     = { "3 items", "4 items", "5 items", "Long" };
 static const char* const kPrevScreens[] = { "Operations", "Cube views", "Messages",
-                                            "Patterns" };
+                                            "Patterns", "Navigation" };
 
 // Cube states for the pattern previews, in net order (U R F D L B).
 //
@@ -170,8 +180,9 @@ static const char* const kScrambleMoves[kScrambleLen] = {
     "U2", "F",  "D'", "L'", "B2", "R2", "U",  "F'", "D",  "L",
     "B",  "R",  "U2", "F2", "D'", "L2", "B'", "R2", "U'", "F",
 };
-static const char* const kPrevDiag[] = { "Navigation", "Input", "Color", "Motor",
+static const char* const kPrevDiag[] = { "Tuning", "Input", "Color", "Motor",
                                          "Faults" };
+static const char* const kPrevTuning[] = { "Parameters", "Servo Positions" };
 
 // Canned fault history. Real codes and real wording, taken from the error
 // tables in the sketch and the README — a log full of invented faults would not
@@ -210,7 +221,7 @@ static const MenuItem kMainItems[] = {
     { "Actuators",   nullptr,         actJog,   "Drive every part by hand.",
       nullptr, 0, MenuTheme::Red },
     { "Screens",     &kScreenScreens, nullptr,  "Draw the panel, no hardware.",
-      kPrevScreens, 4, MenuTheme::Yellow },
+      kPrevScreens, 5, MenuTheme::Yellow },
     { "Diagnostics", &kScreenDiag,    nullptr,  "Navigation and input.",
       kPrevDiag, 2, MenuTheme::Purple },
 };
@@ -231,8 +242,8 @@ static const MenuScreen kScreenMain = { "Menu Test", kMainItems, 5, MenuTheme::G
 //  they are the same axis, so it is a grouping that means something rather than
 //  an arbitrary split.
 static const MenuItem kDiagItems[] = {
-    { "Navigation",   &kScreenNav, nullptr,        "Screens of every size.",
-      kPrevNav, 4, MenuTheme::Red },
+    { "Tuning",         &kScreenTuning, nullptr,    "Values you can change.",
+      kPrevTuning, 2, MenuTheme::Yellow },
     { "Input Report", nullptr,     actInputReport, "Live wheel and buttons.",
       nullptr, 0, MenuTheme::Purple },
     { "Color Sensors", nullptr,   actColorSensors, "Live, per board.",
@@ -243,6 +254,18 @@ static const MenuItem kDiagItems[] = {
       nullptr, 0, MenuTheme::Red },
 };
 const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 5, MenuTheme::Purple };
+
+// Tuning needed a slot and Diagnostics was full at the five-item limit, so
+// Navigation moved to Screens. It belongs there anyway: it exercises the menu
+// RENDERER at every item count and tells you nothing about the machine, which
+// is what everything else under Diagnostics is for.
+static const MenuItem kTuningItems[] = {
+    { "Parameters",      nullptr, actParams,   "Motion tuning. Takes effect at once.",
+      nullptr, 0, MenuTheme::Yellow },
+    { "Servo Positions", nullptr, actServoPos, "Set the endpoints by eye.",
+      nullptr, 0, MenuTheme::Violet },
+};
+const MenuScreen kScreenTuning = { "Tuning", kTuningItems, 2, MenuTheme::Yellow };
 
 // ---- navigation: one screen per item count ----
 //
@@ -314,8 +337,10 @@ static const MenuItem kScreensItems[] = {
       nullptr,   0, MenuTheme::Red },
     { "Patterns",    &kScreenPatterns, nullptr, "Previews in the side pane.",
       nullptr,   0, MenuTheme::Violet },
+    { "Navigation",  &kScreenNav,  nullptr, "Screens of every size.",
+      kPrevNav,  4, MenuTheme::Red },
 };
-const MenuScreen kScreenScreens = { "Screens", kScreensItems, 4, MenuTheme::Yellow };
+const MenuScreen kScreenScreens = { "Screens", kScreensItems, 5, MenuTheme::Yellow };
 
 // The point of this screen: the preview pane shows what each pattern PRODUCES.
 // A list of names would say nothing about what you are choosing between.
@@ -607,6 +632,150 @@ static void actJog() {
     jogArmed = false;
     state    = TState::Jog;
     drawJog(nullptr);
+}
+
+// ---------------------------------------------------------------------------
+//  Value editor — Parameters and Servo Positions
+// ---------------------------------------------------------------------------
+//  The one interaction the menu cannot express: the wheel has to change a
+//  NUMBER, not move a cursor. So it is two levels, the same shape the grippers
+//  on the Actuators page already use — scroll to a row, SELECT to enter it,
+//  wheel to change, SELECT to keep or LEFT to put it back.
+//
+//  Kept out of CubeMenu deliberately. CubeMenu is navigation-only and testable
+//  on a host without a screen; editing values is a different job and bolting it
+//  on would cost that.
+//
+//  Every value here is reached through an accessor rather than written to the
+//  config globals. Those globals are read once at construction — CubeServo
+//  copies topExtPos and never looks at it again — so an editor that wrote them
+//  would show numbers changing and move nothing at all.
+struct Param {
+    const char* name;
+    const char* units;
+    int         lo, hi, step;
+    int       (*get)();
+    void      (*set)(int);
+    bool        live;      // drive the hardware as the wheel turns
+};
+
+// Motion tuning. Read at the point of use by CubeMotors, so a change lands on
+// the next move — turn the wheel, then turn a face, and the difference is
+// there. Ranges are the clamps CubeMotors enforces anyway; repeating them here
+// is what puts them in the hint bar.
+static const Param kParamsMotion[] = {
+    { "Turn step",  "steps", 10, 1000, 5,
+      []{ return cubeMotors.getTurnStep();     }, [](int v){ cubeMotors.setTurnStep(v);     }, false },
+    { "Step speed", "sps",   50, 5000, 50,
+      []{ return cubeMotors.getStepSpeed();    }, [](int v){ cubeMotors.setStepSpeed(v);    }, false },
+    { "Step delay", "ms",     0,  500, 5,
+      []{ return cubeMotors.getStepDelay();    }, [](int v){ cubeMotors.setStepDelay(v);    }, false },
+    { "Rotate delay", "ms",   0,  500, 5,
+      []{ return cubeMotors.getRotStepDelay(); }, [](int v){ cubeMotors.setRotStepDelay(v); }, false },
+    { "Ring speed", "sps",   50, 5000, 50,
+      []{ return cubeMotors.getRingSpeed();    }, [](int v){ cubeMotors.setRingSpeed(v);    }, false },
+    { "Ring accel", "sps2",  50, 5000, 50,
+      []{ return cubeMotors.getRingAccel();    }, [](int v){ cubeMotors.setRingAccel(v);    }, false },
+};
+
+// Servo endpoints. These are `live`: setting one means watching the horn while
+// the number changes, which is the only way an endpoint ever gets found. The
+// setter moves the servo there as well as recording it.
+//
+// The sweep delays are on this screen rather than with the motion parameters
+// because they belong to these servos, and because changing one is something
+// you do right after setting an endpoint and watching the travel.
+static const Param kParamsServo[] = {
+    { "Top extend",  "deg", 0, 270, 1,
+      []{ return (int)topServo.extended();  },
+      [](int v){ topServo.setExtended((unsigned)v);  topServo.previewRaw((unsigned)v); }, true },
+    { "Top retract", "deg", 0, 270, 1,
+      []{ return (int)topServo.retracted(); },
+      [](int v){ topServo.setRetracted((unsigned)v); topServo.previewRaw((unsigned)v); }, true },
+    { "Top sweep",   "ms",  1, 100, 1,
+      []{ return topServo.sweepStepDelay(); }, [](int v){ topServo.setSweepStepDelay(v); }, false },
+    { "Bottom extend",  "deg", 0, 270, 1,
+      []{ return (int)botServo.extended();  },
+      [](int v){ botServo.setExtended((unsigned)v);  botServo.previewRaw((unsigned)v); }, true },
+    { "Bottom retract", "deg", 0, 270, 1,
+      []{ return (int)botServo.retracted(); },
+      [](int v){ botServo.setRetracted((unsigned)v); botServo.previewRaw((unsigned)v); }, true },
+    { "Bottom sweep",   "ms",  1, 100, 1,
+      []{ return botServo.sweepStepDelay(); }, [](int v){ botServo.setSweepStepDelay(v); }, false },
+};
+
+static const Param* parTable = nullptr;
+static const char*  parTitle = nullptr;
+static int          parCount = 0;
+static int8_t       parSel   = 0;
+static bool         parEdit  = false;
+static int          parWas   = 0;      // value on entering edit, for LEFT
+static bool         parDirty = false;  // a live row moved a servo; owes a persist()
+
+static void drawParams() {
+    static char rows[6][40];
+    const char* lines[6];
+    CubeDisplay::RowMark marks[6];
+
+    for (int i = 0; i < parCount; ++i) {
+        char value[24];
+        if (i == parSel && parEdit) {
+            // Angle brackets in plain ASCII: the baked fonts carry 0x20-0x7F
+            // and nothing else, and a missing glyph draws as an empty box
+            // without a word of complaint.
+            snprintf(value, sizeof(value), "< %d >", parTable[i].get());
+        } else {
+            snprintf(value, sizeof(value), "%d", parTable[i].get());
+        }
+        snprintf(rows[i], sizeof(rows[i]), "%s\t%s", parTable[i].name, value);
+        lines[i] = rows[i];
+        marks[i] = (i == parSel) ? CubeDisplay::RowMark::Busy
+                                 : CubeDisplay::RowMark::Plain;
+    }
+
+    // The hint carries the units and the range, which is the whole answer to
+    // "what am I allowed to type here" and has nowhere else to live.
+    char hint[48];
+    if (parEdit) {
+        snprintf(hint, sizeof(hint), "%s - %d to %d",
+                 parTable[parSel].units, parTable[parSel].lo, parTable[parSel].hi);
+    } else {
+        snprintf(hint, sizeof(hint), "SELECT to change");
+    }
+
+    // Yellow while editing: "you are changing something" without reading a
+    // word, the same signal the grippers use when entered.
+    cubeDisplay.showOperation(parEdit ? Op::Info : Op::Calibrate,
+                              parTitle, nullptr, hint);
+    cubeDisplay.setOpLines(lines, parCount, marks);
+    Cube.displayUpdate();
+}
+
+static void parEnter(const Param* table, int count, const char* title) {
+    parTable = table;
+    parCount = count;
+    parTitle = title;
+    parSel   = 0;
+    parEdit  = false;
+    parDirty = false;
+    state    = TState::Params;
+    drawParams();
+}
+
+static void actParams()   { parEnter(kParamsMotion, 6, "Parameters"); }
+static void actServoPos() { parEnter(kParamsServo,  6, "Servo Positions"); }
+
+// Leaving the screen. A live row has left the horn at whatever it was last
+// previewed to, and CubeServo::begin() trusts the stored position to decide how
+// far its first sweep has to travel — so a stale one is what arms a full-travel
+// slam on the next power-up. Write it once here rather than once per detent.
+static void parLeave() {
+    if (parDirty) {
+        topServo.persist();
+        botServo.persist();
+        parDirty = false;
+    }
+    toMenu();
 }
 
 
@@ -1297,6 +1466,56 @@ void loop() {
         return;
     }
 
+    // The value editor needs the same split pollJog() gives the actuator page:
+    // the wheel changes a number while the buttons stay buttons.
+    if (state == TState::Params) {
+        const JogInput in = pollJog();
+        const int step = (in.turn > 0) ? 1 : (in.turn < 0) ? -1 : 0;
+
+        if (parEdit) {
+            const Param& p = parTable[parSel];
+
+            if (in.select) {                    // keep it
+                parEdit = false;
+                drawParams();
+            } else if (in.back) {               // put it back
+                p.set(parWas);
+                parEdit = false;
+                drawParams();
+            } else {
+                const int d = step ? step : (in.up ? 1 : in.down ? -1 : 0);
+                if (d) {
+                    // One detent is one step, however fast the wheel is spun.
+                    // A live row writes the servo on every change, and honouring
+                    // a burst of detents at once would turn a nudge into a jump
+                    // the horn takes in a single instant.
+                    int v = p.get() + d * p.step;
+                    if (v < p.lo) v = p.lo;     // clamp: a range has ends
+                    if (v > p.hi) v = p.hi;
+                    p.set(v);
+                    if (p.live) parDirty = true;
+                    drawParams();
+                }
+            }
+            return;
+        }
+
+        if (in.back) {
+            parLeave();
+        } else if (step) {
+            int sel = parSel + step;
+            if (sel < 0)         sel = parCount - 1;   // wrap, as the menu does
+            if (sel >= parCount) sel = 0;
+            parSel = (int8_t)sel;
+            drawParams();
+        } else if (in.select) {
+            parWas  = parTable[parSel].get();   // what LEFT restores
+            parEdit = true;
+            drawParams();
+        }
+        return;
+    }
+
     const MenuEvent ev = pollEvent();
 
     switch (state) {
@@ -1310,6 +1529,7 @@ void loop() {
         break;
 
     case TState::Jog:
+    case TState::Params:
         break;      // handled above; nothing here consumes a MenuEvent
 
     case TState::Screen:

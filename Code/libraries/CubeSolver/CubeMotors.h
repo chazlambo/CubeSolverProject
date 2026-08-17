@@ -36,7 +36,37 @@ public:
     void resetMotorPos();
     void executeMove(String moveString);
 
+    // --- motion tuning -------------------------------------------------------
+    // Read at the point of use rather than latched at begin(), so changing one
+    // takes effect on the very next move. That is what makes tuning them from a
+    // settings screen worth doing at all — you turn the wheel, then turn a face,
+    // and see the difference immediately.
+    //
+    // Every setter clamps. These drive real steppers, and a zero speed is a
+    // machine that hangs mid-move with the grippers closed.
+    int  getTurnStep()     const { return turnStep; }
+    int  getStepSpeed()    const { return stepSpeed; }
+    int  getStepDelay()    const { return defaultStepDelay; }
+    int  getRotStepDelay() const { return rotStepDelay; }
+    int  getRingSpeed()    const { return ringStepSpeed; }
+    int  getRingAccel()    const { return ringStepAccel; }
+
+    // Steps per quarter turn. NOT a free parameter — it is a property of the
+    // gearing, and a wrong value does not degrade the solve, it destroys it:
+    // every face ends up mis-indexed and the cube jams. Exposed because it has
+    // to be set once per machine, not because it should be played with.
+    void setTurnStep(int v)     { turnStep         = clampTune(v, 10, 1000); }
+    void setStepSpeed(int v)    { stepSpeed        = clampTune(v, 50, 5000); }
+    void setStepDelay(int v)    { defaultStepDelay = clampTune(v, 0,  500);  }
+    void setRotStepDelay(int v) { rotStepDelay     = clampTune(v, 0,  500);  }
+    void setRingSpeed(int v)    { ringStepSpeed    = clampTune(v, 50, 5000); }
+    void setRingAccel(int v)    { ringStepAccel    = clampTune(v, 50, 5000); }
+
 private:
+    static int clampTune(int v, int lo, int hi) {
+        return v < lo ? lo : (v > hi ? hi : v);
+    }
+
     // Private helper methods
     void initStepper(MultiStepper &multiStepper, AccelStepper &newStepper);
     void initRingStepper(AccelStepper &ringStep);

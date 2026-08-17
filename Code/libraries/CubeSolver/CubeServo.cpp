@@ -127,6 +127,44 @@ bool CubeServo::isExtended() {
     return extState == 1;
 }
 
+// --- position tuning -------------------------------------------------------
+// 270 is the servo's full range and the same ceiling begin() uses to spot a
+// corrupt stored position. Clamping here rather than trusting the caller means
+// a settings screen cannot command the horn past its stop, whatever range it
+// thinks it is offering.
+static unsigned int clampServoPos(long pos) {
+    if (pos < 0)   return 0;
+    if (pos > 270) return 270;
+    return (unsigned int)pos;
+}
+
+void CubeServo::setRetracted(unsigned int pos) { retPos = clampServoPos((long)pos); }
+void CubeServo::setExtended(unsigned int pos)  { extPos = clampServoPos((long)pos); }
+
+void CubeServo::setSweepStepDelay(int ms) {
+    // Zero would turn every sweep into a slam, and the sweep is the only thing
+    // keeping the linkage from snatching at the cube. One millisecond is still
+    // absurdly fast; it is a floor, not a recommendation.
+    if (ms < 1)   ms = 1;
+    if (ms > 100) ms = 100;
+    sweepDelay = ms;
+}
+
+void CubeServo::previewRaw(unsigned int pos) {
+    const unsigned int target = clampServoPos((long)pos);
+
+    // Same 270 -> 180 mapping sweepTo() uses. Writing the raw 0-270 value
+    // straight to PWMServo would put the horn at two thirds of the angle asked
+    // for, which reads as a broken linkage rather than a wrong number.
+    servo.write(map(target, 0, 270, 0, 180));
+
+    // Track where the horn now is. sweepTo() begins by assuming currentPos is
+    // accurate; leaving it stale here would make the next extend() or retract()
+    // start its sweep from a position the horn is nowhere near.
+    currentPos = target;
+    extState   = -1;        // neither endpoint any more
+}
+
 bool CubeServo::sweepTo(unsigned int newPos) {
 
     // Map 270 degree range to function that takes 180 degree input
