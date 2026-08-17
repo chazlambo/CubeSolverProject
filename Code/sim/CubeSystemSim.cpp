@@ -430,6 +430,7 @@ void CubeSystem::toggleTopServo()  { topServo.toggle();  }
 void CubeSystem::botServoExtend()  { botServo.extend();  }
 void CubeSystem::botServoRetract() { botServo.retract(); }
 void CubeSystem::botServoPartial() { botServo.partial(); }
+void CubeSystem::botServoEject()   { botServo.eject();   }
 void CubeSystem::toggleBotServo()  { botServo.toggle();  }
 
 void CubeSystem::ringExtend()  { pumpDelay(kRingMoveMs); }

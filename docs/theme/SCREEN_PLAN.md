@@ -362,56 +362,90 @@ an I2C error instead of an angle. `MotorEncoder::scan()` returns the angle or a
 negative error code, and showing the error rather than a plausible number is the
 point of the screen.
 
-### Parameters / Servo Positions — Diagnostics > Tuning — **BUILT**
+### Tuning — Diagnostics > Tuning — **BUILT**
 
 The one that needed a genuinely new interaction: the wheel changes a *value*,
-not a cursor.
-
-Built as a settings list kept separate from `CubeMenu` rather than bolted onto
-it. `CubeMenu` is deliberately navigation-only and host-testable, and value
+not a cursor. Built as a settings list kept separate from `CubeMenu` rather than
+bolted onto it — `CubeMenu` is navigation-only and host-testable, and value
 editing is a different job.
 
-Both tables reach their values through **accessors**, never through the config
-globals, and that is not a style preference. `CubeServo` copies `topExtPos` and
-friends at construction and never reads them again, and the `CubeMotors`
-tunables are private — so an editor written the obvious way would show numbers
-changing and move nothing. `CubeServo` and `CubeMotors` gained the small public
-accessors this needed, each clamping its own range.
+Six sections, each a window onto one flat table:
 
-Servo rows are *live*: the setter records the endpoint and drives the horn to it
-in the same call, because finding an endpoint means watching it. That uses
-`CubeServo::previewRaw()`, which jumps rather than sweeps — so one wheel detent
-must be one step, however fast the wheel is spun. Honouring a burst of detents
-at once would turn a nudge into a slam.
+| Section | Rows |
+|---|---|
+| Servos > Top Servo | extend, retract, sweep delay |
+| Servos > Bottom Servo | extend, retract, partial, eject, sweep delay |
+| Servos > Ring | retract, partial, middle, extend, speed, accel |
+| Face Motors | step speed, step delay, rotate delay, servo delay |
+| Alignment | tolerance, align timeout, home timeout, debug log |
+| Color | scans averaged, integration, color tol, margin frac, distance frac, min separation |
 
-`previewRaw()` deliberately does not touch EEPROM; `parLeave()` calls
-`persist()` once on the way out. Per-detent writes would be flash wear for
-nothing, but skipping the write entirely is worse than either: `CubeServo::begin()`
+Plus **Reset Defaults**, which clears the EEPROM stamp and re-applies every
+compiled default.
+
+#### Interaction
+
+- Scroll to a row, SELECT to enter, wheel to change, SELECT to keep, LEFT to
+  restore. Frame goes **yellow** while a row is entered.
+- A **toggle** flips in place. Entering an edit mode to choose between two
+  values would be three presses to change one bit.
+- A **gated** row shows a red confirm FIRST. That ordering is the whole point:
+  gated rows preview as the wheel turns, so by the time you could confirm a
+  value the horn has already been there. What is confirmed is "I am about to
+  move this part", not "I accept this number".
+- The **description** of the selected row lives in the sub-line, above the rows.
+  It has to be set BEFORE `setOpLines()`, which reads it to decide where rows
+  start — set afterwards, it lands on top of row one.
+
+#### Traps this screen is built around
+
+**Accessors, never the config globals.** `CubeServo` copies `topExtPos` at
+construction and never reads it again, and the `CubeMotors` tunables were
+private. An editor written the obvious way shows numbers changing and moves
+nothing. Same trap, twice more: `ColorSensor::begin()` is the only caller of
+`setConfiguration()`, so integration time needed
+`ColorSensor::applyIntegrationTime()` to mean anything at runtime; and
+`waitTime` is documented as "integration time * 2.5" but has always been
+1.875x, so it is derived from the ratio the machine actually runs.
+
+**One detent is one step, however fast the wheel spins.** A live row writes the
+servo on every change and `previewRaw()` jumps rather than sweeps, so honouring
+a burst of detents at once turns a nudge into a slam.
+
+**Persist on the way out, not per detent.** `previewRaw()` deliberately skips
+EEPROM. But skipping it entirely is worse than either: `CubeServo::begin()`
 trusts the stored position to decide how far its first sweep travels, so a stale
-one is what arms a full-travel slam on the next power-up.
+one arms a full-travel slam on the next power-up.
 
-- SELECT enters edit on the highlighted row; the frame goes **yellow** to say
-  "you are changing something", and the row shows `< 205 >`.
-- Wheel adjusts, SELECT commits, LEFT cancels and restores the old value — and
-  for a live row, drives the horn back to it too.
-- The hint box carries the units and the range: "deg - 0 to 270".
+**Angle brackets are ASCII.** The baked fonts carry 0x20-0x7F and a missing
+glyph draws as an empty box in silence.
 
-```
-   Top extend                < 205 >       <- editing, frame yellow
-   Top retract                     0
-   Top sweep                      15
-```
+#### What is deliberately NOT here
 
-The plan here originally called for bar art on every row, on the grounds that
-the rows are selectable and bars mean selectable. Built with marked rows
-instead, to match the Actuators page: that screen has the identical two-level
-interaction — scroll, SELECT to enter, wheel to change — and having the two
-look like different kinds of screen would be the bigger inconsistency. The
-yellow frame is what says "entered" on both.
+- **Turn step** — steps per quarter turn is gearing, not preference. A wrong
+  value does not make solves worse, it makes them impossible. `CubeMotors` has
+  a getter and no setter, on purpose.
+- **Wait time** — derived from integration time. Exposing both invites an
+  inconsistent pair that misreads every sticker.
+- **Saturation threshold, step size, stable required** — properties of the
+  VEML6040 and of homing internals, not of this machine.
+- **Abort hold time** — the SELECT+LEFT duration. It is a safety gesture, not a
+  preference: too short and a solve aborts by accident, too long and the abort
+  reads as broken. Nothing about it varies per machine.
 
-Angle brackets are plain ASCII `<` and `>`, not `‹ ›`. The baked fonts carry
-0x20-0x7F and nothing else, and a missing glyph draws as an empty box in
-silence.
+#### Persistence
+
+Defaults live in the table, overrides in EEPROM, via `CubeTuning` — a version
+stamp plus a flat array of int32. Values are stored BY POSITION, so **reordering
+or inserting a parameter must bump `CubeTuning::kVersion`**; without it the next
+boot hands an alignment tolerance to a servo. The block is appended at the END
+of `initializeEEPROMLayout()` and has to stay there: addresses are handed out
+sequentially, so a block inserted higher shifts every one below it and silently
+reinterprets an already-calibrated machine's motor and color data.
+
+One behaviour change worth knowing: the bottom servo's partial and eject
+positions are now **pinned** rather than derived from the extend position, since
+boot applies every value whether it came from EEPROM or from the defaults.
 
 ### Stats — top level
 
@@ -438,16 +472,17 @@ Screens done, machine side outstanding:
   shows the pattern.
 - **Hardware Test** — the Actuators page drives real hardware already. What
   remains is porting the page into the firmware's Diagnostics menu.
-- **Parameters** and **Servo Positions** — both built under Diagnostics >
-  Tuning, both editing the real values. What they cannot do is *keep* them:
-  there is no EEPROM block for tuning, so every value is back to its compiled
-  default after a reset. Live tuning tools, not settings — and the sketch header
-  says so. The EEPROM block is the same piece of work Stats needs.
+- **Tuning** — six sections under Diagnostics > Tuning, editing the real
+  values, with defaults in the source and overrides in EEPROM. Done, including
+  persistence and reset.
 
 Still to build:
 
-1. **Stats**, then **Idle Mode** — the screens are drawn; the work is an EEPROM
-   block to put real numbers behind them.
+1. **Stats**, then **Idle Mode** — the screens are drawn; the work is real
+   numbers behind them. `CubeTuning` is the pattern to copy for the counters,
+   but NOT the block to put them in: solve counts change every run and tuning
+   changes almost never, so sharing one block would rewrite the tuning bytes on
+   every solve for nothing.
 
 Low-confidence marking on the Cube State net can slot in whenever; it needs no
 new primitive, only `scanConf` plumbed through.

@@ -51,16 +51,33 @@ public:
     int  getRingSpeed()    const { return ringStepSpeed; }
     int  getRingAccel()    const { return ringStepAccel; }
 
-    // Steps per quarter turn. NOT a free parameter — it is a property of the
-    // gearing, and a wrong value does not degrade the solve, it destroys it:
-    // every face ends up mis-indexed and the cube jams. Exposed because it has
-    // to be set once per machine, not because it should be played with.
-    void setTurnStep(int v)     { turnStep         = clampTune(v, 10, 1000); }
+    // Steps per quarter turn is READ-ONLY on purpose, and there is no setter to
+    // add later without thinking about this: it is a property of the gearing,
+    // not a preference. A wrong value does not make solves worse, it makes them
+    // impossible — every face ends up mis-indexed and the cube jams. It belongs
+    // in the source next to the pin assignments, changed once per machine by
+    // someone holding a calculator, not on a screen next to the ring speed.
     void setStepSpeed(int v)    { stepSpeed        = clampTune(v, 50, 5000); }
     void setStepDelay(int v)    { defaultStepDelay = clampTune(v, 0,  500);  }
     void setRotStepDelay(int v) { rotStepDelay     = clampTune(v, 0,  500);  }
     void setRingSpeed(int v)    { ringStepSpeed    = clampTune(v, 50, 5000); }
     void setRingAccel(int v)    { ringStepAccel    = clampTune(v, 50, 5000); }
+
+    // Ring positions, in steps from the home switch. Unlike the speeds these
+    // are mechanical: the ring has to clear the cube at retract and grip it at
+    // extend, and getting one wrong drives the carriage into a hard stop.
+    // 2000 is well past the travel and exists only to stop a runaway, not to
+    // describe the machine — the useful range is far narrower and is what the
+    // tuning screen offers.
+    int  getRingRetPos()     const { return ringRetPos;     }
+    int  getRingPartialPos() const { return ringPartialPos; }
+    int  getRingHalfPos()    const { return ringHalfPos;    }
+    int  getRingExtPos()     const { return ringExtPos;     }
+
+    void setRingRetPos(int v)     { ringRetPos     = clampTune(v, 0, 2000); }
+    void setRingPartialPos(int v) { ringPartialPos = clampTune(v, 0, 2000); }
+    void setRingHalfPos(int v)    { ringHalfPos    = clampTune(v, 0, 2000); }
+    void setRingExtPos(int v)     { ringExtPos     = clampTune(v, 0, 2000); }
 
 private:
     static int clampTune(int v, int lo, int hi) {

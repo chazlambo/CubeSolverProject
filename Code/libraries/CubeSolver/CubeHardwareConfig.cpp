@@ -14,6 +14,8 @@ int colorSensor1EEPROMFlag;
 int colorSensor2EEPROMFlag;
 int colorSensor1EEPROMAddresses[9][7][4];
 int colorSensor2EEPROMAddresses[9][7][4];
+int tuningEEPROMAddress;
+int eepromBytesUsed;
 
 // Initialize EEPROM layout IMMEDIATELY (before any objects are created)
 struct _EEPROMInit {
@@ -254,4 +256,17 @@ void initializeEEPROMLayout(int startAddress) {
             } 
         }
     }
+
+    // Tuning block. LAST, and it has to stay last.
+    //
+    // Addresses here are handed out sequentially, so anything inserted above
+    // shifts every block below it. On a machine that is already calibrated that
+    // does not fail loudly — the motor and color calibration flags still match,
+    // and their values are simply read from the wrong addresses. Appending
+    // cannot do that to anyone.
+    tuningEEPROMAddress = addr;
+    addr += CubeTuning::kBlockBytes;
+    cubeTuning.begin(tuningEEPROMAddress);
+
+    eepromBytesUsed = addr - startAddress;
 }

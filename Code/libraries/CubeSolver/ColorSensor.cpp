@@ -91,6 +91,46 @@ int ColorSensor::begin() {
     return 0;
 }
 
+void ColorSensor::setIntegrationIndex(int index) {
+    if (index < 0) index = 0;
+    if (index > 5) index = 5;
+    integrationTime = integrationRegFor(index);
+
+    // waitTime tracks it, because the two are one setting wearing two hats:
+    // wait too little after a longer integration and every sticker is read
+    // mid-conversion.
+    //
+    // The ratio is the one this machine actually runs — 300 ms of wait for 160
+    // ms of integration, 1.875x. The declaration says "integration time * 2.5",
+    // which would be 400; the comment has never matched the value. Preserving
+    // the behaviour rather than the comment keeps a scan that works today
+    // working, and 1.875x is already well clear of one conversion.
+    waitTime = (integrationMsFor(index) * 300) / 160;
+
+    applyIntegrationTime();
+}
+
+void ColorSensor::applyIntegrationTime() {
+    for (int sensorIdx = 0; sensorIdx < 9; sensorIdx++) {
+        int muxIdx = muxOrder[sensorIdx] - 1;
+        int chan   = channelOrder[sensorIdx];
+
+        multiplexers[0]->setChannelMask(0x00);
+        multiplexers[1]->setChannelMask(0x00);
+        multiplexers[muxIdx]->selectChannel(chan);
+
+        // No veml.begin() here, unlike the loop in begin(). A sensor that is
+        // already running does not need re-initialising, and one that is absent
+        // must not turn a settings change into a hard failure — the health
+        // check and the boot error codes are where a missing sensor is
+        // reported.
+        veml.setConfiguration(integrationTime);
+    }
+
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
+}
+
 void ColorSensor::readSensor(int sensorIdx) {
     // Look up which multiplexer and channel this sensor is on
     int muxIdx = muxOrder[sensorIdx] - 1;

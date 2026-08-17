@@ -4,14 +4,22 @@ CubeServo::CubeServo(int pin, int eepromAddr, unsigned int retPos, unsigned int 
   : pin(pin), eepromAddr(eepromAddr), currentPos(retPos), retPos(retPos), extPos(extPos), extState(-1), sweepDelay(sweepDelay) {}
 
 unsigned int CubeServo::partialTarget() const {
-    // 3/4 of the way from retracted to extended.
+    // A pinned value wins. Otherwise 3/4 of the way from retracted to extended.
     //
     // The old inline expression was 3*(retPos+extPos)/4, which only equals this
     // when retPos == 0. That happens to hold today (both servos retract to 0),
     // so it was latent rather than live — but it is wrong in general and would
     // silently mis-position the horn the moment a non-zero retract position is
     // used. Signed arithmetic so an inverted ext/ret pair doesn't underflow.
+    if (partialExplicit) return partialPos;
     return (unsigned int)((int)retPos + 3 * ((int)extPos - (int)retPos) / 4);
+}
+
+// Unpinned, ejecting is exactly what partial() always did. That is deliberate:
+// the machines that came before this had one position for both, and a servo
+// nobody has tuned must keep doing what it did.
+unsigned int CubeServo::ejectTarget() const {
+    return ejectExplicit ? ejectPos : partialTarget();
 }
 
 void CubeServo::begin() {
@@ -100,6 +108,22 @@ void CubeServo::partial(){
     updateEEPROM();
 }
 
+void CubeServo::eject() {
+    // Set to unknown state temporarily
+    extState = -1;
+    updateEEPROM();
+
+    unsigned int target = ejectTarget();
+    if (!sweepTo(target)) { updateEEPROM(); return; }   // aborted — state stays unknown
+    currentPos = target;
+
+    // State 2, the same as partial(). The distinction between "presenting" and
+    // "partially retracted" matters to the operator and not at all to begin(),
+    // which retracts out of either one.
+    extState = 2;
+    updateEEPROM();
+}
+
 void CubeServo::retract() {
     // Set to unknown state temporarily
     extState = -1;
@@ -140,6 +164,19 @@ static unsigned int clampServoPos(long pos) {
 
 void CubeServo::setRetracted(unsigned int pos) { retPos = clampServoPos((long)pos); }
 void CubeServo::setExtended(unsigned int pos)  { extPos = clampServoPos((long)pos); }
+
+// Pinning is one-way on purpose. There is no "unset" because there is no
+// gesture for it on the panel, and a value that silently reverted to being
+// derived the next time the extend position moved would be worse than either.
+void CubeServo::setPartial(unsigned int pos) {
+    partialPos      = clampServoPos((long)pos);
+    partialExplicit = true;
+}
+
+void CubeServo::setEject(unsigned int pos) {
+    ejectPos      = clampServoPos((long)pos);
+    ejectExplicit = true;
+}
 
 void CubeServo::setSweepStepDelay(int ms) {
     // Zero would turn every sweep into a slam, and the sweep is the only thing

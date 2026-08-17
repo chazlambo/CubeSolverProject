@@ -1294,6 +1294,12 @@ void CubeSystem::botServoPartial()
     pumpDelay(servoDelay);
 }
 
+void CubeSystem::botServoEject()
+{
+    botServo.eject();
+    pumpDelay(servoDelay);
+}
+
 void CubeSystem::toggleTopServo() {
     topServo.toggle();
     pumpDelay(servoDelay);

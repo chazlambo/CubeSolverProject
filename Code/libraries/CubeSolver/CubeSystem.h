@@ -143,6 +143,13 @@ public:
     void botServoExtend();
     void botServoRetract();
     void botServoPartial();
+
+    // Present the cube for the operator to take. Distinct from partial(): that
+    // one holds the cube centred in the chamber mid-scan, this one pushes it
+    // high enough to pick up. They were the same call until the eject position
+    // became tunable, and the sequences that want "centred" must keep saying
+    // botServoPartial().
+    void botServoEject();
     void toggleBotServo();
 
     // Ring Functions

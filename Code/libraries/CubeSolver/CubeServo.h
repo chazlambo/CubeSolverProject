@@ -21,6 +21,24 @@ public:
     void toggle();     // Toggle between extended/retracted
     bool isExtended(); // Returns true if extended
 
+    // Present the cube for the operator to take. A position of its own rather
+    // than a second name for partial(): the bottom servo has to hold the cube
+    // clear of the ring to be gripped, and push it high enough to be picked up,
+    // and those are not the same height.
+    void eject();
+
+    // --- named positions -----------------------------------------------------
+    // Partial and eject default to DERIVED values (three quarters of travel,
+    // and the same place as partial) so a servo nobody has tuned behaves
+    // exactly as it did before these existed. Setting either one pins it, and
+    // from then on it no longer follows the extend position around.
+    unsigned int partialTarget() const;
+    unsigned int ejectTarget()   const;
+    void setPartial(unsigned int pos);
+    void setEject(unsigned int pos);
+    bool partialIsPinned() const { return partialExplicit; }
+    bool ejectIsPinned()   const { return ejectExplicit;   }
+
     // --- position tuning -----------------------------------------------------
     // The retracted and extended positions are handed in at construction and
     // owned here from then on. The globals they came from (topExtPos and
@@ -64,7 +82,13 @@ private:
     int extState;               // 0 = retracted, 1 = extended, 2 = partially retracted, -1 = unknown
     int sweepDelay;             // Time in ms to delay between each sweep step
 
-    unsigned int partialTarget() const;  // 3/4 of the way from retracted to extended
+    // Pinned positions. eject() and partial() both record state 2: neither is
+    // an endpoint, and the only thing begin() does with that is retract on the
+    // next boot — which is the right answer for both.
+    unsigned int partialPos      = 0;
+    bool         partialExplicit = false;
+    unsigned int ejectPos        = 0;
+    bool         ejectExplicit   = false;
 
     // Returns false if the sweep was cut short by an abort. Callers MUST NOT
     // record the target position or a settled state when it returns false —

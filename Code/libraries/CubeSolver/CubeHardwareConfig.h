@@ -20,6 +20,7 @@
 #include "RotaryEncoder.h"
 #include "VirtualCube.h"
 #include "CubeDisplay.h"
+#include "CubeTuning.h"
 
 //================ EEPROM Setup ================
 void initializeEEPROMLayout(int startAddress = 0);
@@ -85,6 +86,11 @@ extern int topServoEEPROMAddress, botServoEEPROMAddress;
 
 // Servo Objects
 extern CubeServo topServo, botServo;
+
+// Tuning block: defaults live in the source, overrides in EEPROM. Appended at
+// the end of the layout so it cannot shift anyone's existing calibration.
+extern int tuningEEPROMAddress;
+extern int eepromBytesUsed;      // total footprint, for the boot report
 
 // ================ Color Sensor Setup ================
 

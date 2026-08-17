@@ -78,6 +78,25 @@ public:
     //  2 - inter-color separation below minUsableSeparation
     int checkSensorHealth(int sensorIdx) const;
 
+    // Push integrationTime out to all nine VEML sensors, and rescale waitTime
+    // with it.
+    //
+    // Needed because begin() is the ONLY thing that ever calls
+    // setConfiguration(). Writing integrationTime at runtime without this
+    // changes the number a settings screen displays and nothing about how long
+    // the sensors actually integrate for — the reading would go on being taken
+    // the old way, silently.
+    //
+    // Costs nine mux selects and nine I2C writes, so it is a deliberate call
+    // after a change, not something to do per scan.
+    void applyIntegrationTime();
+
+    // Register value for an integration-time index, 0..5 -> 40..1280 ms.
+    static int  integrationRegFor(int index) { return (index & 0x07) << 4; }
+    static int  integrationMsFor(int index)  { return 40 << (index & 0x07); }
+    int  getIntegrationIndex() const { return (integrationTime >> 4) & 0x07; }
+    void setIntegrationIndex(int index);
+
 // make private
 public:
     TCA9548* multiplexers[2]; // The two muxes on each boards

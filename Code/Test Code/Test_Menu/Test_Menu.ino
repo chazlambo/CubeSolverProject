@@ -19,9 +19,9 @@
 //  you dial it — that is the point of it. Everything else under Screens and
 //  Diagnostics is drawing and navigation only.
 //
-//  Tuning changes live values and does NOT store them. Endpoints and motion
-//  parameters are back to their compiled defaults after a reset; there is no
-//  EEPROM block for them yet. Write down anything you want to keep.
+//  Tuning edits the real values and SAVES them to EEPROM on leaving a section.
+//  Defaults live in the kTune table; Diagnostics > Tuning > Reset Defaults puts
+//  every one of them back.
 //
 //  WHY THE SCREEN DEMOS ARE HERE
 //  -----------------------------
@@ -106,6 +106,7 @@ extern const MenuScreen kScreenPatterns;
 
 extern const MenuScreen kScreenDiag;
 extern const MenuScreen kScreenTuning;
+extern const MenuScreen kScreenServoTune;
 extern const MenuScreen kScreenThree;
 extern const MenuScreen kScreenFour;
 extern const MenuScreen kScreenFive;
@@ -131,8 +132,13 @@ static void actDemoNetScrambled();
 static void actDemoNetLoad();
 static void actFoldPattern();
 static void actJog();
-static void actParams();
-static void actServoPos();
+static void actTopServo();
+static void actBotServo();
+static void actRingPos();
+static void actFaceMot();
+static void actAlignPar();
+static void actColorPar();
+static void actResetTune();
 
 // ---------------------------------------------------------------------------
 //  Menu tables
@@ -182,7 +188,9 @@ static const char* const kScrambleMoves[kScrambleLen] = {
 };
 static const char* const kPrevDiag[] = { "Tuning", "Input", "Color", "Motor",
                                          "Faults" };
-static const char* const kPrevTuning[] = { "Parameters", "Servo Positions" };
+static const char* const kPrevTuning[]  = { "Servos", "Face motors", "Alignment",
+                                            "Color" };
+static const char* const kPrevServoT[]  = { "Top", "Bottom", "Ring" };
 
 // Canned fault history. Real codes and real wording, taken from the error
 // tables in the sketch and the README — a log full of invented faults would not
@@ -260,12 +268,30 @@ const MenuScreen kScreenDiag = { "Diagnostics", kDiagItems, 5, MenuTheme::Purple
 // RENDERER at every item count and tells you nothing about the machine, which
 // is what everything else under Diagnostics is for.
 static const MenuItem kTuningItems[] = {
-    { "Parameters",      nullptr, actParams,   "Motion tuning. Takes effect at once.",
+    { "Servos",       &kScreenServoTune, nullptr, "Positions set by eye.",
+      kPrevServoT, 3, MenuTheme::Violet },
+    { "Face Motors",  nullptr, actFaceMot,  "Speed and settling time.",
+      nullptr, 0, MenuTheme::Blue },
+    { "Alignment",    nullptr, actAlignPar, "How square is square enough.",
+      nullptr, 0, MenuTheme::Green },
+    { "Color",        nullptr, actColorPar, "How a sticker is judged.",
       nullptr, 0, MenuTheme::Yellow },
-    { "Servo Positions", nullptr, actServoPos, "Set the endpoints by eye.",
-      nullptr, 0, MenuTheme::Violet },
+    { "Reset Defaults", nullptr, actResetTune, "Throw away every change.",
+      nullptr, 0, MenuTheme::Red },
 };
-const MenuScreen kScreenTuning = { "Tuning", kTuningItems, 2, MenuTheme::Yellow };
+const MenuScreen kScreenTuning = { "Tuning", kTuningItems, 5, MenuTheme::Yellow };
+
+// The three that move something you can watch, kept together and away from the
+// numbers that only take effect on the next move.
+static const MenuItem kServoTuneItems[] = {
+    { "Top Servo",    nullptr, actTopServo, "Grips from above.",
+      nullptr, 0, MenuTheme::Violet },
+    { "Bottom Servo", nullptr, actBotServo, "Grips, centres and ejects.",
+      nullptr, 0, MenuTheme::Blue },
+    { "Ring",         nullptr, actRingPos,  "Stepper, not a servo.",
+      nullptr, 0, MenuTheme::Green },
+};
+const MenuScreen kScreenServoTune = { "Servos", kServoTuneItems, 3, MenuTheme::Violet };
 
 // ---- navigation: one screen per item count ----
 //
@@ -618,9 +644,11 @@ static void jogCube() {
     } else {
         drawJog("releasing");
         Cube.unloadCube();      // ring, then top, then bottom - all retracted
-        Cube.botServoPartial(); // then present the cube
+        Cube.botServoEject();   // then present the cube, at the tuned height
         gripAt[0] = 0;          // top    retracted
-        gripAt[1] = 1;          // bottom partial
+        gripAt[1] = 1;          // bottom at the eject height, which the row
+                                //        still labels "Partial" - both are the
+                                //        same in-between state to the servo
         gripAt[2] = 0;          // ring   retracted
     }
     cubeLoaded = !cubeLoaded;
@@ -635,110 +663,256 @@ static void actJog() {
 }
 
 // ---------------------------------------------------------------------------
-//  Value editor — Parameters and Servo Positions
+//  Tuning — the value editor and its parameter table
 // ---------------------------------------------------------------------------
 //  The one interaction the menu cannot express: the wheel has to change a
-//  NUMBER, not move a cursor. So it is two levels, the same shape the grippers
-//  on the Actuators page already use — scroll to a row, SELECT to enter it,
-//  wheel to change, SELECT to keep or LEFT to put it back.
+//  NUMBER, not move a cursor. Two levels, the same shape the grippers on the
+//  Actuators page use — scroll to a row, SELECT to enter it, wheel to change,
+//  SELECT to keep or LEFT to put it back.
 //
 //  Kept out of CubeMenu deliberately. CubeMenu is navigation-only and testable
-//  on a host without a screen; editing values is a different job and bolting it
-//  on would cost that.
+//  on a host without a screen; editing values is a different job.
 //
-//  Every value here is reached through an accessor rather than written to the
-//  config globals. Those globals are read once at construction — CubeServo
-//  copies topExtPos and never looks at it again — so an editor that wrote them
-//  would show numbers changing and move nothing at all.
-struct Param {
-    const char* name;
-    const char* units;
-    int         lo, hi, step;
-    int       (*get)();
-    void      (*set)(int);
-    bool        live;      // drive the hardware as the wheel turns
-};
-
-// Motion tuning. Read at the point of use by CubeMotors, so a change lands on
-// the next move — turn the wheel, then turn a face, and the difference is
-// there. Ranges are the clamps CubeMotors enforces anyway; repeating them here
-// is what puts them in the hint bar.
-static const Param kParamsMotion[] = {
-    { "Turn step",  "steps", 10, 1000, 5,
-      []{ return cubeMotors.getTurnStep();     }, [](int v){ cubeMotors.setTurnStep(v);     }, false },
-    { "Step speed", "sps",   50, 5000, 50,
-      []{ return cubeMotors.getStepSpeed();    }, [](int v){ cubeMotors.setStepSpeed(v);    }, false },
-    { "Step delay", "ms",     0,  500, 5,
-      []{ return cubeMotors.getStepDelay();    }, [](int v){ cubeMotors.setStepDelay(v);    }, false },
-    { "Rotate delay", "ms",   0,  500, 5,
-      []{ return cubeMotors.getRotStepDelay(); }, [](int v){ cubeMotors.setRotStepDelay(v); }, false },
-    { "Ring speed", "sps",   50, 5000, 50,
-      []{ return cubeMotors.getRingSpeed();    }, [](int v){ cubeMotors.setRingSpeed(v);    }, false },
-    { "Ring accel", "sps2",  50, 5000, 50,
-      []{ return cubeMotors.getRingAccel();    }, [](int v){ cubeMotors.setRingAccel(v);    }, false },
-};
-
-// Servo endpoints. These are `live`: setting one means watching the horn while
-// the number changes, which is the only way an endpoint ever gets found. The
-// setter moves the servo there as well as recording it.
+//  WHY ACCESSORS, NOT GLOBALS
+//  Every value is reached through a get/set pair rather than by writing the
+//  config globals. Those are read once at construction — CubeServo copies
+//  topExtPos and never looks at it again — so an editor that wrote them would
+//  show numbers changing and move nothing at all.
 //
-// The sweep delays are on this screen rather than with the motion parameters
-// because they belong to these servos, and because changing one is something
-// you do right after setting an endpoint and watching the travel.
-static const Param kParamsServo[] = {
-    { "Top extend",  "deg", 0, 270, 1,
-      []{ return (int)topServo.extended();  },
-      [](int v){ topServo.setExtended((unsigned)v);  topServo.previewRaw((unsigned)v); }, true },
-    { "Top retract", "deg", 0, 270, 1,
-      []{ return (int)topServo.retracted(); },
-      [](int v){ topServo.setRetracted((unsigned)v); topServo.previewRaw((unsigned)v); }, true },
-    { "Top sweep",   "ms",  1, 100, 1,
-      []{ return topServo.sweepStepDelay(); }, [](int v){ topServo.setSweepStepDelay(v); }, false },
-    { "Bottom extend",  "deg", 0, 270, 1,
-      []{ return (int)botServo.extended();  },
-      [](int v){ botServo.setExtended((unsigned)v);  botServo.previewRaw((unsigned)v); }, true },
-    { "Bottom retract", "deg", 0, 270, 1,
-      []{ return (int)botServo.retracted(); },
-      [](int v){ botServo.setRetracted((unsigned)v); botServo.previewRaw((unsigned)v); }, true },
-    { "Bottom sweep",   "ms",  1, 100, 1,
-      []{ return botServo.sweepStepDelay(); }, [](int v){ botServo.setSweepStepDelay(v); }, false },
+//  WHY THE TABLE IS ONE FLAT ARRAY
+//  It is what EEPROM is indexed by. Screens are windows onto it (first, count),
+//  so adding a parameter to a section in the middle shifts every index after it
+//  and MUST come with a CubeTuning::kVersion bump — otherwise the next boot
+//  hands an alignment tolerance to a servo. Appending to the end is free.
+struct TuneParam {
+    const char*        name;
+    const char*        help;     // one line, shown while the row is selected
+    const char*        units;
+    int32_t            def;
+    int32_t            lo, hi, step;
+    uint8_t            flags;
+    int32_t          (*get)();
+    void             (*set)(int32_t);
+    const char* const* names;    // TP_ENUM only
 };
 
-static const Param* parTable = nullptr;
-static const char*  parTitle = nullptr;
-static int          parCount = 0;
-static int8_t       parSel   = 0;
-static bool         parEdit  = false;
-static int          parWas   = 0;      // value on entering edit, for LEFT
-static bool         parDirty = false;  // a live row moved a servo; owes a persist()
+static const uint8_t TP_PLAIN = 0x00;
+static const uint8_t TP_LIVE  = 0x01;   // moves hardware as the wheel turns
+static const uint8_t TP_GATE  = 0x02;   // confirm before entering edit
+static const uint8_t TP_HUND  = 0x04;   // stored in hundredths, shown as 0.15
+static const uint8_t TP_BOOL  = 0x08;   // Off / On
+static const uint8_t TP_ENUM  = 0x10;   // index into names[]
 
-static void drawParams() {
-    static char rows[6][40];
-    const char* lines[6];
-    CubeDisplay::RowMark marks[6];
+static const char* const kITNames[6] = { "40 ms", "80 ms", "160 ms",
+                                         "320 ms", "640 ms", "1280 ms" };
 
-    for (int i = 0; i < parCount; ++i) {
-        char value[24];
+// Ranges on the servo rows are the full 0-270 the horn can reach. Narrowing
+// them here would be a guess at this machine's geometry, and a guess that was
+// too tight would stop a real endpoint being reachable — which is worse than
+// one that is too wide, because the confirm gate and one-degree steps already
+// stand between a wheel and a jam.
+static const TuneParam kTune[] = {
+    // --- Top servo, indices 0-2 ---
+    { "Extend", "Swings in to grip the cube", "deg", 205, 0, 270, 1,
+      TP_LIVE | TP_GATE,
+      []() -> int32_t { return (int32_t)topServo.extended(); },
+      [](int32_t v){ topServo.setExtended((unsigned)v); topServo.previewRaw((unsigned)v); }, nullptr },
+    { "Retract", "Parks clear of a turning face", "deg", 0, 0, 270, 1,
+      TP_LIVE | TP_GATE,
+      []() -> int32_t { return (int32_t)topServo.retracted(); },
+      [](int32_t v){ topServo.setRetracted((unsigned)v); topServo.previewRaw((unsigned)v); }, nullptr },
+    { "Sweep delay", "Per step. Higher is gentler.", "ms", 15, 1, 100, 1,
+      TP_PLAIN,
+      []() -> int32_t { return topServo.sweepStepDelay(); },
+      [](int32_t v){ topServo.setSweepStepDelay((int)v); }, nullptr },
+
+    // --- Bottom servo, indices 3-7 ---
+    { "Extend", "Swings in to grip the cube", "deg", 260, 0, 270, 1,
+      TP_LIVE | TP_GATE,
+      []() -> int32_t { return (int32_t)botServo.extended(); },
+      [](int32_t v){ botServo.setExtended((unsigned)v); botServo.previewRaw((unsigned)v); }, nullptr },
+    { "Retract", "Parks clear of a turning face", "deg", 0, 0, 270, 1,
+      TP_LIVE | TP_GATE,
+      []() -> int32_t { return (int32_t)botServo.retracted(); },
+      [](int32_t v){ botServo.setRetracted((unsigned)v); botServo.previewRaw((unsigned)v); }, nullptr },
+    { "Partial", "Holds the cube centred mid-scan", "deg", 195, 0, 270, 1,
+      TP_LIVE | TP_GATE,
+      []() -> int32_t { return (int32_t)botServo.partialTarget(); },
+      [](int32_t v){ botServo.setPartial((unsigned)v); botServo.previewRaw((unsigned)v); }, nullptr },
+    { "Eject", "Lifts the cube out to be taken", "deg", 195, 0, 270, 1,
+      TP_LIVE | TP_GATE,
+      []() -> int32_t { return (int32_t)botServo.ejectTarget(); },
+      [](int32_t v){ botServo.setEject((unsigned)v); botServo.previewRaw((unsigned)v); }, nullptr },
+    { "Sweep delay", "Per step. Higher is gentler.", "ms", 15, 1, 100, 1,
+      TP_PLAIN,
+      []() -> int32_t { return botServo.sweepStepDelay(); },
+      [](int32_t v){ botServo.setSweepStepDelay((int)v); }, nullptr },
+
+    // --- Ring, indices 8-13 ---
+    { "Retract", "Fully clear of the cube", "steps", 0, 0, 2000, 5,
+      TP_GATE,
+      []() -> int32_t { return cubeMotors.getRingRetPos(); },
+      [](int32_t v){ cubeMotors.setRingRetPos((int)v); }, nullptr },
+    { "Partial", "Just off the cube", "steps", 200, 0, 2000, 5,
+      TP_GATE,
+      []() -> int32_t { return cubeMotors.getRingPartialPos(); },
+      [](int32_t v){ cubeMotors.setRingPartialPos((int)v); }, nullptr },
+    { "Middle", "Clears a face but stays close", "steps", 450, 0, 2000, 5,
+      TP_GATE,
+      []() -> int32_t { return cubeMotors.getRingHalfPos(); },
+      [](int32_t v){ cubeMotors.setRingHalfPos((int)v); }, nullptr },
+    { "Extend", "Closed on the cube", "steps", 800, 0, 2000, 5,
+      TP_GATE,
+      []() -> int32_t { return cubeMotors.getRingExtPos(); },
+      [](int32_t v){ cubeMotors.setRingExtPos((int)v); }, nullptr },
+    { "Speed", "How fast the ring travels", "sps", 800, 50, 5000, 25,
+      TP_PLAIN,
+      []() -> int32_t { return cubeMotors.getRingSpeed(); },
+      [](int32_t v){ cubeMotors.setRingSpeed((int)v); }, nullptr },
+    { "Accel", "How hard it starts and stops", "sps2", 400, 50, 5000, 25,
+      TP_PLAIN,
+      []() -> int32_t { return cubeMotors.getRingAccel(); },
+      [](int32_t v){ cubeMotors.setRingAccel((int)v); }, nullptr },
+
+    // --- Face motors, indices 14-17 ---
+    { "Step speed", "Faster solves, more missed steps", "sps", 1000, 50, 5000, 25,
+      TP_PLAIN,
+      []() -> int32_t { return cubeMotors.getStepSpeed(); },
+      [](int32_t v){ cubeMotors.setStepSpeed((int)v); }, nullptr },
+    { "Step delay", "Settle time after a face turn", "ms", 50, 0, 500, 5,
+      TP_PLAIN,
+      []() -> int32_t { return cubeMotors.getStepDelay(); },
+      [](int32_t v){ cubeMotors.setStepDelay((int)v); }, nullptr },
+    { "Rotate delay", "Settle time after a whole turn", "ms", 60, 0, 500, 5,
+      TP_PLAIN,
+      []() -> int32_t { return cubeMotors.getRotStepDelay(); },
+      [](int32_t v){ cubeMotors.setRotStepDelay((int)v); }, nullptr },
+    { "Servo delay", "Wait after every servo move", "ms", 200, 0, 1000, 10,
+      TP_PLAIN,
+      []() -> int32_t { return Cube.servoDelay; },
+      [](int32_t v){ Cube.servoDelay = (int)v; }, nullptr },
+
+    // --- Alignment, indices 18-21 ---
+    { "Tolerance", "Counts a motor may sit off centre", "cts", 20, 1, 200, 1,
+      TP_PLAIN,
+      []() -> int32_t { return Cube.motorAlignmentTol; },
+      [](int32_t v){ Cube.motorAlignmentTol = (int)v; }, nullptr },
+    { "Align timeout", "Give up realigning after this", "ms", 500, 50, 5000, 50,
+      TP_PLAIN,
+      []() -> int32_t { return (int32_t)Cube.alignTimeout; },
+      [](int32_t v){ Cube.alignTimeout = (unsigned long)v; }, nullptr },
+    { "Home timeout", "Give up homing after this", "ms", 1000, 50, 10000, 50,
+      TP_PLAIN,
+      []() -> int32_t { return (int32_t)Cube.homeTimeout; },
+      [](int32_t v){ Cube.homeTimeout = (unsigned long)v; }, nullptr },
+    { "Debug log", "Print align error every move", "", 0, 0, 1, 1,
+      TP_BOOL,
+      []() -> int32_t { return Cube.debugAlignLog ? 1 : 0; },
+      [](int32_t v){ Cube.debugAlignLog = (v != 0); }, nullptr },
+
+    // --- Color, indices 22-27 ---
+    // Every one of these writes BOTH boards. They are properties of how a
+    // sticker is judged, not of one piece of hardware, and letting the two
+    // boards drift apart would make a scan depend on which half of the cube a
+    // face was read from.
+    { "Scans averaged", "More is slower and less noisy", "", 1, 1, 10, 1,
+      TP_PLAIN,
+      []() -> int32_t { return colorSensor1.numScans; },
+      [](int32_t v){ colorSensor1.numScans = (int)v; colorSensor2.numScans = (int)v; }, nullptr },
+    { "Integration", "Longer sees dimmer stickers", "", 2, 0, 5, 1,
+      TP_ENUM,
+      []() -> int32_t { return colorSensor1.getIntegrationIndex(); },
+      [](int32_t v){ colorSensor1.setIntegrationIndex((int)v);
+                     colorSensor2.setIntegrationIndex((int)v); }, kITNames },
+    { "Color tol", "How far off a color may read", "", 15, 1, 100, 1,
+      TP_HUND,
+      []() -> int32_t { return (int32_t)(colorSensor1.colorTol * 100.0f + 0.5f); },
+      [](int32_t v){ colorSensor1.colorTol = v / 100.0f;
+                     colorSensor2.colorTol = v / 100.0f; }, nullptr },
+    { "Margin frac", "How clear the winner must be", "", 35, 1, 100, 1,
+      TP_HUND,
+      []() -> int32_t { return (int32_t)(colorSensor1.marginFraction * 100.0f + 0.5f); },
+      [](int32_t v){ colorSensor1.marginFraction = v / 100.0f;
+                     colorSensor2.marginFraction = v / 100.0f; }, nullptr },
+    { "Distance frac", "Absolute distance allowed", "", 200, 10, 500, 5,
+      TP_HUND,
+      []() -> int32_t { return (int32_t)(colorSensor1.distanceFraction * 100.0f + 0.5f); },
+      [](int32_t v){ colorSensor1.distanceFraction = v / 100.0f;
+                     colorSensor2.distanceFraction = v / 100.0f; }, nullptr },
+    { "Min separation", "Below this a sensor is unusable", "", 2, 1, 50, 1,
+      TP_HUND,
+      []() -> int32_t { return (int32_t)(colorSensor1.minUsableSeparation * 100.0f + 0.5f); },
+      [](int32_t v){ colorSensor1.minUsableSeparation = v / 100.0f;
+                     colorSensor2.minUsableSeparation = v / 100.0f; }, nullptr },
+};
+static const uint8_t kTuneCount = (uint8_t)(sizeof(kTune) / sizeof(kTune[0]));
+
+// A screen is a window onto the flat table.
+struct TuneSection { const char* title; uint8_t first, count; };
+static const TuneSection kSecTopServo = { "Top Servo",    0,  3 };
+static const TuneSection kSecBotServo = { "Bottom Servo", 3,  5 };
+static const TuneSection kSecRing     = { "Ring",         8,  6 };
+static const TuneSection kSecFaces    = { "Face Motors", 14,  4 };
+static const TuneSection kSecAlign    = { "Alignment",   18,  4 };
+static const TuneSection kSecColor    = { "Color",       22,  6 };
+
+static const TuneSection* parSec  = nullptr;
+static int8_t             parSel  = 0;
+static bool               parEdit = false;
+static int32_t            parWas  = 0;   // value on entering edit, for LEFT
+static bool               parGate = false;  // showing the confirm for a gated row
+static bool               parMoved = false; // a live row moved a servo
+
+// Render one value. Everything the flags mean, in one place.
+static void tuneFormat(const TuneParam& p, int32_t v, char* out, size_t n) {
+    if (p.flags & TP_BOOL)      snprintf(out, n, "%s", v ? "On" : "Off");
+    else if (p.flags & TP_ENUM) snprintf(out, n, "%s",
+                                         p.names ? p.names[v % 6] : "?");
+    // Two decimals by hand: %f drags in floating-point printf, which on this
+    // core is a linker flag away and several KB of flash for one screen.
+    else if (p.flags & TP_HUND) snprintf(out, n, "%ld.%02ld",
+                                         (long)(v / 100), (long)(v % 100));
+    else                        snprintf(out, n, "%ld", (long)v);
+}
+
+static void drawTune() {
+    static char rows[7][44];
+    const char* lines[7];
+    CubeDisplay::RowMark marks[7];
+
+    const int n = parSec->count;
+    for (int i = 0; i < n; ++i) {
+        const TuneParam& p = kTune[parSec->first + i];
+        char value[24], shown[32];
+        tuneFormat(p, p.get(), value, sizeof(value));
         if (i == parSel && parEdit) {
             // Angle brackets in plain ASCII: the baked fonts carry 0x20-0x7F
             // and nothing else, and a missing glyph draws as an empty box
             // without a word of complaint.
-            snprintf(value, sizeof(value), "< %d >", parTable[i].get());
+            snprintf(shown, sizeof(shown), "< %s >", value);
         } else {
-            snprintf(value, sizeof(value), "%d", parTable[i].get());
+            snprintf(shown, sizeof(shown), "%s", value);
         }
-        snprintf(rows[i], sizeof(rows[i]), "%s\t%s", parTable[i].name, value);
+        snprintf(rows[i], sizeof(rows[i]), "%s\t%s", p.name, shown);
         lines[i] = rows[i];
         marks[i] = (i == parSel) ? CubeDisplay::RowMark::Busy
                                  : CubeDisplay::RowMark::Plain;
     }
 
-    // The hint carries the units and the range, which is the whole answer to
-    // "what am I allowed to type here" and has nowhere else to live.
+    const TuneParam& sel = kTune[parSec->first + parSel];
+
+    // The hint bar answers "what am I allowed to enter", which only matters
+    // once you are entering something. Browsing, it says how to start.
     char hint[48];
-    if (parEdit) {
-        snprintf(hint, sizeof(hint), "%s - %d to %d",
-                 parTable[parSel].units, parTable[parSel].lo, parTable[parSel].hi);
+    if (parEdit && (sel.flags & (TP_BOOL | TP_ENUM))) {
+        snprintf(hint, sizeof(hint), "wheel picks - SELECT keeps");
+    } else if (parEdit && (sel.flags & TP_HUND)) {
+        snprintf(hint, sizeof(hint), "%ld.%02ld to %ld.%02ld",
+                 (long)(sel.lo / 100), (long)(sel.lo % 100),
+                 (long)(sel.hi / 100), (long)(sel.hi % 100));
+    } else if (parEdit) {
+        snprintf(hint, sizeof(hint), "%s - %ld to %ld",
+                 sel.units, (long)sel.lo, (long)sel.hi);
     } else {
         snprintf(hint, sizeof(hint), "SELECT to change");
     }
@@ -746,41 +920,115 @@ static void drawParams() {
     // Yellow while editing: "you are changing something" without reading a
     // word, the same signal the grippers use when entered.
     cubeDisplay.showOperation(parEdit ? Op::Info : Op::Calibrate,
-                              parTitle, nullptr, hint);
-    cubeDisplay.setOpLines(lines, parCount, marks);
+                              parSec->title, nullptr, hint);
+
+    // The description goes in the sub-line, above the rows and below the title.
+    // It has to be set BEFORE setOpLines(), which reads it to decide where the
+    // rows start — a sub-line added afterwards lands on top of row one.
+    cubeDisplay.setStatus(sel.help);
+    cubeDisplay.setOpLines(lines, n, marks);
     Cube.displayUpdate();
 }
 
-static void parEnter(const Param* table, int count, const char* title) {
-    parTable = table;
-    parCount = count;
-    parTitle = title;
+// The confirm shown before a gated row can be edited.
+//
+// It has to come BEFORE editing, not before committing. These rows preview as
+// the wheel turns, so by the time you would confirm a value the horn has
+// already been to it — the damage is done during the edit, not at the end of
+// it. What is being confirmed is "I am about to move this part", which is why
+// it names the part and says what will follow the wheel.
+static void drawTuneGate() {
+    const TuneParam& p = kTune[parSec->first + parSel];
+    char head[64];
+    snprintf(head, sizeof(head), "Move %s %s?", parSec->title, p.name);
+
+    cubeDisplay.showOperation(Op::Error, parSec->title, head,
+                              "SELECT to go on - LEFT to stop");
+    cubeDisplay.setStatus((p.flags & TP_LIVE)
+                          ? "The part follows the wheel at once"
+                          : "Takes effect on the next move");
+    Cube.displayUpdate();
+}
+
+static void tuneEnter(const TuneSection* sec) {
+    parSec   = sec;
     parSel   = 0;
     parEdit  = false;
-    parDirty = false;
+    parGate  = false;
+    parMoved = false;
     state    = TState::Params;
-    drawParams();
+    drawTune();
 }
 
-static void actParams()   { parEnter(kParamsMotion, 6, "Parameters"); }
-static void actServoPos() { parEnter(kParamsServo,  6, "Servo Positions"); }
+static void actTopServo() { tuneEnter(&kSecTopServo); }
+static void actBotServo() { tuneEnter(&kSecBotServo); }
+static void actRingPos()  { tuneEnter(&kSecRing);     }
+static void actFaceMot()  { tuneEnter(&kSecFaces);    }
+static void actAlignPar() { tuneEnter(&kSecAlign);    }
+static void actColorPar() { tuneEnter(&kSecColor);    }
 
-// Leaving the screen. A live row has left the horn at whatever it was last
-// previewed to, and CubeServo::begin() trusts the stored position to decide how
-// far its first sweep has to travel — so a stale one is what arms a full-travel
-// slam on the next power-up. Write it once here rather than once per detent.
+// Write every value to EEPROM. One block, so a single changed parameter costs
+// the same as all of them — and EEPROM.update() means the unchanged ones cost
+// no write at all.
+static void tuneSave() {
+    int32_t vals[kTuneCount];
+    for (uint8_t i = 0; i < kTuneCount; ++i) vals[i] = kTune[i].get();
+    cubeTuning.save(vals, kTuneCount);
+}
+
+// Apply stored values at boot, or the defaults if there is nothing to apply.
+//
+// Called unconditionally, defaults included, so that a value's owner and the
+// table cannot disagree about what the machine is set to. The bottom servo's
+// partial and eject positions become PINNED as a result — they no longer track
+// the extend position the way an untuned servo's do. That is the point of
+// making them parameters, but it is a behaviour change and worth knowing.
+static void tuneLoad() {
+    const bool stored = cubeTuning.isValid(kTuneCount);
+    for (uint8_t i = 0; i < kTuneCount; ++i) {
+        kTune[i].set(stored ? cubeTuning.get(i) : kTune[i].def);
+    }
+    Serial.print(F("Tuning: "));
+    Serial.println(stored ? F("loaded from EEPROM") : F("defaults"));
+}
+
+static void tuneResetAll() {
+    cubeTuning.clear();
+    for (uint8_t i = 0; i < kTuneCount; ++i) kTune[i].set(kTune[i].def);
+    Serial.println(F("Tuning: reset to defaults"));
+}
+
+// Reset is gated like the hardware rows are, and for the same reason: it is the
+// one action here that cannot be undone by turning the wheel back. The servos
+// are NOT driven to their default positions afterwards - the values are what
+// reset, and moving three parts at once because a menu item was picked would be
+// a much bigger surprise than a stale horn.
+static bool resetConfirm = false;
+
+static void actResetTune() {
+    resetConfirm = true;
+    state = TState::Screen;
+    live  = Live::None;
+    cubeDisplay.showOperation(Op::Error, "Reset Defaults",
+                              "Discard all tuning?",
+                              "SELECT to reset - LEFT to keep");
+    cubeDisplay.setStatus("Every value goes back to compiled");
+    Cube.displayUpdate();
+}
+
+// Leaving a section. A live row has left the horn wherever it was last
+// previewed, and CubeServo::begin() trusts the stored position to decide how
+// far its first sweep travels — so a stale one is what arms a full-travel slam
+// on the next power-up. Write it once here rather than once per detent.
 static void parLeave() {
-    if (parDirty) {
+    if (parMoved) {
         topServo.persist();
         botServo.persist();
-        parDirty = false;
+        parMoved = false;
     }
+    tuneSave();
     toMenu();
 }
-
-
-
-
 // ---------------------------------------------------------------------------
 //  Actions — navigation feedback
 // ---------------------------------------------------------------------------
@@ -1393,6 +1641,10 @@ void setup() {
 
     Serial.println(F("Test_Menu ready. Load and Eject move servos; nothing else does."));
 
+    // Before anything can be shown or moved: the values a screen would display
+    // and the positions a servo would sweep to both come from here.
+    tuneLoad();
+
     Menu.begin(&kScreenMain, drawMenu);
     if (Cube.encoderInitialized) prevPos = menuEncoder.getPosition();
     state = TState::Menu;
@@ -1471,17 +1723,31 @@ void loop() {
     if (state == TState::Params) {
         const JogInput in = pollJog();
         const int step = (in.turn > 0) ? 1 : (in.turn < 0) ? -1 : 0;
+        const TuneParam& p = kTune[parSec->first + parSel];
+
+        // The confirm owns the input while it is up. Nothing else is reachable
+        // from here, so a gated row cannot be edited by any path that skips it.
+        if (parGate) {
+            if (in.select) {
+                parGate = false;
+                parWas  = p.get();
+                parEdit = true;
+                drawTune();
+            } else if (in.back) {
+                parGate = false;
+                drawTune();
+            }
+            return;
+        }
 
         if (parEdit) {
-            const Param& p = parTable[parSel];
-
             if (in.select) {                    // keep it
                 parEdit = false;
-                drawParams();
+                drawTune();
             } else if (in.back) {               // put it back
                 p.set(parWas);
                 parEdit = false;
-                drawParams();
+                drawTune();
             } else {
                 const int d = step ? step : (in.up ? 1 : in.down ? -1 : 0);
                 if (d) {
@@ -1489,12 +1755,12 @@ void loop() {
                     // A live row writes the servo on every change, and honouring
                     // a burst of detents at once would turn a nudge into a jump
                     // the horn takes in a single instant.
-                    int v = p.get() + d * p.step;
+                    int32_t v = p.get() + (int32_t)d * p.step;
                     if (v < p.lo) v = p.lo;     // clamp: a range has ends
                     if (v > p.hi) v = p.hi;
                     p.set(v);
-                    if (p.live) parDirty = true;
-                    drawParams();
+                    if (p.flags & TP_LIVE) parMoved = true;
+                    drawTune();
                 }
             }
             return;
@@ -1504,14 +1770,24 @@ void loop() {
             parLeave();
         } else if (step) {
             int sel = parSel + step;
-            if (sel < 0)         sel = parCount - 1;   // wrap, as the menu does
-            if (sel >= parCount) sel = 0;
+            if (sel < 0)                 sel = parSec->count - 1;   // wrap
+            if (sel >= (int)parSec->count) sel = 0;
             parSel = (int8_t)sel;
-            drawParams();
+            drawTune();
         } else if (in.select) {
-            parWas  = parTable[parSel].get();   // what LEFT restores
-            parEdit = true;
-            drawParams();
+            // A toggle has no range to scroll through, so edit mode would be a
+            // press to enter, a press to flip and a press to leave. Flip it.
+            if (p.flags & TP_BOOL) {
+                p.set(p.get() ? 0 : 1);
+                drawTune();
+            } else if (p.flags & TP_GATE) {
+                parGate = true;
+                drawTuneGate();
+            } else {
+                parWas  = p.get();          // what LEFT restores
+                parEdit = true;
+                drawTune();
+            }
         }
         return;
     }
@@ -1533,7 +1809,16 @@ void loop() {
         break;      // handled above; nothing here consumes a MenuEvent
 
     case TState::Screen:
-        if (live == Live::Faults && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
+        if (resetConfirm) {
+            if (ev == MenuEvent::Select) {
+                resetConfirm = false;
+                tuneResetAll();
+                showScreen(Op::Done, "Reset Defaults", "Tuning reset");
+            } else if (ev == MenuEvent::Back) {
+                resetConfirm = false;
+                toMenu();
+            }
+        } else if (live == Live::Faults && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
             // Clamped, not wrapped: a log has a top and a bottom, and wrapping
             // from the oldest entry back to the newest would misread as more
             // history than there is.
