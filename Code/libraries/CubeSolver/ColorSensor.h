@@ -14,11 +14,11 @@
 // "definitely red" from "0.004 closer to yellow than to white".
 //
 // Measured on the archived calibration data, the minimum distance between two
-// DIFFERENT colours on a given sensor ranges 0.005-0.145 (median ~0.05) — every
+// DIFFERENT colors on a given sensor ranges 0.005-0.145 (median ~0.05) — every
 // one of them below the old global colorTol of 0.15. So that gate could not
-// separate one colour from another. It was NOT inert, though: over a cross-run
+// separate one color from another. It was NOT inert, though: over a cross-run
 // set it still returned 'U' for 10.8% of readings, 54% of which were genuinely
-// the wrong colour. (An earlier version of this comment said the gate "never
+// the wrong color. (An earlier version of this comment said the gate "never
 // fired"; that was wrong, and it contradicted the measurement quoted in
 // getColor() itself.)
 //
@@ -65,17 +65,17 @@ public:
     // Per-sticker readings for the most recent scanFace().
     void getFaceReadings(ColorReading out[9]) const;
 
-    // Minimum distance between any two of the six real colours, for one sensor.
+    // Minimum distance between any two of the six real colors, for one sensor.
     // Derived from calVals, so it needs no EEPROM of its own — it is recomputed
     // whenever calibration is loaded or saved. Returns 0 if uncalibrated.
     float getSensorSeparation(int sensorIdx) const;
 
     // Health check for a sensor: reports a channel that reads identically zero
-    // across all six real colours (a dead photodiode channel), or a separation
+    // across all six real colors (a dead photodiode channel), or a separation
     // too small to classify reliably.
     //  0 - healthy
-    //  1 - a channel is stuck at zero for every colour
-    //  2 - inter-colour separation below minUsableSeparation
+    //  1 - a channel is stuck at zero for every color
+    //  2 - inter-color separation below minUsableSeparation
     int checkSensorHealth(int sensorIdx) const;
 
 // make private
@@ -100,7 +100,7 @@ public:
     // read it still compile. classify() ignores it in favour of per-sensor
     // limits derived from calibration; see sensorSeparation below.
     //
-    // Why: 0.15 is wider than the entire inter-colour separation of this
+    // Why: 0.15 is wider than the entire inter-color separation of this
     // hardware (measured 0.005-0.145 across all 18 sensors), so it could only
     // ever reject gross faults, never a genuine yellow/white ambiguity.
     float colorTol = 0.15;
@@ -109,7 +109,7 @@ public:
 
     // --- Per-sensor decision limits (derived, not stored) ---
 
-    // Minimum distance between any two of the six real colours, per sensor.
+    // Minimum distance between any two of the six real colors, per sensor.
     // Recomputed by computeSeparations() on every calibration load/save.
     float sensorSeparation[9] = {0,0,0,0,0,0,0,0,0};
 

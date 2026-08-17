@@ -128,7 +128,7 @@ static void actCubeState();
 //  characters or it will be ellipsised in the 182 px box. `preview` is what the
 //  side pane lists — spell it out for items that open a submenu, and leave it
 //  null for items that start an operation, which makes the pane draw the
-//  design's placeholder graphic instead. `theme` recolours the whole frame
+//  design's placeholder graphic instead. `theme` recolors the whole frame
 //  while that item is selected; omitting it inherits the screen's.
 
 // Preview lists. These deliberately repeat their submenu's item labels rather
@@ -197,7 +197,7 @@ const MenuScreen kScreenSettings = { "Settings", kSettingsItems, 3, MenuTheme::Y
 // ---- Calibration ----
 static const MenuItem kCalibrationItems[] = {
     { "Calibration Status", nullptr, actCalStatus,      "What is calibrated so far." },
-    { "Color Sensors",      nullptr, actCalColors,      "Learn the six face colours." },
+    { "Color Sensors",      nullptr, actCalColors,      "Learn the six face colors." },
     { "Motor Positions",    nullptr, actCalMotors,      "Find the motor home points." },
     { "Servo Positions",    nullptr, actNotImplemented, "Set the gripper travel." },
 };
@@ -224,7 +224,7 @@ using Op = CubeDisplay::OpKind;
 
 // Every screen the machine shows while it is working goes through here, so all
 // of them get the same frame, the same title position and the same hint bar as
-// the menu. `kind` only picks the frame colour — it is what tells an operator
+// the menu. `kind` only picks the frame color — it is what tells an operator
 // across the room whether the machine is scanning, solving, calibrating or
 // stopped, without reading a word.
 static void showOp(Op kind, const char* title, const char* headline,
@@ -299,12 +299,12 @@ static const char* scanErrorText(int code) {
         case 70: return "Scan aborted";
         case 80: return "Cube rotation failed (ROTX) - jam or encoder";
         case 81: return "Cube rotation failed (ROTZ) - jam or encoder";
-        case 90: return "Colour sensor board offline - check wiring";
+        case 90: return "Color sensor board offline - check wiring";
         default:
             if (code >= 10 && code < 20) return "Sensor 1 face rejected";
             if (code >= 20 && code < 30) return "Sensor 2 face rejected";
             if (code >= 30 && code < 40) return "Could not set orientation";
-            if (code >= 40 && code < 50) return "Wrong number of a colour";
+            if (code >= 40 && code < 50) return "Wrong number of a color";
             if (code >= 50 && code < 60) return "Could not build cube";
             return "Scan failed";
     }
@@ -315,7 +315,7 @@ static const char* solveErrorText(int code) {
         case 11: return "Cube not scanned yet";
         case 12: return "No solution - illegal cube or timeout";
         case 13: return "Orientation misread. Rescan.";
-        case 14: return "Colour misread (impossible piece). Rescan.";
+        case 14: return "Color misread (impossible piece). Rescan.";
         case 15: return "Solution too long";
         default: return "Solve failed";
     }
@@ -328,7 +328,7 @@ static const char* calibErrorText(int code) {
     switch (code) {
         case 8:  return "Save failed - machine is NOT calibrated";
         case 9:  return "Aborted - EEPROM left untouched";
-        case 90: return "Colour sensor board offline - check wiring";
+        case 90: return "Color sensor board offline - check wiring";
         case CubeSystem::ERR_ENCODER_FAULT: return "Encoder unreadable";
         default: return "Check sensors and cube seating";
     }
@@ -398,16 +398,16 @@ static void actCalMotors() {
     state = AppState::CalMotors;
 }
 
-// Colour calibration cannot be started blind.
+// Color calibration cannot be started blind.
 //
 // calibrateColorSensors() does not identify what it is looking at — it assumes
 // the cube is loaded a particular way and files whatever the sensors return
-// under the colour it expects. Wrong orientation means a wrong calibration
+// under the color it expects. Wrong orientation means a wrong calibration
 // written to EEPROM with nothing to catch it, which then misreads every scan
 // afterwards. So the machine shows the required orientation and waits.
 static void actCalColors() {
     Cube.clearAbort();
-    cubeDisplay.showOperation(Op::Calibrate, "Colour Calibration", nullptr,
+    cubeDisplay.showOperation(Op::Calibrate, "Color Calibration", nullptr,
                               "SELECT to start, LEFT to cancel");
     cubeDisplay.setOpCubeNet(CubeSystem::kCalStartFacelets);
     cubeDisplay.setStatus(CubeSystem::kCalStartText);
@@ -429,16 +429,16 @@ static void actCalStatus() {
         if (colorSensor2.checkSensorHealth(i) == 0) ok2++;
     }
 
-    char rowMotors[48], rowColour[48], rowB1[48], rowB2[48];
+    char rowMotors[48], rowColor[48], rowB1[48], rowB2[48];
     snprintf(rowMotors, sizeof(rowMotors), "Motors\t%s",
              Cube.getMotorCalibration() ? "CALIBRATED" : "NOT CALIBRATED");
-    snprintf(rowColour, sizeof(rowColour), "Colour\t%s",
+    snprintf(rowColor, sizeof(rowColor), "Color\t%s",
              Cube.getColorCalibration() ? "CALIBRATED" : "NOT CALIBRATED");
     snprintf(rowB1, sizeof(rowB1), "Board 1\t%d/9 healthy, sep %d", ok1, worst1);
     snprintf(rowB2, sizeof(rowB2), "Board 2\t%d/9 healthy, sep %d", ok2, worst2);
 
     const char* rows[] = {
-        rowMotors, rowColour, rowB1, rowB2,
+        rowMotors, rowColor, rowB1, rowB2,
         "",
         "Separation x1000; under 20 is unusable.",
     };
@@ -516,9 +516,9 @@ static void actCubeState() {
         return;
     }
 
-    // Nine of each colour is the cheapest check that the stored state is a
+    // Nine of each color is the cheapest check that the stored state is a
     // cube at all, and the one an operator can act on: a count that is not nine
-    // says which colour was misread, which is more use than "invalid".
+    // says which color was misread, which is more use than "invalid".
     static const char kOrder[6] = { 'W', 'Y', 'R', 'O', 'G', 'B' };
     int count[6] = { 0, 0, 0, 0, 0, 0 };
     for (int i = 0; i < CubeDisplay::kNetFacelets; ++i) {
@@ -648,7 +648,7 @@ static void showSelfTestFailures() {
     };
 
     if (!Cube.encoderInitialized) addLine("Menu encoder (seesaw) not found");
-    if (!Cube.colorSensorsOk)     addLine("Colour sensor board offline");
+    if (!Cube.colorSensorsOk)     addLine("Color sensor board offline");
     if (!Cube.encoderMuxOk)       addLine("Motor encoder mux offline");
 
     // Name the motors rather than the indices. "Encoder 4 failed" means nothing
@@ -698,7 +698,7 @@ void setup() {
     // Present the cube for removal.
     //
     // begin() leaves both servos retracted, which parks a cube already in the
-    // machine right down inside the colour-sensor box where it cannot be got at
+    // machine right down inside the color-sensor box where it cannot be got at
     // by hand. Lifting the bottom servo is what makes it grabbable, so it is
     // part of coming up, not an optional convenience.
     //
@@ -770,7 +770,7 @@ void loop() {
     case AppState::Scanning: {
         int e = Cube.scanCube();
         if (e) {
-            // TODO: a scan review screen belongs here — the per-sticker colour,
+            // TODO: a scan review screen belongs here — the per-sticker color,
             // runner-up and confidence are all recorded in Cube.scanColor/
             // scanAlt/scanConf, which is exactly what is needed to show WHICH
             // sticker was ambiguous instead of just a code.
@@ -871,7 +871,7 @@ void loop() {
 
     case AppState::CalColorsPrompt:
         if (ev == MenuEvent::Select) {
-            showOp(Op::Calibrate, "Colour Calibration", "Learning the six colours",
+            showOp(Op::Calibrate, "Color Calibration", "Learning the six colors",
                    "SELECT+LEFT to abort");
             state = AppState::CalColors;
         } else if (ev == MenuEvent::Back) {
@@ -881,8 +881,8 @@ void loop() {
 
     case AppState::CalColors: {
         int e = Cube.calibrateColorSensors();
-        if (e) fail("Colour calibration failed", calibErrorText(e), e);
-        else   { showOp(Op::Done, "Colour Calibration", "Colours calibrated", "Press SELECT");
+        if (e) fail("Color calibration failed", calibErrorText(e), e);
+        else   { showOp(Op::Done, "Color Calibration", "Colors calibrated", "Press SELECT");
                  state = AppState::Done; }
         break;
     }

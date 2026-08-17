@@ -36,9 +36,9 @@ wins**; its numbers were tuned for this panel.
 ## 2. The visual language
 
 **The frame band is the identity.** One continuous band around the content,
-recoloured to say what is going on. In a menu it takes the colour of the
-**selected item** — moving the wheel recolours the whole frame. On an operation
-screen it takes the colour of the operation. That colour is the one piece of
+recolored to say what is going on. In a menu it takes the color of the
+**selected item** — moving the wheel recolors the whole frame. On an operation
+screen it takes the color of the operation. That color is the one piece of
 state readable from across the room, so it is worth keeping honest.
 
 | Theme | Fill | Edge | Used for |
@@ -103,8 +103,8 @@ These are not style preferences; exceeding them clips, ellipsises or collides.
 | Menu caption | **~34 chars** | 182 px at Anton 11, else ellipsised. |
 | Preview entries | **5 max, ~13 chars** | `PREV_W` is 54 px; the pane is a perspective trapezoid whose right border sits near x=282, *not* at the asset's bounding box. |
 | Operation body rows | **6** | `kOpLines`, 216 px wide from x=52. |
-| Calibration chips | **6 colours x 2 boards** | fixed by the hardware. |
-| Panel | **320x240, RGB565** | 16-bit colour quantises; flat fills and clearly-separated colours hold up, near-neighbour gradients band. |
+| Calibration chips | **6 colors x 2 boards** | fixed by the hardware. |
+| Panel | **320x240, RGB565** | 16-bit color quantises; flat fills and clearly-separated colors hold up, near-neighbour gradients band. |
 
 Row geometry changes with item count: 5 items start at y=70 with a 27 px pitch,
 fewer start at y=76 with 29. `CubeDisplay::barBoxPos()` owns this.
@@ -135,7 +135,7 @@ draw unit *unless* it is alpha-only. `decode_alpha_only()` calls
 A 255x194 A8 band is 49 KB. It did not fit, so it failed to allocate, so the
 frame band simply **never appeared** — silently.
 
-**Rule:** anything recolourable at runtime is baked **RGB565A8** (white pixels +
+**Rule:** anything recolorable at runtime is baked **RGB565A8** (white pixels +
 alpha), never A8. Costs 3 bytes/px instead of 1; that is the whole reason the
 asset total is ~565 KB. Flash this project has; RAM it does not.
 
@@ -196,7 +196,7 @@ font, run a **full** bake. The script now says so, but it will not stop you.
 |---|---|---|
 | Skewed / italic title | no text transform | bake a title image, or accept upright |
 | Per-corner radius | single `radius` | bake the shape (the preview pane is baked for exactly this) |
-| Text outline / stroke | none | pick colours with enough contrast, or bake |
+| Text outline / stroke | none | pick colors with enough contrast, or bake |
 | Gaussian glow | none per-frame | bake it into the sprite |
 | Vertical text | none | bake it rotated (`theme_next_label`) |
 | Perspective | none | bake pre-skewed |
@@ -251,7 +251,7 @@ only one:
   an aligned pair; no tab means a full-width line.
 - `cubeDisplay.setOpSteps(labels, n, active, done)` — named steps drawn with the
   menu's own bar art. **Takes over from the headline**, which it hides.
-- `cubeDisplay.setOpChips(bits, boards)` — the calibration colour grid.
+- `cubeDisplay.setOpChips(bits, boards)` — the calibration color grid.
 - `cubeDisplay.setOpProgress(done, total)` — a filled bar.
 
 Steps and chips both want the middle of the screen; do not use both at once.
@@ -264,7 +264,7 @@ from inside it, then `displayUpdate()`. `setMessage`/`setStatus` update a live
 operation screen in place rather than rebuilding it, so they are cheap to call
 in a loop.
 
-**Update before the slow part, not after.** A scan pass is ~5.4 s of colour
+**Update before the slow part, not after.** A scan pass is ~5.4 s of color
 integration; a progress display that updates once it finishes is not a progress
 display.
 

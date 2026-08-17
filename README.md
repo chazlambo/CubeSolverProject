@@ -1,7 +1,7 @@
 # CubeSolver
 
 A self-contained Rubik's Cube solving robot: six stepper-driven faces, two servo
-grippers on a moving ring, eighteen colour sensors, an on-board Kociemba
+grippers on a moving ring, eighteen color sensors, an on-board Kociemba
 two-phase solver, and a 320×240 display. Scan, solve, execute — no PC involved.
 
 Everything here is one person's design: mechanical (SolidWorks), electrical
@@ -15,13 +15,13 @@ Everything here is one person's design: mechanical (SolidWorks), electrical
 
 **Recently added:** menu-driven state machine, cooperative UI (the display stays
 live during scan and solve), abort gesture, encoder fault handling, piece-level
-cube validation with automatic scan repair, per-sensor colour confidence.
+cube validation with automatic scan repair, per-sensor color confidence.
 
 **Known unfinished:**
 - `VirtualCube::rebuildFromCubeArray()` — marked `UNFINISHED NEEDS DEBUGGING`.
   The commented-out body is believed correct but has no rollback on failure.
-- Colour sensor board 2, sensor 2 has a **dead green channel** — it reads exactly
-  `0` for all six sticker colours in every archived calibration run. The firmware
+- Color sensor board 2, sensor 2 has a **dead green channel** — it reads exactly
+  `0` for all six sticker colors in every archived calibration run. The firmware
   now detects this (`ColorSensor::checkSensorHealth`) but it is a hardware fault.
 - Face steppers run without an acceleration ramp (`MultiStepper` is constant
   speed by design). Left as-is deliberately — a ramp would slow the solve.
@@ -39,7 +39,7 @@ still worth keeping:
 |---|---|
 | `Test Code/Actuator_Test` | Serial menu for manual moves and jam-recovery testing |
 | `Test Code/Test_Motor_Calibrate` | Motor encoder calibration (also on the main menu) |
-| `Test Code/Test_Color_Calibrate` | Colour calibration (also on the main menu) |
+| `Test Code/Test_Color_Calibrate` | Color calibration (also on the main menu) |
 | `Test Code/I2C_Search` | Bus scanner — genuinely useful on a five-mux rig |
 | `Test Code/Test_Menu` | Menu, wheel and panel bench test — see below |
 
@@ -49,7 +49,7 @@ It touches no hardware except **Load** and **Eject** — no scan, no solve, no
 calibration, no stepper motion at all.
 
 It also carries a `Screens` submenu that draws each operation screen (scan step
-rows, calibration colour chips, the solve progress bar, the error look) from
+rows, calibration color chips, the solve progress bar, the error look) from
 canned data, so the panel can be judged and photographed in seconds instead of
 by running a 40-second scan to check one label. `Input Report` is a live
 readout of the wheel count and every button — the fastest way to spot a flaky
@@ -97,7 +97,7 @@ noted.
 | MultiStepper | ships inside AccelStepper | constant-speed by design |
 | PWMServo | bundled with Teensyduino | Teensy-only; **not** the stock `Servo` |
 | TCA9548 | RobTillaart/TCA9548 | I²C multiplexer |
-| veml6040 | ThingPulse/VEML6040 | colour sensors |
+| veml6040 | ThingPulse/VEML6040 | color sensors |
 | RunningMedian | RobTillaart/RunningMedian | scan filtering |
 | Adafruit_seesaw | Adafruit | ANO scroll-wheel breakout |
 | ILI9341_T4 | vindar/ILI9341_T4 (GitHub) | Teensy-4-specific DMA driver |
@@ -131,7 +131,7 @@ Two things about those assets are load-bearing and easy to undo by accident:
   `library.properties`, so the Arduino IDE treats it as a 1.0-format library and
   compiles only the library root and `utility/`. Assets moved to a prettier
   subdirectory are silently not compiled, and the sketch fails to link.
-- **The recolourable masks are RGB565A8, not A8.** LVGL reads an uncompressed
+- **The recolorable masks are RGB565A8, not A8.** LVGL reads an uncompressed
   RGB565A8 straight out of flash, but copies every alpha-only image into RAM
   first. The frame band is 49 KB against a 32 KB `LV_MEM_SIZE`, so as A8 it
   fails to allocate — and with `LV_USE_LOG` at 0 it fails *silently*, drawing
@@ -144,7 +144,7 @@ solver's own 4.14 MiB of lookup tables. RAM is unchanged.
 
 `Code/libraries/lv_conf.h` is **required** and its settings are not defaults.
 `LV_COLOR_DEPTH 16` must match what ILI9341_T4 expects; a mismatch does not fail
-to build, it renders wrong colours and looks like a hardware fault. See the
+to build, it renders wrong colors and looks like a hardware fault. See the
 comments in that file for the load-bearing settings and for several defines that
 use LVGL v8 spellings and are silently ignored by v9.
 
@@ -178,7 +178,7 @@ in firmware.
 | 8 / 9 | L step / dir | 28 / 29 | Ring step / dir |
 | 10 | Display DC | 30 | Encoder mux /RESET |
 | 11 / 12 | Display MOSI / MISO | 32 | Power sense |
-| 13 | Display SCK (+ onboard LED) | 40 / 41 | Colour LED 2 / 1 |
+| 13 | Display SCK (+ onboard LED) | 40 / 41 | Color LED 2 / 1 |
 | 14 / 15 | Display CS / RESET | 16 / 17 | **I²C1** SCL / SDA — see note |
 
 **I²C addresses**
@@ -186,8 +186,8 @@ in firmware.
 | Addr | Device | Bus |
 |---|---|---|
 | `0x70` | TCA9548 — encoder mux (7 AS5600 behind it) | Wire |
-| `0x74`–`0x75` | TCA9548 ×2 — colour board 1 | Wire |
-| `0x76`–`0x77` | TCA9548 ×2 — colour board 2 | Wire |
+| `0x74`–`0x75` | TCA9548 ×2 — color board 1 | Wire |
+| `0x76`–`0x77` | TCA9548 ×2 — color board 2 | Wire |
 | `0x36` | AS5600 magnetic encoder ×7 | Wire (behind mux) |
 | `0x10` | VEML6040 ×18 | Wire (behind muxes) |
 | `0x49` | Adafruit seesaw (ANO wheel) | **Wire1** |
@@ -203,11 +203,11 @@ marked unconnected. Since the machine works, there must be a bodge wire.
 > **TODO:** confirm the bodge and either roll it into a Rev B or note it on the
 > board. Right now this exists only in the hardware and in your head.
 
-- **The colour scanner is rotated 90° from what the firmware comments used to
+- **The color scanner is rotated 90° from what the firmware comments used to
   say.** It was turned in CAD to make the assembly fit, which changed which
   faces each scan pass reads — from `[L,B] [U,F] [D,R]` to
   `[Back,Right] [Left,Down] [Up,Front]` — and **no firmware changed**, because
-  `scanCube()` identifies each face from its own centre colour rather than
+  `scanCube()` identifies each face from its own centre color rather than
   assuming which one it is looking at. What the design does rely on is the two
   sensors' position *relative to each other*, and rotating the whole assembly
   preserves that. Moving one sensor relative to the other would not, and would
@@ -228,7 +228,7 @@ Two other things worth knowing:
 
 ## First run
 
-Order matters — the solver needs both calibrations, and colour calibration needs
+Order matters — the solver needs both calibrations, and color calibration needs
 motors that already home correctly.
 
 ### 1. Motor encoder calibration
@@ -241,12 +241,12 @@ Records four encoder positions per motor, one per quarter turn, into EEPROM.
 > relative to the cube before starting, what a good result looks like, and when
 > this needs redoing after a mechanical change.
 
-### 2. Colour calibration
+### 2. Color calibration
 
-Menu → **Calibrate Colours**, or flash `Test Code/Test_Color_Calibrate`.
+Menu → **Calibrate Colors**, or flash `Test Code/Test_Color_Calibrate`.
 
 Needs a **solved** cube. Steps through orientations recording a reference RGBW
-per colour per sensor, plus an "empty chamber" reference.
+per color per sensor, plus an "empty chamber" reference.
 
 The firmware now derives a per-sensor decision threshold from this data
 (`ColorSensor::computeSeparations`) rather than using one global tolerance, so a
@@ -277,7 +277,7 @@ at the next mechanically safe point, releases the cube, and returns to the menu.
 
 **On any error that can leave the machine holding the cube, it is released
 automatically** — the solve paths and the abort paths all route through
-`safeStop()`. Scan-time colour and build errors do not, because at those points
+`safeStop()`. Scan-time color and build errors do not, because at those points
 the ring and both servos are already retracted.
 
 ### Error codes
@@ -288,28 +288,28 @@ the ring and both servos are already retracted.
 | Scan 1X/2X | Sensor 1/2's face was rejected when set on the virtual cube |
 | Scan 3X | Could not determine orientation |
 | Scan 41 | Fewer than six distinct faces set — a duplicate-centre misread |
-| Scan 42-47 | Wrong number of some colour (not nine of each) |
+| Scan 42-47 | Wrong number of some color (not nine of each) |
 | Scan 5X | Could not build the cube array |
 | Scan 60 | Physically impossible cube, auto-repair failed → rescan |
 | Scan 70 | Aborted by user |
 | Scan 80 / 81 | Reorientation move ROTX / ROTZ failed (encoder fault) |
-| Scan 90 | A colour sensor board failed to initialise at boot |
+| Scan 90 | A color sensor board failed to initialise at boot |
 | Cal 82 | A calibration reorientation move failed |
 | Solve 11 | Cube not scanned yet |
 | Solve 12 | No solution — illegal cube or solver timeout |
 | Solve 13 | Centres not canonical → **orientation** was misread |
-| Solve 14 | Impossible piece → a **colour** was misread → rescan |
+| Solve 14 | Impossible piece → a **color** was misread → rescan |
 | Solve 15 | Solution longer than the move buffer |
 | Exec 105 / 125 | Aborted by the user (between moves / inside a move) |
 | Exec 1XX | A move failed; cube released and virtual state invalidated |
-| Cal 8 | Colour calibration failed to save — machine is **not** calibrated |
-| Cal 9 | Colour calibration aborted; EEPROM left untouched |
+| Cal 8 | Color calibration failed to save — machine is **not** calibrated |
+| Cal 9 | Color calibration aborted; EEPROM left untouched |
 
 Code 14 and 60 both mean "the cube I think I have cannot exist" — the fix is a
 rescan, not a retry.
 
 **Code 13 is effectively unreachable, by design.** `buildCubeArray()` relabels
-colours through the reported orientation, so the centres come out canonical
+colors through the reported orientation, so the centres come out canonical
 whatever that orientation was. A *misread* orientation therefore produces a
 different but internally consistent cube that is legal, piece-valid and
 solvable — the machine would execute ~20 moves in the wrong frame with no error

@@ -2,7 +2,7 @@
 //
 // Split out of CubeSystem.cpp on purpose. The desktop simulator replaces
 // CubeSystem.cpp wholesale with its own fake implementations, but it still
-// compiles this file, so the scan pass labels and the calibration colour order
+// compiles this file, so the scan pass labels and the calibration color order
 // are defined exactly once for both builds. Putting them in CubeSystem.cpp
 // would have forced the simulator to keep a second copy, which is precisely the
 // kind of duplicate that drifts and then makes the simulator lie.
@@ -20,7 +20,7 @@ const char* const CubeSystem::kScanPassLabels[CubeSystem::kScanPasses] = {
 // The physical scan order is [Back, Right], [Left, Down], [Up, Front]. This
 // table exists ONLY to fill the panel's face chips as the scan runs. The solver
 // does not use it and cannot: scanCube() records faces in scan order and works
-// out which logical face each one is from its centre colour and its neighbour
+// out which logical face each one is from its centre color and its neighbour
 // (scanFaceColor / scanLeftColor / setOrientation), so a wrong entry here
 // misdraws the panel and changes nothing else.
 //
@@ -30,7 +30,7 @@ const char* const CubeSystem::kScanPassLabels[CubeSystem::kScanPasses] = {
 // all, and if the scanner moves again this is the only thing to update. See the
 // note at the top of the scan loop in CubeSystem.cpp.
 //
-// If a pair ever comes up with its two colours swapped on screen, the sensors
+// If a pair ever comes up with its two colors swapped on screen, the sensors
 // are the other way round for that pass — swap the entry, not the sequence.
 const uint8_t CubeSystem::kScanPassFaces[CubeSystem::kScanPasses][2] = {
     { 5, 1 },   // Back  + Right
@@ -40,12 +40,12 @@ const uint8_t CubeSystem::kScanPassFaces[CubeSystem::kScanPasses][2] = {
 
 int8_t CubeSystem::chipIndexForColor(char c) {
     // Forwarded, not duplicated: CubeDisplay owns the chip palette and its
-    // order, so it owns what a colour letter means.
+    // order, so it owns what a color letter means.
     return CubeDisplay::chipIndexForColor(c);
 }
 
 // From calibrateColorSensors(): faceColors then topFaces, mapped to chip
-// indices. Between them each board sees all six colours.
+// indices. Between them each board sees all six colors.
 //   side: {R,G} {B,R} {O,B} {G,O}
 //   top:  {Y,O} {R,Y} {W,R} {O,W}
 const uint8_t CubeSystem::kCalSideColors[CubeSystem::kCalSideRots][2] = {
@@ -67,12 +67,12 @@ const uint8_t CubeSystem::kCalTopColors[CubeSystem::kCalTopRots][2] = {
 // calibrateColorSensors() does not look at what it is seeing — it ASSERTS that
 // rotation 1 is showing it Red and Green, rotation 2 Blue and Red, and so on,
 // and writes whatever the sensors return under those names. Load the cube
-// turned the wrong way and it learns wrong colours and saves them to EEPROM,
+// turned the wrong way and it learns wrong colors and saves them to EEPROM,
 // with nothing to notice. So the orientation is not advice, it is part of the
 // procedure, and this is it.
 //
-// NOTE the tables above are COLOUR labels, not positions. Nothing in
-// calibrateColorSensors() names a face except in its comments, so the colour
+// NOTE the tables above are COLOR labels, not positions. Nothing in
+// calibrateColorSensors() names a face except in its comments, so the color
 // scanner being rotated 90 degrees (see scanCube()) did not require the tables
 // to change — it required the CUBE to be loaded 90 degrees round to match. That
 // is the whole of the fix, and this constant is where it lives.

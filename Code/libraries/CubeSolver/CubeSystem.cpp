@@ -94,7 +94,7 @@ void CubeSystem::begin() {
 
     // Release the encoder mux from reset BEFORE anything else touches Wire.
     // This used to run after cubeMotors.begin(), both servo sweeps and both
-    // colour-sensor probes — i.e. the /RESET of an active bus participant sat
+    // color-sensor probes — i.e. the /RESET of an active bus participant sat
     // floating during ~5 s of traffic on the very bus it shares.
     initEncoderMuxReset();
 
@@ -122,7 +122,7 @@ void CubeSystem::begin() {
     // Color Sensors Setup
     // begin() builds a diagnostic code (0 ok / 1X mux not found / 2X mux begin
     // failed / 3X sensor X failed) and both return values used to be discarded,
-    // so a board with a dead mux booted silently and produced garbage colours.
+    // so a board with a dead mux booted silently and produced garbage colors.
     colorSensorsOk = true;
     int cs1 = colorSensor1.begin();
     int cs2 = colorSensor2.begin();
@@ -196,23 +196,23 @@ int CubeSystem::scanCube(){
     //  4X - Failed to build unoriented cube array
     //  5X - Failed to build cube array
     //  60 - Cube is physically impossible and could not be repaired.
-    //       Colour counts were fine (nine of each) but the corner/edge pieces
+    //       Color counts were fine (nine of each) but the corner/edge pieces
     //       don't correspond to real cubies — a compensating misread. Rescan.
     //  70 - Aborted by the user (SELECT held during the scan)
     //  80 - Reorientation move ROTX failed (jam / align timeout / encoder fault)
     //  81 - Reorientation move ROTZ failed
-    //  90 - A colour sensor board failed to initialise at boot
+    //  90 - A color sensor board failed to initialise at boot
 
     // Reset the virtual cube before scanning.
     // scanFacesRecorded must be cleared too: rebuildFromScan() and repairScan()
     // are public and gate on it being 6, so a scan that aborts early would
     // otherwise leave a stale "complete" record built from a mix of this scan
     // and the previous one.
-    // A colour board that failed begin() cannot produce trustworthy readings.
+    // A color board that failed begin() cannot produce trustworthy readings.
     // This flag was previously set and never consulted, so a missing mux was
     // reported at boot and then scanned from anyway.
     if (!colorSensorsOk) {
-        Serial.println(F("Cannot scan: a colour sensor board failed to initialise"));
+        Serial.println(F("Cannot scan: a color sensor board failed to initialise"));
         return 90;
     }
 
@@ -222,16 +222,16 @@ int CubeSystem::scanCube(){
 
     // Move and scan the cube
     //
-    // Two faces per pass, one per colour board, with a reorientation between:
+    // Two faces per pass, one per color board, with a reorientation between:
     // [Back, Right], [Left, Down], [Up, Front].
     //
-    // It used to be [Left, Back], [Up, Front], [Down, Right]. The colour scanner
+    // It used to be [Left, Back], [Up, Front], [Down, Right]. The color scanner
     // was rotated 90 degrees in CAD to make the assembly fit, which changed
     // which faces each pass sees — and NO CODE CHANGED, because nothing here
     // depends on knowing that in advance.
     //
     // That is worth understanding before touching this loop. Faces are recorded
-    // in scan order and identified afterwards from their own centre colour plus
+    // in scan order and identified afterwards from their own centre color plus
     // their neighbour's (scanFaceColor / scanLeftColor, resolved by
     // setOrientation below). What the pass order actually has to preserve is the
     // GEOMETRY BETWEEN THE TWO SENSORS — sensor 2 sits to the left of sensor 1,
@@ -245,7 +245,7 @@ int CubeSystem::scanCube(){
     char lastface1 = 'X';
     char lastface2 = 'X';
 
-    // What the panel shows: one chip per face, filled with the colour that
+    // What the panel shows: one chip per face, filled with the color that
     // face's centre sticker actually came back as. -1 is "not read yet".
     // Lives on the object so the result screen can still show it afterwards.
     int8_t* faceChips = scanFaceChips;
@@ -260,7 +260,7 @@ int CubeSystem::scanCube(){
             return 70;
         }
 
-        // Light the pair about to be read BEFORE the ~5.4 s of colour
+        // Light the pair about to be read BEFORE the ~5.4 s of color
         // integration below, not after: that wait is most of a scan, and a
         // progress display that only updates once it is over is no display.
         displayFaces(faceChips, kScanPassFaces[i][0], kScanPassFaces[i][1]);
@@ -320,9 +320,9 @@ int CubeSystem::scanCube(){
         // Check for impossible face pairing: opposite faces scanned adjacent
         if (left2 == face2) return 3;
 
-        // Convert readings to colour arrays using the BEST GUESS per sticker.
+        // Convert readings to color arrays using the BEST GUESS per sticker.
         // A sticker the classifier is unsure about still contributes its most
-        // likely colour; the confidence is preserved separately so repairScan()
+        // likely color; the confidence is preserved separately so repairScan()
         // knows which stickers to reconsider first.
         char face1_colors[9];
         char face2_colors[9];
@@ -350,7 +350,7 @@ int CubeSystem::scanCube(){
             // NOT set to 6 here on the last face: scanOrientLeft/Back are
             // written further down, and rebuildFromScan()/repairScan() gate on
             // this reaching 6. Setting it early would let them build from this
-            // scan's colours and the PREVIOUS scan's orientation.
+            // scan's colors and the PREVIOUS scan's orientation.
             scanFacesRecorded = (f2 == 5) ? 5 : (f2 + 1);
         }
 
@@ -374,7 +374,7 @@ int CubeSystem::scanCube(){
         // Rotate the cube to next scanning orientation.
         //
         // Check the abort BEFORE this block, not just at the top of the loop.
-        // The abort is most likely to be raised during the ~5.4 s of colour
+        // The abort is most likely to be raised during the ~5.4 s of color
         // integration above; entering the reorientation with the latch set
         // would run the steppers (which never consult the pump) while every
         // servo sweep returned instantly — rotating the cube twice without the
@@ -476,7 +476,7 @@ int CubeSystem::scanCube(){
 
     // Physical-plausibility check.
     //
-    // Colour counts are already verified by buildUnorientedCubeArray(), but a
+    // Color counts are already verified by buildUnorientedCubeArray(), but a
     // compensating misread keeps every count at 9. Check the actual pieces, and
     // if they don't hold up try to repair the scan in software before giving up
     // — a repair costs microseconds, a rescan costs ~20 seconds of mechanics.
@@ -529,7 +529,7 @@ int CubeSystem::rebuildFromScan() {
 }
 
 int CubeSystem::repairScan(int maxSingles, int maxPairs) {
-    // Try substituting each low-confidence sticker's runner-up colour until the
+    // Try substituting each low-confidence sticker's runner-up color until the
     // cube validates. Singles first, then pairs (a compensating Y/W swap needs
     // exactly two substitutions).
     //
@@ -595,7 +595,7 @@ int CubeSystem::repairScan(int maxSingles, int maxPairs) {
     // cube (measured 4 wrong out of 5 fires).
     //
     // The discriminator is the confidence the classifier already computed. A
-    // compensating misread happens BECAUSE the two colours sit ~0.03 apart, so
+    // compensating misread happens BECAUSE the two colors sit ~0.03 apart, so
     // both offending stickers necessarily have near-zero margin. Selecting the
     // validating substitution with the lowest summed confidence picked the true
     // pair in 200 of 200 trials.
@@ -612,7 +612,7 @@ int CubeSystem::repairScan(int maxSingles, int maxPairs) {
     // --- single substitutions ---
     //
     // Note these can only fire when repairScan() is called on a cube that has
-    // NOT already passed the 9-of-each colour count — any single substitution
+    // NOT already passed the 9-of-each color count — any single substitution
     // moves two counts off 9. On the scanCube() path the count check has already
     // run, so this loop is a no-op there; it exists for direct callers.
     for (int a = 0; a < limSingle; a++) {
@@ -1048,7 +1048,7 @@ bool CubeSystem::getColorCalibration(){
     return cal1 && cal2;
 }
 
-// Restore the in-RAM colour calibration after a failed/aborted calibration.
+// Restore the in-RAM color calibration after a failed/aborted calibration.
 //
 // scanFace() returns early on abort leaving scanVals holding the PREVIOUS
 // window, and setColorCal() has already written some of that into calVals[].
@@ -1056,7 +1056,7 @@ bool CubeSystem::getColorCalibration(){
 // calVals, so every subsequent scan this power cycle classifies against a
 // poisoned table while the user has been told "nothing was changed".
 void CubeSystem::calibrationBail(int why) {
-    Serial.print(F("Colour calibration bailing, code ")); Serial.println(why);
+    Serial.print(F("Color calibration bailing, code ")); Serial.println(why);
     if (!colorSensor1.loadCalibration()) colorSensor1.resetCalibration();
     if (!colorSensor2.loadCalibration()) colorSensor2.resetCalibration();
     cubeMotors.disableMotors();
@@ -1064,7 +1064,7 @@ void CubeSystem::calibrationBail(int why) {
 
 int CubeSystem::calibrateColorSensors(){
     if (!colorSensorsOk) {
-        Serial.println(F("Cannot calibrate: a colour sensor board failed to initialise"));
+        Serial.println(F("Cannot calibrate: a color sensor board failed to initialise"));
         return 90;
     }
 
@@ -1077,14 +1077,14 @@ int CubeSystem::calibrateColorSensors(){
 
     // What each sensor is expected to be looking at, per rotation.
     //
-    // These are COLOUR labels, not positions: whatever sensor 1 returns is
-    // filed as the first colour and sensor 2's as the second, with no check
+    // These are COLOR labels, not positions: whatever sensor 1 returns is
+    // filed as the first color and sensor 2's as the second, with no check
     // that the cube is actually turned that way. Getting it wrong writes a bad
     // calibration to EEPROM silently, so the required loading orientation is
     // part of the procedure — see CubeSystem::kCalStartFacelets, which the
     // panel shows before this runs.
     //
-    // The positions named here are POST-rotation: the colour scanner was turned
+    // The positions named here are POST-rotation: the color scanner was turned
     // 90 degrees in CAD, so sensor 1 now reads Back and sensor 2 reads Right,
     // where they used to read Left and Back. The table itself did not have to
     // change for that — only the orientation the cube is loaded in.
@@ -1099,8 +1099,8 @@ int CubeSystem::calibrateColorSensors(){
     botServoPartial();
     botServoRetract();
 
-    // Chips filled so far, one bit per colour per board. Both boards sample at
-    // every rotation but on different colours, so they do not fill in step.
+    // Chips filled so far, one bit per color per board. Both boards sample at
+    // every rotation but on different colors, so they do not fill in step.
     uint8_t calBits[2] = { 0, 0 };
 
     // Scan the four side faces
@@ -1222,7 +1222,7 @@ int CubeSystem::calibrateColorSensors(){
     // garbage that saveCalibration()'s read-back verify cannot detect — it only
     // checks EEPROM matches RAM, never that the values are plausible.
     if (abortRequested) {
-        Serial.println(F("Colour calibration aborted - EEPROM left untouched"));
+        Serial.println(F("Color calibration aborted - EEPROM left untouched"));
         calibrationBail(ERR_ABORTED);
         safeStop(ERR_ABORTED);
         return 9;
@@ -1237,7 +1237,7 @@ int CubeSystem::calibrateColorSensors(){
     bool ok1 = colorSensor1.saveCalibration();
     bool ok2 = colorSensor2.saveCalibration();
     if (!ok1 || !ok2) {
-        Serial.print(F("ERROR: colour calibration failed to save ("));
+        Serial.print(F("ERROR: color calibration failed to save ("));
         if (!ok1) Serial.print(F("sensor 1 "));
         if (!ok2) Serial.print(F("sensor 2"));
         Serial.println(F(")"));
@@ -1830,7 +1830,7 @@ int CubeSystem::solveVirtual(){
     //       11 - Cube is not ready (never scanned / not built)
     //       12 - No solution: illegal cube, or the solver timed out
     //       13 - Centres not canonical -> the ORIENTATION was misread. Rescan.
-    //       14 - A corner or edge is not a real cubie -> a COLOUR was misread,
+    //       14 - A corner or edge is not a real cubie -> a COLOR was misread,
     //            in a way that still left nine of each. Rescan.
     //       15 - Solution longer than maxMoves
     //

@@ -60,7 +60,7 @@ const int kFakeCalFault   = 8;    // "Save failed - machine is NOT calibrated"
 bool g_motorCalibrated = true;
 bool g_colorCalibrated = true;
 
-// Drop a synthetic colour calibration into both boards so Calibration Status
+// Drop a synthetic color calibration into both boards so Calibration Status
 // has real numbers to lay out. Without it every sensor reads separation 0 and
 // the screen only ever shows its degenerate case.
 void seedFakeColorCalibration() {
@@ -221,7 +221,7 @@ int CubeSystem::scanCube() {
     const bool injectFault = sim::consumeFaultInjection();
 
     // Same three passes the real scanCube() runs, so the progress display is
-    // exercised here exactly as it will be on the machine. The colours are the
+    // exercised here exactly as it will be on the machine. The colors are the
     // standard scheme for a solved cube: U white, R red, F green, D yellow,
     // L orange, B blue.
     static const char kSimFaceColor[6] = { 'W', 'R', 'G', 'Y', 'O', 'B' };
@@ -337,8 +337,8 @@ int CubeSystem::calibrateMotorRotations() {
 int CubeSystem::calibrateColorSensors() {
     const bool injectFault = sim::consumeFaultInjection();
 
-    // The real routine's colour order, so the chips fill in the same sequence
-    // here as on the machine. Each rotation feeds a DIFFERENT colour to each
+    // The real routine's color order, so the chips fill in the same sequence
+    // here as on the machine. Each rotation feeds a DIFFERENT color to each
     // board, which is why the two rows do not fill together.
     uint8_t bits[2] = { 0, 0 };
     const int per = kCalColorMs / (CubeSystem::kCalSideRots + 1 + CubeSystem::kCalTopRots);

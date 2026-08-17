@@ -13,7 +13,7 @@
  *
  * SETTINGS THAT ARE LOAD-BEARING  (changing these breaks the display)
  *   LV_COLOR_DEPTH 16   - must match what ILI9341_T4 expects. A mismatch does
- *                         not fail to build; it renders wrong colours, which
+ *                         not fail to build; it renders wrong colors, which
  *                         looks exactly like a hardware fault.
  *   LV_BIG_ENDIAN_SYSTEM 0
  *   LV_MEM_SIZE         - 48 KB static pool. LVGL allocates from this, not

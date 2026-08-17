@@ -41,7 +41,7 @@ struct MenuScreen;
 // state, not the menu.
 typedef void (*MenuActionFn)();
 
-// Frame colour, chosen by the SELECTED item rather than by the screen.
+// Frame color, chosen by the SELECTED item rather than by the screen.
 //
 // Inherit is deliberately 0. Every existing table was written as a three-field
 // aggregate — { "Solve", nullptr, actSolve } — and C++ value-initialises the
@@ -77,11 +77,11 @@ struct MenuItem {
     const char* const* preview      = nullptr;
     uint8_t            previewCount = 0;
 
-    // Frame colour while this item is selected. Inherit takes the screen's.
+    // Frame color while this item is selected. Inherit takes the screen's.
     MenuTheme          theme        = MenuTheme::Inherit;
 
     // A cube state to draw in the preview pane instead of a list: 54 facelets
-    // as colour letters, same order as CubeDisplay::setOpCubeNet(). This is
+    // as color letters, same order as CubeDisplay::setOpCubeNet(). This is
     // what lets a Patterns menu show what each pattern produces rather than
     // naming it and hoping. Takes precedence over `preview` when both are set.
     //
@@ -96,7 +96,7 @@ struct MenuScreen {
     const MenuItem* items = nullptr;
     uint8_t         count = 0;
 
-    // Default colour for items that do not name one. Inherit means Green.
+    // Default color for items that do not name one. Inherit means Green.
     //
     // These defaults are what keep every pre-theme table compiling as written:
     // a three-field { title, items, count } brace list still means exactly what
@@ -205,7 +205,7 @@ public:
     uint8_t depthLevel()    const { return depth; }
     bool    atRoot()        const { return depth == 0; }
 
-    // Resolve an item's frame colour against its screen's default.
+    // Resolve an item's frame color against its screen's default.
     //
     // Lives here rather than in the renderer because it is a fact about the
     // data model, and a second renderer (or a test) that re-derived the

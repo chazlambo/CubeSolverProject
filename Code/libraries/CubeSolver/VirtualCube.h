@@ -73,21 +73,21 @@ public:
     //   canonical URFDLB position.
     //
     //   IMPORTANT — this does NOT detect an orientation misread, despite the
-    //   obvious intuition that it should. buildCubeArray() relabels colours
+    //   obvious intuition that it should. buildCubeArray() relabels colors
     //   through orientation[], so the centres come out canonical BY
     //   CONSTRUCTION whatever orientation was reported. A misread orientation
     //   produces a different but internally consistent cube that is legal,
     //   piece-valid, centre-canonical and solvable — the machine then executes
     //   ~20 moves in the wrong frame with no error at any layer. Catching that
-    //   requires cross-checking the scanned left/back colours against something
+    //   requires cross-checking the scanned left/back colors against something
     //   outside the model, which this class cannot do on its own.
     //
     //   Kept as cheap insurance against a future path that writes cubeArray
     //   without going through buildCubeArray(). Expect it to always return 0.
     //
     // validatePieces(): 0 ok. Catches compensating misreads that leave the
-    //   per-colour counts at exactly 9 — the dominant failure mode here, since
-    //   Y and W are the closest colour pair on most of the sensors.
+    //   per-color counts at exactly 9 — the dominant failure mode here, since
+    //   Y and W are the closest color pair on most of the sensors.
     int validateCentres() const;
     int validatePieces() const;
 
@@ -106,12 +106,12 @@ public:
     const char* getCubeArray() const           { return cubeArray; }
     const char* getUnorientedCubeArray() const { return unorientedCubeArray; }
 
-    // The same 54 facelets as colour letters (W Y R O G B) rather than face
+    // The same 54 facelets as color letters (W Y R O G B) rather than face
     // letters. Same layout and the same lifetime caveats as the two above.
     //
-    // This is what a display wants: cubeArray has already had its colours
+    // This is what a display wants: cubeArray has already had its colors
     // translated into U/R/F/D/L/B (via the 'B' -> 'P' placeholder dance in
-    // buildCubeArray), so it can no longer say what colour anything is.
+    // buildCubeArray), so it can no longer say what color anything is.
     const char* getColorArray() const           { return colorCubeArray; }
 
     // TODO: DEBUG REMOVE LATER

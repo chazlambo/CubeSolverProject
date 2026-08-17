@@ -15,9 +15,9 @@
 #  on a Teensy at menu speed, but it can blit an image, and the ILI9341_T4 diff
 #  engine means an unchanged image costs no SPI traffic at all.
 #
-#  Colour strategy: the frame band recolors per selected item across six
-#  themes. Baking six coloured copies would cost megabytes, so the band ships
-#  as white masks that LVGL recolors at draw time — one asset, six colours.
+#  Color strategy: the frame band recolors per selected item across six
+#  themes. Baking six colored copies would cost megabytes, so the band ships
+#  as white masks that LVGL recolors at draw time — one asset, six colors.
 #
 #  Those masks are RGB565A8, NOT A8, and that is a hard constraint rather than
 #  a preference. LVGL's bin decoder hands an uncompressed variable-source image
@@ -210,7 +210,7 @@ def emit_mask(name, img):
 
 
 def emit_rgb565(name, img):
-    """Opaque colour, panel-native depth."""
+    """Opaque color, panel-native depth."""
     rgb = img.convert("RGB")
     w, h = rgb.size
     px = rgb.load()
@@ -229,18 +229,18 @@ def emit_rgb565(name, img):
 
 
 def emit_rgb565a8(name, img):
-    """Colour + alpha: the RGB565 plane followed by the A8 plane."""
+    """Color + alpha: the RGB565 plane followed by the A8 plane."""
     w, h = img.size
     px = img.load()
-    colour = bytearray()
+    color = bytearray()
     alpha = bytearray()
     for y in range(h):
         for x in range(w):
             r, g, b, a = px[x, y]
             v = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
-            colour += bytes((v & 0xFF, v >> 8))
+            color += bytes((v & 0xFF, v >> 8))
             alpha.append(a)
-    data = bytes(colour + alpha)
+    data = bytes(color + alpha)
     arr = f"{name}_map"
     body = (HDR + f"static const uint8_t {arr}[] PROGMEM = {{\n"
             + _bytes_c(data) + "\n};\n"
@@ -268,7 +268,7 @@ def crop(img):
 # ---------------------------------------------------------------------------
 def bake_images(manifest, tmp):
     # ---- background: one static full-screen image -------------------------
-    # Grid warp, regional colour variation, vignette and scanlines all baked.
+    # Grid warp, regional color variation, vignette and scanlines all baked.
     # This is the only opaque layer; everything else composites over it.
     bg = ("<div style=\"position:absolute;inset:0;width:320px;height:240px;"
           "overflow:hidden;background:"

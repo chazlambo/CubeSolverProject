@@ -19,7 +19,7 @@
 //
 //  WHY THE SCREEN DEMOS ARE HERE
 //  -----------------------------
-//  The operation screens — scan step rows, calibration colour chips, the solve
+//  The operation screens — scan step rows, calibration color chips, the solve
 //  progress bar, the error look — are normally only reachable by running the
 //  machine for real. On the bench that means a 40-second scan to check one
 //  label. Screens > ... draws each of them from canned data, so the panel can
@@ -108,7 +108,7 @@ static void actLoad();
 static void actEject();
 static void actReport();
 static void actInputReport();
-static void actColourSensors();
+static void actColorSensors();
 static void actMotorSensors();
 static void actDemoInfo();
 static void actDemoSteps();
@@ -127,7 +127,7 @@ static void actJog();
 //  Menu tables
 // ---------------------------------------------------------------------------
 //  Between them these cover every visual state the theme has: all six frame
-//  colours, screens of three, four and five items, captions of realistic
+//  colors, screens of three, four and five items, captions of realistic
 //  length, preview lists and the placeholder graphic, labels long enough to
 //  ellipsise, and a stack deep enough to hit CubeMenu's depth limit.
 
@@ -138,7 +138,7 @@ static const char* const kPrevScreens[] = { "Operations", "Cube views", "Message
 // Cube states for the pattern previews, in net order (U R F D L B).
 //
 // Computed by applying each sequence to a solved cube, not drawn by hand — and
-// every one checked for nine of each colour, because a preview that is not a
+// every one checked for nine of each color, because a preview that is not a
 // real cube would hide exactly the bugs this screen is for.
 static const char kPatCheckerboard[55] =
     "WYWYWYWYW" "ROROROROR" "GBGBGBGBG" "YWYWYWYWY" "ORORORORO" "BGBGBGBGB";
@@ -169,9 +169,9 @@ static const char* const kScrambleMoves[kScrambleLen] = {
     "U2", "F",  "D'", "L'", "B2", "R2", "U",  "F'", "D",  "L",
     "B",  "R",  "U2", "F2", "D'", "L2", "B'", "R2", "U'", "F",
 };
-static const char* const kPrevDiag[] = { "Navigation", "Input", "Colour", "Motor" };
+static const char* const kPrevDiag[] = { "Navigation", "Input", "Color", "Motor" };
 
-// One caption per sticker on a colour board. Nine of them, in the order the
+// One caption per sticker on a color board. Nine of them, in the order the
 // sensors are read.
 static const char* const kSensorCaps[9] = { "1","2","3","4","5","6","7","8","9" };
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
@@ -211,7 +211,7 @@ static const MenuItem kDiagItems[] = {
       kPrevNav, 4, MenuTheme::Red },
     { "Input Report", nullptr,     actInputReport, "Live wheel and buttons.",
       nullptr, 0, MenuTheme::Purple },
-    { "Colour Sensors", nullptr,   actColourSensors, "Live, per board.",
+    { "Color Sensors", nullptr,   actColorSensors, "Live, per board.",
       nullptr, 0, MenuTheme::Blue },
     { "Motor Sensors",  nullptr,   actMotorSensors,  "Raw encoder angles.",
       nullptr, 0, MenuTheme::Green },
@@ -307,15 +307,15 @@ const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 4, MenuTheme::Vi
 
 static const MenuItem kOpsItems[] = {
     { "Scan Faces",     nullptr, actDemoSteps,    "Faces fill as they are read." },
-    { "Colour Chips",   nullptr, actDemoChips,    "Two boards, six colours." },
-    { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colours." },
+    { "Color Chips",   nullptr, actDemoChips,    "Two boards, six colors." },
+    { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colors." },
     { "Step Solve",     nullptr, actStepSolve,    "One move per press." },
     { "Demo Mode",      nullptr, actDemoMode,     "Scramble and solve, looping." },
 };
 const MenuScreen kScreenOps = { "Operations", kOpsItems, 5, MenuTheme::Blue };
 
 static const MenuItem kCubeItems[] = {
-    { "Solved Cube",     nullptr, actDemoNetSolved,    "Every face one colour." },
+    { "Solved Cube",     nullptr, actDemoNetSolved,    "Every face one color." },
     { "Scrambled Cube",  nullptr, actDemoNetScrambled, "Checkerboard, 9 of each." },
     { "Load Orientation",nullptr, actDemoNetLoad,      "The calibration prompt." },
 };
@@ -641,7 +641,7 @@ static void updateInputReport() {
 // ---------------------------------------------------------------------------
 //  Sensor screens
 // ---------------------------------------------------------------------------
-//  Split in two because they answer different questions. The colour boards want
+//  Split in two because they answer different questions. The color boards want
 //  "is any sensor disagreeing with its neighbours", which is a picture. The
 //  motor encoders want "what angle is each one reading", which is a list of
 //  numbers.
@@ -657,18 +657,18 @@ static void senReadings(uint32_t t, int8_t* b1, int8_t* b2) {
     for (int i = 0; i < 9; ++i) {
         b1[i] = (int8_t)((i + phase) % 6);
         // Board 2 sensor 2 has a dead green channel on this machine (README),
-        // so it never resolves to a colour. A diagnostic that only ever shows
+        // so it never resolves to a color. A diagnostic that only ever shows
         // healthy hardware is not a diagnostic.
         b2[i] = (i == 1) ? (int8_t)-1 : (int8_t)((i + phase + 3) % 6);
     }
 }
 
-static void actColourSensors() {
+static void actColorSensors() {
     senSel = 0;
-    showScreen(Op::Scan, "Colour Sensors", nullptr, Live::Sensors);
+    showScreen(Op::Scan, "Color Sensors", nullptr, Live::Sensors);
 }
 
-static void updateColourSensors(uint32_t t) {
+static void updateColorSensors(uint32_t t) {
     static const char* rows[2] = { "Board 1\t9/9 healthy, sep 165",
                                    "Board 2\t8/9 healthy, sep 3" };
     static const CubeDisplay::RowMark marks[2] = { CubeDisplay::RowMark::Good,
@@ -680,14 +680,14 @@ static void updateColourSensors(uint32_t t) {
     snprintf(hint, sizeof(hint), "SELECT for board %d sensor %d",
              (senSel < 9) ? 1 : 2, (senSel % 9) + 1);
 
-    cubeDisplay.showOperation(Op::Scan, "Colour Sensors", nullptr, hint);
+    cubeDisplay.showOperation(Op::Scan, "Color Sensors", nullptr, hint);
     cubeDisplay.setOpLines(rows, 2, marks);
     cubeDisplay.setOpChipRow(0, b1, kSensorCaps, 9, (senSel < 9) ? senSel : -1, 104);
     cubeDisplay.setOpChipRow(1, b2, nullptr,     9, (senSel < 9) ? -1 : senSel - 9, 140);
     Cube.displayUpdate();
 }
 
-// One sensor, in the numbers behind the colour. This is the screen for "why did
+// One sensor, in the numbers behind the color. This is the screen for "why did
 // it call that sticker orange" — the classification is a judgement made from
 // four values, and until you can see them the answer is a guess.
 static void updateSensorRaw(uint32_t t) {
@@ -766,7 +766,7 @@ static void updateMotorSensors(uint32_t t) {
 static void actDemoInfo() {
     const char* lines[] = {
         "Motors\tCALIBRATED",
-        "Colour\tNOT CALIBRATED",
+        "Color\tNOT CALIBRATED",
         "Board 1\t9/9 healthy, sep 165",
         "Board 2\t8/9 healthy, sep 3",
         "",
@@ -784,7 +784,7 @@ static void actDemoSteps() {
 static void actDemoChips() {
     // Headline left empty: the demo sets it per stage below, and a fixed one
     // here would sit contradicting the stage line underneath it.
-    showScreen(Op::Calibrate, "Colour Chips", "", Live::Chips);
+    showScreen(Op::Calibrate, "Color Chips", "", Live::Chips);
 }
 
 
@@ -795,7 +795,7 @@ static void actDemoScramble() {
     showScreen(Op::Error, "Scramble Solve", "Scrambling", Live::Scramble);
 }
 
-// The six cube colours, in the order CubeDisplay's chips use them.
+// The six cube colors, in the order CubeDisplay's chips use them.
 static const char kNetOrder[6] = { 'W', 'Y', 'R', 'O', 'G', 'B' };
 
 // A solved cube in net order (U R F D L B). Same scheme the simulator scans.
@@ -810,14 +810,14 @@ static void actDemoNetSolved() {
     buildSolvedNet(net);
     showScreen(Op::Info, "Solved Cube", nullptr);
     cubeDisplay.setOpCubeNet(net);
-    cubeDisplay.setStatus("Every face one colour");
+    cubeDisplay.setStatus("Every face one color");
     Cube.displayUpdate();
 }
 
-// The classic checkerboard: each sticker is either its own face colour or the
+// The classic checkerboard: each sticker is either its own face color or the
 // opposite one. Worth having as the scrambled case because it is a REAL state —
-// five of a face's own colour and four of its opposite, so each opposite pair
-// still totals nine of each. A random splash of colour would not be a cube, and
+// five of a face's own color and four of its opposite, so each opposite pair
+// still totals nine of each. A random splash of color would not be a cube, and
 // would hide exactly the bugs this screen is for.
 static void actDemoNetScrambled() {
     static const char kOpp[6] = { 'Y', 'W', 'O', 'R', 'B', 'G' };   // vs kNetOrder
@@ -840,7 +840,7 @@ static void actDemoNetScrambled() {
     Cube.displayUpdate();
 }
 
-// The orientation colour calibration requires. Drawn from the firmware's own
+// The orientation color calibration requires. Drawn from the firmware's own
 // constant, not a copy, so this cannot drift from what the machine expects.
 static void actDemoNetLoad() {
     showScreen(Op::Calibrate, "Load Orientation", nullptr);
@@ -886,7 +886,7 @@ static void actStepSolve() {
 }
 
 // Scramble, solve, repeat, unattended. Both halves already existed — the phase
-// colours from Scramble Solve, the ribbon from Step Solve — so this is a loop
+// colors from Scramble Solve, the ribbon from Step Solve — so this is a loop
 // around them plus a run counter.
 //
 // It shows the MOVES rather than only a counter, because the whole point of
@@ -963,7 +963,7 @@ static void updateDemo() {
 
     case Live::Steps: {
         // Three passes, ~1.8 s each, with a rotation between them — the shape
-        // of the real scan, played back against a solved cube's colours.
+        // of the real scan, played back against a solved cube's colors.
         static const char kFaceColor[6] = { 'W', 'R', 'G', 'Y', 'O', 'B' };
         const uint32_t cycle    = t % 7200;
         const int      pass     = (int)(cycle / 1800);
@@ -989,7 +989,7 @@ static void updateDemo() {
 
     case Live::Chips: {
         // Fill both rows out of step, the way the real calibration does: each
-        // rotation feeds a different colour to each board.
+        // rotation feeds a different color to each board.
         const uint32_t cycle = t % 7200;
         const int      n     = (int)(cycle / 800);        // 0..8
         uint8_t bits[2] = { 0, 0 };
@@ -1016,7 +1016,7 @@ static void updateDemo() {
         break;
 
     case Live::Sensors:
-        updateColourSensors(t);
+        updateColorSensors(t);
         break;
 
     case Live::SensorRaw:
@@ -1247,7 +1247,7 @@ void loop() {
     case TState::Screen:
         if (live == Live::Sensors && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
             senSel = (int8_t)((senSel + (ev == MenuEvent::Down ? 1 : 17)) % 18);
-            updateColourSensors(millis() - liveStart);
+            updateColorSensors(millis() - liveStart);
         } else if (live == Live::Sensors && ev == MenuEvent::Select) {
             live = Live::SensorRaw;                 // drill into the one selected
         } else if (live == Live::SensorRaw && ev == MenuEvent::Back) {

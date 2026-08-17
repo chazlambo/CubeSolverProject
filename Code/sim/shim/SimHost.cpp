@@ -74,7 +74,7 @@ bool init() {
     // RGB565 in native byte order. CubeDisplay never calls
     // lv_draw_sw_rgb565_swap(), so what LVGL hands the flush callback under
     // LV_COLOR_DEPTH 16 is plain native-order RGB565 — the same thing this
-    // texture expects. If the colours ever come out wrong here, that is a real
+    // texture expects. If the colors ever come out wrong here, that is a real
     // difference from the panel, not a simulator artefact.
     g_tex = SDL_CreateTexture(g_ren, SDL_PIXELFORMAT_RGB565,
                               SDL_TEXTUREACCESS_STREAMING, kPanelW, kPanelH);

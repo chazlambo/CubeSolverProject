@@ -89,7 +89,7 @@ public:
     //
     // Called from every error path that can leave the machine HOLDING the cube:
     // executeSolve()'s move failures, the abort paths, and scanCube()'s
-    // reorientation failures. scanCube()'s colour/build errors deliberately do
+    // reorientation failures. scanCube()'s color/build errors deliberately do
     // NOT call it — at those points the ring and both servos are already
     // retracted (the scan loop ends with ringRetract/botServoRetract), and
     // wiping the scan record would destroy the data repairScan() needs.
@@ -175,7 +175,7 @@ public:
     // CubeSystem.cpp but not this header, which is what keeps its fake scan
     // the same shape as the real one instead of quietly drifting.
 
-    // A scan is THREE passes, not six face reads: the two colour boards read
+    // A scan is THREE passes, not six face reads: the two color boards read
     // one face each at the same time, with a whole-cube reorientation between
     // passes (ROTX after the first, ROTZ after the second). Order matches the
     // scan loop in scanCube().
@@ -186,20 +186,20 @@ public:
     // face row (U R F D L B). Sensor 1 first, sensor 2 second.
     static const uint8_t kScanPassFaces[kScanPasses][2];
 
-    // A colour letter as the sensors report it ('W','Y','R','O','G','B') mapped
-    // to the display's chip index, or -1 if it is not a colour. Lives here
+    // A color letter as the sensors report it ('W','Y','R','O','G','B') mapped
+    // to the display's chip index, or -1 if it is not a color. Lives here
     // because the scan is what produces those letters.
     static int8_t chipIndexForColor(char c);
 
     // What the last scan read, per face, in face-row order (U R F D L B) as
-    // chip colour indices; -1 where nothing was read. Kept after scanCube()
+    // chip color indices; -1 where nothing was read. Kept after scanCube()
     // returns so the result screen can show the cube it just found rather than
     // an empty frame saying "complete".
     int8_t scanFaceChips[6] = { -1, -1, -1, -1, -1, -1 };
 
-    // Colour calibration is four side rotations, one empty-slot reference,
+    // Color calibration is four side rotations, one empty-slot reference,
     // then four top/bottom rotations. Every rotation samples both boards at
-    // once but on DIFFERENT colours, so the two boards complete the set at
+    // once but on DIFFERENT colors, so the two boards complete the set at
     // different moments — hence one row of chips each.
     //
     // Values index the display's chip order: 0 W, 1 Y, 2 R, 3 O, 4 G, 5 B.
@@ -208,9 +208,9 @@ public:
     static const uint8_t kCalSideColors[kCalSideRots][2];
     static const uint8_t kCalTopColors[kCalTopRots][2];
 
-    // The orientation a SOLVED cube must be loaded in before colour
+    // The orientation a SOLVED cube must be loaded in before color
     // calibration, as 54 facelets in net order (U R F D L B). The tables above
-    // say which colour the machine expects to see at each rotation; this says
+    // say which color the machine expects to see at each rotation; this says
     // how to make that true. They are two halves of one fact and must agree —
     // see the derivation beside the definition.
     static const char kCalStartFacelets[55];
@@ -223,7 +223,7 @@ public:
 private:
     bool powerCheck();
 
-    // Restore the in-RAM colour calibration after a failed or aborted
+    // Restore the in-RAM color calibration after a failed or aborted
     // calibration. Leaving EEPROM untouched is necessary but not sufficient —
     // setColorCal() has already written partial/stale values into calVals[],
     // and nothing reloads them, so every later scan this power cycle would
@@ -306,16 +306,16 @@ public:
     // spending any physical moves on a rescan.
     //
     // The dominant scan error on this machine is a COMPENSATING pair: one Y
-    // read as W and one W read as Y leaves every colour count at exactly 9, so
+    // read as W and one W read as Y leaves every color count at exactly 9, so
     // it sails through the count check and only piece-level validation sees it.
     // Both offending stickers necessarily have low margin — their whole problem
     // is that Y and W sit ~0.03 apart — and each has the other as its runner-up.
     // Substituting the runner-up on the least-confident stickers therefore fixes
     // precisely the case that counting cannot catch, at zero mechanical cost.
-    char  scanColor[6][9];        // classified colour per sticker
-    char  scanAlt[6][9];          // runner-up colour per sticker
+    char  scanColor[6][9];        // classified color per sticker
+    char  scanAlt[6][9];          // runner-up color per sticker
     float scanConf[6][9];         // confidence [0,1], 0 = totally ambiguous
-    char  scanFaceColor[6];       // centre colour of each scanned face
+    char  scanFaceColor[6];       // centre color of each scanned face
     char  scanLeftColor[6];       // 'left' argument used when setting that face
     char  scanOrientLeft = 'X';   // orientation arguments captured at scan time
     char  scanOrientBack = 'X';
@@ -326,7 +326,7 @@ public:
     int rebuildFromScan();
 
     // Try to repair a scan that failed validation by substituting runner-up
-    // colours on the least-confident stickers. Returns 0 if a substitution
+    // colors on the least-confident stickers. Returns 0 if a substitution
     // produced a physically valid cube, non-zero if none did (in which case the
     // original scan is restored).
     // Defaults cover EVERY candidate, deliberately.

@@ -93,7 +93,7 @@ namespace {
     const int GHOST_Y = 83,  GHOST_STEP = 33;
     const int NEXT_LABEL_X = 195, NEXT_LABEL_Y = 89;
 
-    // Colours that belong to no theme.
+    // Colors that belong to no theme.
     const uint32_t COL_LABEL_OFF = 0xF0A018;   // gold text on an unselected bar
     const uint32_t COL_LABEL_ON  = 0x151000;   // near-black on the yellow bar
     const uint32_t COL_TITLE     = 0xACAFBA;
@@ -218,7 +218,7 @@ namespace {
 
     // A face letter is printed ON its centre sticker, so it has to survive
     // being drawn over white, yellow, red, orange, green or blue. Pick by
-    // perceived brightness rather than by a per-colour table, which would need
+    // perceived brightness rather than by a per-color table, which would need
     // revisiting every time the palette moves.
     inline uint32_t inkFor(uint32_t bg) {
         const uint32_t lum = (299u * ((bg >> 16) & 0xFF) +
@@ -237,7 +237,7 @@ namespace {
     const int PBAR_X = 60, PBAR_Y = 150, PBAR_W = 200, PBAR_H = 8;
     const int OP_SUB_BELOW_STEPS_Y = 166;
 
-    // The six cube colours, in the order setOpChips() expects its bits.
+    // The six cube colors, in the order setOpChips() expects its bits.
     const uint32_t kChipColors[6] = {
         0xF0F0F0,   // White
         0xF5C518,   // Yellow
@@ -287,7 +287,7 @@ namespace {
         lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
     }
 
-    // Recolour a white mask, which is what makes one asset serve all six
+    // Recolor a white mask, which is what makes one asset serve all six
     // themes. The masks are RGB565A8 rather than A8 deliberately: LVGL reads an
     // uncompressed RGB565A8 straight out of flash, but copies every alpha-only
     // image into a RAM buffer first, and a 49 KB band does not fit the 32 KB
@@ -628,8 +628,8 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
         hide(lbl_lineVal[i]);
     }
 
-    // Colour chips. Two rows because the two sensor boards see DIFFERENT
-    // colours at each rotation — they finish the set at different moments, and
+    // Color chips. Two rows because the two sensor boards see DIFFERENT
+    // colors at each rotation — they finish the set at different moments, and
     // a single shared row would have to lie about one of them.
     for (int b = 0; b < 2; ++b) {
         lbl_chipRow[b] = lv_label_create(scr);
@@ -771,7 +771,7 @@ void CubeDisplay::setOpRibbon(const char* const* moves, int count, int current) 
             continue;
         }
 
-        // Done, doing, still to do — three states, told by colour alone.
+        // Done, doing, still to do — three states, told by color alone.
         uint32_t ink = COL_OP_VALUE;
         lv_opa_t opa = LV_OPA_COVER;
         if (m == current)     { ink = 0xFBFF47; }
@@ -848,11 +848,11 @@ int8_t CubeDisplay::chipIndexForColor(char c) {
 namespace {
 void drawNet(uint8_t* buf, int w, int h, int cell, int sticker,
              const char* facelets) {
-    uint8_t* colour = buf;
+    uint8_t* color = buf;
     uint8_t* alpha  = buf + (w * h * 2);
 
     // Everything transparent first: the gaps between stickers are the panel's
-    // own background showing through, not a drawn colour, so the net sits on
+    // own background showing through, not a drawn color, so the net sits on
     // the themed backdrop instead of on a grey slab.
     lv_memset(alpha, 0x00, (size_t)(w * h));
 
@@ -863,7 +863,7 @@ void drawNet(uint8_t* buf, int w, int h, int cell, int sticker,
             const int cx = (kNetFaces[f].col + (k % 3)) * cell;
             const int cy = (kNetFaces[f].row + (k / 3)) * cell;
 
-            // A sticker whose colour is not known is drawn as a hollow outline
+            // A sticker whose color is not known is drawn as a hollow outline
             // rather than skipped, so a gap in the net reads as "this one is
             // wrong" instead of as an empty space.
             const uint16_t px = (ci >= 0) ? rgb565(kChipColors[ci]) : rgb565(0x30364A);
@@ -876,8 +876,8 @@ void drawNet(uint8_t* buf, int w, int h, int cell, int sticker,
                     if (edge) continue;               // hollow centre
 
                     const int i = (cy + y) * w + (cx + x);
-                    colour[i * 2 + 0] = (uint8_t)(px & 0xFF);
-                    colour[i * 2 + 1] = (uint8_t)(px >> 8);
+                    color[i * 2 + 0] = (uint8_t)(px & 0xFF);
+                    color[i * 2 + 1] = (uint8_t)(px >> 8);
                     alpha[i] = 0xFF;
                 }
             }
@@ -899,7 +899,7 @@ void CubeDisplay::setOpCubeNet(const char* facelets, bool labelFaces) {
 
     drawNet(s_netBuf, NET_W, NET_H, NET_CELL, NET_STICKER, facelets);
     // Letters take their ink from the centre sticker they land on, so a face
-    // whose colour was not read (drawn hollow) gets the light one.
+    // whose color was not read (drawn hollow) gets the light one.
     for (int f = 0; f < 6; ++f) {
         if (!labelFaces) { hide(lbl_netFace[f]); continue; }
         const int8_t centre = chipIndexForColor(facelets[kNetFaces[f].base + 4]);
@@ -925,7 +925,7 @@ void CubeDisplay::setOpCubeNet(const char* facelets, bool labelFaces) {
 //
 //  Deliberately built from the menu's own parts. An operator watching a scan is
 //  looking at the same frame, in the same place, with the same hint bar along
-//  the bottom — only the colour and the contents change. The alternative, which
+//  the bottom — only the color and the contents change. The alternative, which
 //  is what this replaced, was white text on black that shared nothing with the
 //  rest of the machine's UI.
 // ---------------------------------------------------------------------------
@@ -1107,7 +1107,7 @@ void CubeDisplay::setOpChipRow(int row, const int8_t* fill, const char* const* c
         const bool   got  = (col >= 0 && col < 6);
         const bool   busy = (i == active);
 
-        // A chip with a colour is a readout; a hollow one is a slot waiting to
+        // A chip with a color is a readout; a hollow one is a slot waiting to
         // be filled, or — on a jog page — simply a thing you can point at.
         if (got) {
             lv_obj_set_style_bg_color(c, lv_color_hex(kChipColors[col]), 0);
@@ -1175,7 +1175,7 @@ void CubeDisplay::setOpChips(const uint8_t* bits, int boards) {
             lv_obj_set_style_border_width(chip[b][i], 1, 0);
 
             const bool got = (bits[b] >> i) & 1u;
-            // Captured colours are solid; the rest are just their own outline,
+            // Captured colors are solid; the rest are just their own outline,
             // so the row reads as a checklist rather than as decoration.
             lv_obj_set_style_bg_opa(chip[b][i], got ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
             lv_obj_set_style_border_opa(chip[b][i], got ? LV_OPA_COVER : 110, 0);
@@ -1471,7 +1471,7 @@ void CubeDisplay::showList(const MenuScreen*      screen,
         pendSel  = (int8_t)selectedRow;
         pendDir  = (nav == MenuNav::Back) ? -1 : 1;
 
-        // Title, frame colour, caption and preview all change at the START of
+        // Title, frame color, caption and preview all change at the START of
         // the transition, not the end — the design is explicit about this, and
         // it is what makes the new screen feel like it is already arriving
         // while the old items are still clearing.
@@ -1533,8 +1533,8 @@ void CubeDisplay::applyScreen(const MenuScreen*      screen,
         show(barBox[i]);
     }
 
-    // The frame takes the SELECTED item's colour, not the screen's — that is
-    // what makes moving the cursor recolour the whole frame.
+    // The frame takes the SELECTED item's color, not the screen's — that is
+    // what makes moving the cursor recolor the whole frame.
     applyTheme(CubeMenu::themeOf(screen, items[selectedRow]));
     placeCursor(selectedRow, rows);
 

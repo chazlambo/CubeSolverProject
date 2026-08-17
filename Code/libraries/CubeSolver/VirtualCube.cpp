@@ -58,13 +58,13 @@ void VirtualCube::resetOrientation() {
 void VirtualCube::resetColor() {
   // Undefine faces.
   //
-  // This previously called setColorArray(<colour>, "QQQQ<c>QQQQ", <left>) six
+  // This previously called setColorArray(<color>, "QQQQ<c>QQQQ", <left>) six
   // times. setColorArray validates all nine characters against RGBYOW and
   // returns error 2 on the first 'Q' BEFORE writing anything, so every one of
   // those calls failed and every return value was discarded. Net effect: the
   // six side arrays were never reset here, and were never initialised by the
   // constructor either — they held indeterminate memory until a successful
-  // scan populated them, and a reset left stale colours from the previous cube.
+  // scan populated them, and a reset left stale colors from the previous cube.
   //
   // Write the sentinels directly instead of routing them through the validator
   // that rejects them.
@@ -1066,16 +1066,16 @@ int VirtualCube::validateCentres() const {
 int VirtualCube::validatePieces() const {
   // Outputs:
   //  0 - Every corner and edge is a real cubie, each used exactly once
-  //  1 - A corner holds two identical or two opposite colours
+  //  1 - A corner holds two identical or two opposite colors
   //  2 - A corner is not one of the 8 real corner cubies
-  //  3 - An edge holds two identical or two opposite colours
+  //  3 - An edge holds two identical or two opposite colors
   //  4 - An edge is not one of the 12 real edge cubies
   //  5 - A cubie appears in more than one position
   //  6 - cubeArray contains a character outside URFDLB
   //
-  // Counting nine of each colour cannot see a compensating pair: one Y read as
+  // Counting nine of each color cannot see a compensating pair: one Y read as
   // W plus one W read as Y leaves both counts at 9 and produces a legal-looking
-  // facelet string. Checking the colour SET of each physical piece does see it,
+  // facelet string. Checking the color SET of each physical piece does see it,
   // because two swapped stickers almost never yield two other real cubies.
 
   bool cornerUsed[8] = { false, false, false, false, false, false, false, false };
@@ -1150,7 +1150,7 @@ int VirtualCube::solveCube(String moves[], int maxMoves){
   //  -1 - Cube is not ready
   //  -2 - Solution not found (illegal cube, or solver timed out)
   //  -3 - Centres are not canonical  (orientation was misread)
-  //  -4 - A corner or edge is not a real cubie (compensating colour misread)
+  //  -4 - A corner or edge is not a real cubie (compensating color misread)
   //  -5 - Solution has more moves than `moves` can hold
 
     // Make sure the cube has been built BEFORE spending up to `timeOut` ms in

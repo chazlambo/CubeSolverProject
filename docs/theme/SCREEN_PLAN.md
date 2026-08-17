@@ -23,7 +23,7 @@ So: a bar is a thing you can pick. Status is chips, a progress bar, a table, or
 text. Never a bar. When something is genuinely a list of choices — Patterns,
 Parameters — bars are exactly right and should be used.
 
-Second rule, from the same place: **the frame colour is the state.** Blue
+Second rule, from the same place: **the frame color is the state.** Blue
 scanning, green solving/done, violet calibrating, yellow info/settings, red
 stopped. A new screen picks the one that already means what it means.
 
@@ -33,11 +33,11 @@ stopped. A new screen picks the one that already means what it means.
 
 | Piece | Call | Says |
 |---|---|---|
-| Frame colour | `showOperation(kind, …)` | what kind of thing is happening |
+| Frame color | `showOperation(kind, …)` | what kind of thing is happening |
 | Title | `showOperation(…, title, …)` | where you are |
 | Headline / sub-line | `showOperation(…, headline)` / `setStatus()` | what it is doing now |
 | Status table | `setOpLines()`, `"Label\tValue"` | facts, up to 6 rows |
-| Face row | `setOpFaces()` | the six faces, filled with the colour actually read |
+| Face row | `setOpFaces()` | the six faces, filled with the color actually read |
 | Chip rows | `setOpChips()` | a set being collected, two rows |
 | Progress bar | `setOpProgress()` | how far through a countable job |
 | Hint box | `showOperation(…, hint)` | what button to press |
@@ -53,7 +53,7 @@ Built so far, and where each lives:
 | Chip row | `setOpChipRow()` / `setOpFaces()` | scan faces, calibration, the jog strip |
 | Move ribbon | `setOpRibbon()` | Step Solve |
 | Row status marks | `setOpLines(..., marks)` | the jog cursor; Sensor Test wants it too |
-| Frame recolour | `setOpKind()` | phase changes, and "you are editing" |
+| Frame recolor | `setOpKind()` | phase changes, and "you are editing" |
 
 Still missing:
 
@@ -66,7 +66,7 @@ Still missing:
 
 ### On the cube net — built, and how
 
-`setOpCubeNet(facelets)` takes 54 colour letters in the standard order and draws
+`setOpCubeNet(facelets)` takes 54 color letters in the standard order and draws
 the unfolded cross. `VirtualCube::getColorArray()` returns exactly that.
 
 It is **not** LVGL primitives and **not** `lv_canvas`. It writes RGB565A8 into a
@@ -83,7 +83,7 @@ apply to the next thing like it:
   invalidation dance.
 
 Gaps between stickers are alpha 0, so the net sits on the themed backdrop rather
-than on a grey slab. A facelet that is not a known colour is drawn as a hollow
+than on a grey slab. A facelet that is not a known color is drawn as a hollow
 outline, so a bad sticker reads as wrong rather than as missing.
 
 **Still missing:** per-face rotation for a *raw* scan. Cube State falls back to
@@ -111,7 +111,7 @@ and the hint box along the bottom on every one of them.
 
 ### Scramble Solve — Modes
 
-Two phases, and the frame colour should carry that: **red** while scrambling,
+Two phases, and the frame color should carry that: **red** while scrambling,
 **green** the moment it starts solving. Nothing else on the screen has to
 change for the operator to know which half they are watching.
 
@@ -122,7 +122,7 @@ change for the operator to know which half they are watching.
 ```
 
 Reuses everything. Needs nothing new. Build this first — it is the cheapest of
-the Modes and it proves the phase-colour idea.
+the Modes and it proves the phase-color idea.
 
 ### Idle Mode — Modes
 
@@ -135,18 +135,18 @@ broken.
         Best      12.4 s                    <- status table, last/best
         Solves    128
                                             <- frame slowly cycles the six
-                                               theme colours, ~8 s each
+                                               theme colors, ~8 s each
 ```
 
 Giving it the stats table means it earns its place instead of being a
 screensaver. The slow frame cycle reuses `applyTheme()` on a timer — the one
-place a colour change is decorative rather than semantic, which is fine because
+place a color change is decorative rather than semantic, which is fine because
 nothing else is happening. Hint: "SELECT to wake".
 
 ### Demo Mode — Modes — **BUILT**
 
 Scramble, solve, repeat, unattended. Both halves already existed — the phase
-colours from Scramble Solve, the ribbon from Step Solve — so it is a loop around
+colors from Scramble Solve, the ribbon from Step Solve — so it is a loop around
 them plus a run counter.
 
 Four phases, because the machine has four:
@@ -183,7 +183,7 @@ One move per press. This is what the **move ribbon** is for.
 ```
 
 Deliberately **plain text tokens, no boxes** — boxed tokens would drift back
-toward looking like buttons. Colour alone carries the cursor.
+toward looking like buttons. Color alone carries the cursor.
 
 `setOpRibbon(moves, count, current)` centres the window on the current move and
 shows about seven. Hint: "SELECT for next move".
@@ -208,22 +208,22 @@ one `drawNet()` with the full-size version so the two cannot disagree about what
 a cube looks like.
 
 The four states are computed by applying each well-known sequence to a solved
-cube and checked for nine of every colour — a preview that is not a real cube
+cube and checked for nine of every color — a preview that is not a real cube
 would hide exactly the bugs this screen is for.
 
 What remains is the machine side: running the moves. The screen is done.
 
 ### Cube State — Diagnostics — **BUILT**
 
-The net plus a colour count. Nine of each is the cheapest check that the stored
-state is a cube at all, and unlike "invalid" it says *which* colour was misread.
+The net plus a color count. Nine of each is the cheapest check that the stored
+state is a cube at all, and unlike "invalid" it says *which* color was misread.
 
 It doubles as the **scan review**: with nothing built but a scan recorded, it
 shows the raw readings instead of an empty screen — which is the case where
 somebody most wants to look. See the caveat above.
 
 Still worth adding: mark the low-confidence stickers. `scanAlt` and `scanConf`
-already record the runner-up colour and the confidence for every sticker, so the
+already record the runner-up color and the confidence for every sticker, so the
 data is there — a hollow or outlined sticker for "the classifier was unsure
 about this one" would turn this from *what it read* into *what to distrust*.
 
@@ -315,12 +315,12 @@ there is no one sentence true of both a servo and a face motor.
 the firmware's Diagnostics menu; the actions already call the real CubeSystem
 methods.
 
-### Colour Sensors — Diagnostics — **BUILT**
+### Color Sensors — Diagnostics — **BUILT**
 
 Two health rows and eighteen live chips, nine per board. The chips ARE the
-readout: eighteen colour names would take longer to read than the cube takes to
+readout: eighteen color names would take longer to read than the cube takes to
 scan, and the thing you are hunting — one sensor disagreeing with its
-neighbours — shows up instantly as a chip of the wrong colour.
+neighbours — shows up instantly as a chip of the wrong color.
 
 ```
    Board 1              9/9 healthy, sep 165     <- green
@@ -407,7 +407,7 @@ Screens done, machine side outstanding:
 - **Step Solve** — the ribbon works; needs the moves actually executed.
 - **Demo Mode** — scramble and solve on a loop with a run counter, showing the
   moves rather than only a count. Needs the two operations behind it.
-- **Colour Sensors** and **Motor Sensors** — both drawn, both on canned but
+- **Color Sensors** and **Motor Sensors** — both drawn, both on canned but
   moving data. Need the sensors actually read, and **throttled**: every refresh
   is I²C traffic on the bus the wheel is also using. `Test_Menu`'s Input Report
   shows the pattern.
@@ -437,7 +437,7 @@ cmake -S Code/sim -B Code/sim/build-test -DSIM_SKETCH=Test_Menu
 cmake --build Code/sim/build-test -j && ./Code/sim/build-test/cubesim
 ```
 
-A screen prototyped there can be judged against every frame colour and item
+A screen prototyped there can be judged against every frame color and item
 count in seconds, and it keeps half-finished UI out of the sketch that drives
 real motors. Move it into the firmware once it looks right and there is
 something behind it to show.

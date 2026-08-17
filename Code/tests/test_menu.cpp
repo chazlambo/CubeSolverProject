@@ -44,7 +44,7 @@ struct Frame {
     bool      moreAbove;
     bool      moreBelow;
     MenuNav   nav;
-    MenuTheme theme;        // resolved colour of the selected item
+    MenuTheme theme;        // resolved color of the selected item
     char      caption[64];  // its description line
     int       drawCount;
 };
@@ -337,7 +337,7 @@ int main() {
         // item defers to the screen, and neither says anything.
         static const char* const kPrev[] = { "One", "Two" };
         static const MenuItem themedItems[] = {
-            { "Loud",  nullptr, nullptr, "Has its own colour.", kPrev, 2, MenuTheme::Red },
+            { "Loud",  nullptr, nullptr, "Has its own color.", kPrev, 2, MenuTheme::Red },
             { "Quiet", nullptr, nullptr, "Takes the screen's.", nullptr, 0, MenuTheme::Inherit },
         };
         static const MenuScreen themedScreen = { "Themed", themedItems, 2, MenuTheme::Violet };
@@ -347,7 +347,7 @@ int main() {
         m.begin(&themedScreen, testDraw);
         m.render();
         CHECK(g_frame.theme == MenuTheme::Red, "item theme should win");
-        CHECK(std::strcmp(g_frame.caption, "Has its own colour.") == 0,
+        CHECK(std::strcmp(g_frame.caption, "Has its own color.") == 0,
               "caption = %s", g_frame.caption);
 
         m.handle(MenuEvent::Down);
@@ -355,7 +355,7 @@ int main() {
         CHECK(g_frame.theme == MenuTheme::Violet, "Inherit should fall back to the screen");
 
         // An untouched three-field table — the shape every existing screen
-        // still uses — must resolve to a real colour rather than nothing.
+        // still uses — must resolve to a real color rather than nothing.
         CHECK(CubeMenu::themeOf(&kMainPre, &kMainPreItems[0]) == MenuTheme::Green,
               "a table that names no theme should land on Green");
     }

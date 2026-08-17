@@ -137,7 +137,7 @@ void ColorSensor::scanSingle(int sensorIdx) {
     // An aborted wait returns after ~0 ms, and the VEML6040 integrates
     // continuously — so reading now would return the PREVIOUS integration
     // window, i.e. data from before the mux switched. A wrong-but-plausible
-    // colour is the worst possible output here, so bail instead.
+    // color is the worst possible output here, so bail instead.
     if (!pumpDelay(waitTime*3)) {
         digitalWrite(ledPin, LOW);
         multiplexers[0]->setChannelMask(0x00);
@@ -246,9 +246,9 @@ void ColorSensor::getFaceReadings(ColorReading out[9]) const {
 
 void ColorSensor::computeSeparations() {
     // For each sensor, the smallest distance between any two of the SIX REAL
-    // colours (index 0-5 = R G B Y O W). Index 6 ('E', empty chamber) is
+    // colors (index 0-5 = R G B Y O W). Index 6 ('E', empty chamber) is
     // deliberately excluded: it is useful as a cube-present test but it is not
-    // a sticker colour, and on some sensors it sits closer to blue than blue
+    // a sticker color, and on some sensors it sits closer to blue than blue
     // sits to anything else — which would collapse the separation figure.
     //
     // This is derived from calVals rather than stored, so it needs no EEPROM
@@ -278,7 +278,7 @@ float ColorSensor::getSensorSeparation(int sensorIdx) const {
 int ColorSensor::checkSensorHealth(int sensorIdx) const {
     if (sensorIdx < 0 || sensorIdx > 8) return 1;
 
-    // A channel that reads identically zero for every real colour is a dead
+    // A channel that reads identically zero for every real color is a dead
     // photodiode channel, not a legitimate measurement. Board 2 sensor 2 shows
     // exactly this on green across every archived calibration run, and nothing
     // in software could previously see it: setColorCal only rejects negatives
@@ -318,7 +318,7 @@ ColorReading ColorSensor::classify(int sensorIdx, const int rgbw[4]) const {
     float bestD = 0.0f, secondD = 0.0f;
 
     for (int c = 0; c < 7; ++c) {
-        if (calVals[sensorIdx][c][3] <= 0) continue;    // this colour never calibrated
+        if (calVals[sensorIdx][c][3] <= 0) continue;    // this color never calibrated
         float d = colorDistance(rgbw, calVals[sensorIdx][c]);
         if (d != d) continue;                           // NaN guard
 
@@ -401,21 +401,21 @@ float ColorSensor::colorDistance(const int rgbw1[4], const int rgbw2[4]) const {
 char ColorSensor::getColor(int sensorIdx, const int rgbw[4]) {
     // Thin wrapper over classify(), kept so existing callers and sketches work
     // unchanged. Prefer classify() / getFaceReadings() in new code — this
-    // signature can only say "some colour", never "I am not sure".
+    // signature can only say "some color", never "I am not sure".
     //
     ColorReading r = classify(sensorIdx, rgbw);
 
     // Apply the ABSOLUTE gate here, but not the margin/health gates.
     //
     // Gating on the full r.ok made three sensors (board 2 #2, #4, #7, whose
-    // separation is below minUsableSeparation) return 'U' for every colour they
+    // separation is below minUsableSeparation) return 'U' for every color they
     // will ever read, including their own calibration references — that broke
     // the diagnostic sketch for exactly the sensors you would open it to
     // investigate.
     //
     // But removing the gate entirely was also wrong. Measured over the archived
     // data, the ORIGINAL colorTol gate returned 'U' for 10.8% of cross-run
-    // readings and 54% of those were genuinely the wrong colour. Dropping it
+    // readings and 54% of those were genuinely the wrong color. Dropping it
     // turned real rejections into confident wrong answers.
     //
     // So: reject readings that are nowhere near any reference, and leave the

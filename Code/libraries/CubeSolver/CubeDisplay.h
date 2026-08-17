@@ -24,7 +24,7 @@ public:
     // band, the same title position, the same description box as a hint bar —
     // so an operation does not look like a different program.
     //
-    // The frame colour says what kind of thing is happening at a glance, which
+    // The frame color says what kind of thing is happening at a glance, which
     // is the one piece of information an operator across the room can still
     // read.
     enum class OpKind : uint8_t { Info, Scan, Solve, Calibrate, Done, Error };
@@ -34,7 +34,7 @@ public:
     void showOperation(OpKind kind, const char* title,
                        const char* headline, const char* hint = nullptr);
 
-    // Recolour the frame without disturbing anything on the screen. For an
+    // Recolor the frame without disturbing anything on the screen. For an
     // operation that changes character partway through — a scramble becoming a
     // solve — where calling showOperation() again would clear the progress bar
     // and flicker. The frame is the state, so the state has to be able to move.
@@ -49,18 +49,18 @@ public:
     static const int kOpLines = 7;
 
     // What a status row's value is saying. Plain is the default; the rest tint
-    // the value half so a checklist can be read by colour before it is read by
+    // the value half so a checklist can be read by color before it is read by
     // word — which is the whole point of a checklist you watch running.
     enum class RowMark : uint8_t { Plain, Good, Bad, Busy };
 
     void setOpLines(const char* const* lines, int count,
                     const RowMark* marks = nullptr);
 
-    // The six cube faces as a row of chips, each showing the colour actually
+    // The six cube faces as a row of chips, each showing the color actually
     // read from that face's centre sticker, hollow until it has been. `active`
     // are the two faces being read right now, or -1.
     //
-    // faces[] is indexed U R F D L B and holds a chip colour index (0..5) or
+    // faces[] is indexed U R F D L B and holds a chip color index (0..5) or
     // -1 for "not yet". This deliberately does NOT use the menu's bar art: in
     // this theme a bar means "you can select this", and borrowing it for status
     // made a scan look like a screen full of buttons.
@@ -68,34 +68,34 @@ public:
     void setOpFaces(const int8_t* faces, int activeA = -1, int activeB = -1);
 
     // The general form: a row of captioned chips, one of which may be lit.
-    // `fill` is a chip colour index per chip, or -1 to draw it hollow; `caps`
+    // `fill` is a chip color index per chip, or -1 to draw it hollow; `caps`
     // are the letters beneath them. setOpFaces() is this with the cube's face
     // names at the scan screen's position.
     //
     // Used as a SELECTOR as well as a readout — a row of eight boxes holds what
     // eight menu bars could not.
-    // Nine, because a colour board has nine sensors — one per sticker — and a
+    // Nine, because a color board has nine sensors — one per sticker — and a
     // live readout of them is the widest row anything asks for.
     static const int kChipMax = 9;
     void setOpChipRow(int row, const int8_t* fill, const char* const* caps,
                       int count, int active, int y);
 
-    // Per-board colour capture for the sensor calibration, as two rows of six
-    // chips. bits[b] holds one bit per colour in kChipOrder, low bit first.
+    // Per-board color capture for the sensor calibration, as two rows of six
+    // chips. bits[b] holds one bit per color in kChipOrder, low bit first.
     static const int kChipCount = kChipMax;
     void setOpChips(const uint8_t* bits, int boards);
 
-    // A colour letter as the sensors and the virtual cube use them
+    // A color letter as the sensors and the virtual cube use them
     // ('W','Y','R','O','G','B') mapped to an index into the chip palette, or
     // -1 for anything else. Lives here because this class defines that palette
     // and its order; CubeSystem::chipIndexForColor() forwards to it.
     static int8_t chipIndexForColor(char c);
 
     // The cube as an unfolded net: 54 facelets in the standard order
-    // (U R F D L B, row-major within each face) as colour letters, exactly what
+    // (U R F D L B, row-major within each face) as color letters, exactly what
     // VirtualCube::getColorArray() returns. nullptr hides it.
     //
-    // A facelet that is not a known colour is drawn hollow, so a partial or
+    // A facelet that is not a known color is drawn hollow, so a partial or
     // impossible state shows WHICH stickers are the problem.
     static const int kNetFacelets = 54;
     void setOpCubeNet(const char* facelets, bool labelFaces = true);
@@ -103,7 +103,7 @@ public:
     // A move sequence with a cursor on the one being run: a window of moves
     // centred on `current`, past dimmed, future plain, current in cursor
     // yellow. Deliberately PLAIN TEXT with no boxes — boxed tokens would drift
-    // back toward looking like buttons, and colour alone carries the cursor.
+    // back toward looking like buttons, and color alone carries the cursor.
     static const int kRibbonSlots = 7;
     void setOpRibbon(const char* const* moves, int count, int current);
 
@@ -131,7 +131,7 @@ public:
 
     // ---- Menu screen ----------------------------------------------------
     //
-    // Draws the themed menu: baked background, a frame band recoloured to the
+    // Draws the themed menu: baked background, a frame band recolored to the
     // SELECTED item's theme, zigzag bars, description line and preview pane.
     //
     // Rows must be <= kRows; anything beyond is dropped. The caller (CubeMenu)
@@ -203,8 +203,8 @@ private:
     lv_obj_t* img_nextLabel;
 
     // The band is two masks, not one image: the design's fill and edge are
-    // different hues of the theme, and a single recoloured mask can only be one
-    // colour. Both are white RGB565A8 that LVGL recolors at draw time.
+    // different hues of the theme, and a single recolored mask can only be one
+    // color. Both are white RGB565A8 that LVGL recolors at draw time.
     lv_obj_t* img_bandFill;
     lv_obj_t* img_bandEdge;
 
@@ -244,7 +244,7 @@ private:
     lv_style_t white_style;
 
     // Last theme pushed to the band, so a cursor move that does not change
-    // colour does not invalidate two full-screen images for nothing.
+    // color does not invalidate two full-screen images for nothing.
     MenuTheme  curTheme;
 
     // Which family of widgets is currently on screen.

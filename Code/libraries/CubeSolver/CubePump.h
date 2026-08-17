@@ -5,7 +5,7 @@
 // which already includes them, and would be circular.
 //
 // Most of the time this machine spends "busy" is not work, it is delay().
-// scanCube() blocks for roughly 25-40 s: ~5.4 s of colour-sensor integration
+// scanCube() blocks for roughly 25-40 s: ~5.4 s of color-sensor integration
 // waits, and most of the rest servo sweeps stepping one degree every 15 ms.
 // Nothing services the display or latches button presses during any of it, so
 // the screen freezes on "Scanning cube..." and any press in that window is lost

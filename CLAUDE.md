@@ -36,7 +36,7 @@ g++ -fsyntax-only -std=c++17 -DLV_CONF_INCLUDE_SIMPLE -ICode/sim/shim \
 firmware.** `-DSIM_SKETCH=Test_Menu` builds it into the simulator instead: a
 bench sketch needing no cube, no machine and no solver, whose `Screens` submenu
 draws every operation screen from canned data. It is the fastest way to see a UI
-change and to check one against every frame colour and item count, and it keeps
+change and to check one against every frame color and item count, and it keeps
 half-finished UI out of the sketch that drives real motors.
 
 When a screen changes in the firmware, update the demo there too — the bench
@@ -62,7 +62,7 @@ several failure modes that are completely silent:
   crash, blank panel. Check the pool line `CubeDisplay::begin()` prints, or
   press `M` in the simulator.
 - Alpha-only (A8) images are copied into RAM and will silently fail to appear;
-  recolourable art is baked RGB565A8.
+  recolorable art is baked RGB565A8.
 - Generated assets must stay in `Code/libraries/CubeSolver/utility/` — the
   Arduino 1.0 library format compiles no other subdirectory.
 
@@ -92,7 +92,7 @@ new screen.
 
 ## Known hardware fault, not a bug to fix
 
-Colour sensor board 2, sensor 2 has a **dead green channel** — it reads 0 for
-every sticker colour in every archived calibration run. The firmware detects it
+Color sensor board 2, sensor 2 has a **dead green channel** — it reads 0 for
+every sticker color in every archived calibration run. The firmware detects it
 (`ColorSensor::checkSensorHealth`). Low separation on board 2 in Calibration
 Status is expected and real.
