@@ -62,6 +62,7 @@ using Op = CubeDisplay::OpKind;
 enum class TState : uint8_t {
     Menu,       // CubeMenu has the panel
     Screen,     // a full-screen view; SELECT or LEFT returns
+    Jog,        // direct actuator control; see the note above pollJog()
     Loading,    // clamp the cube, once
     Ejecting    // release and present it, once
 };
@@ -95,13 +96,6 @@ extern const MenuScreen kScreenCube;
 extern const MenuScreen kScreenMsg;
 extern const MenuScreen kScreenPatterns;
 extern const MenuScreen kScreenAct;
-extern const MenuScreen kScreenTopServo;
-extern const MenuScreen kScreenBotServo;
-extern const MenuScreen kScreenRing;
-extern const MenuScreen kScreenFaces;
-extern const MenuScreen kScreenAxisUD;
-extern const MenuScreen kScreenAxisLR;
-extern const MenuScreen kScreenAxisFB;
 extern const MenuScreen kScreenRotate;
 extern const MenuScreen kScreenDiag;
 extern const MenuScreen kScreenThree;
@@ -124,10 +118,8 @@ static void actDemoNetSolved();
 static void actDemoNetScrambled();
 static void actDemoNetLoad();
 static void actFoldPattern();
-static void actTopServo();
-static void actBotServo();
-static void actRing();
-static void actFaceMove();
+static void actJogGrippers();
+static void actJogFaces();
 static void actCubeRotate();
 
 // ---------------------------------------------------------------------------
@@ -156,8 +148,7 @@ static const char kPatSixSpot[55] =
 static const char kPatSuperflip[55] =
     "WBWOWRWGW" "RWRGRBRYR" "GWGOGRGYG" "YGYOYRYBY" "OWOBOGOYO" "BWBRBOBYB";
 static const char* const kPrevOps[]  = { "Faces", "Chips", "Bar", "Scramble" };
-static const char* const kPrevAct[]  = { "Top servo", "Bottom servo", "Ring",
-                                         "Face motors", "Rotate" };
+static const char* const kPrevAct[]  = { "Grippers", "Face motors", "Rotate" };
 static const char* const kPrevDiag[] = { "Navigation", "Input" };
 static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
 static const char* const kPrevDeep[]    = { "Deeper", "and", "deeper" };
@@ -169,7 +160,7 @@ static const MenuItem kMainItems[] = {
     { "Eject Cube",  nullptr,         actEject, "Release and present it.",
       nullptr, 0, MenuTheme::Violet },
     { "Actuators",   &kScreenAct,     nullptr,  "Drive each part by hand.",
-      kPrevAct, 5, MenuTheme::Red },
+      kPrevAct, 3, MenuTheme::Red },
     { "Screens",     &kScreenScreens, nullptr,  "Draw the panel, no hardware.",
       kPrevScreens, 4, MenuTheme::Yellow },
     { "Diagnostics", &kScreenDiag,    nullptr,  "Navigation and input.",
@@ -192,72 +183,14 @@ static const MenuScreen kScreenMain = { "Menu Test", kMainItems, 5, MenuTheme::G
 //  they are the same axis, so it is a grouping that means something rather than
 //  an arbitrary split.
 static const MenuItem kActItems[] = {
-    { "Top Servo",    &kScreenTopServo, nullptr, "Gripper above the cube.",
+    { "Grippers",    nullptr,        actJogGrippers, "Servos and ring, one page.",
       nullptr, 0, MenuTheme::Blue },
-    { "Bottom Servo", &kScreenBotServo, nullptr, "Gripper below the cube.",
-      nullptr, 0, MenuTheme::Blue },
-    { "Ring",         &kScreenRing,     nullptr, "The rotating track.",
-      nullptr, 0, MenuTheme::Violet },
-    { "Face Motors",  &kScreenFaces,    nullptr, "Turn one face at a time.",
+    { "Face Motors", nullptr,        actJogFaces,    "All six, one page.",
       nullptr, 0, MenuTheme::Yellow },
-    { "Cube Rotate",  &kScreenRotate,   nullptr, "Reorient the whole cube.",
+    { "Cube Rotate", &kScreenRotate, nullptr,        "Reorient the whole cube.",
       nullptr, 0, MenuTheme::Green },
 };
-const MenuScreen kScreenAct = { "Actuators", kActItems, 5, MenuTheme::Red };
-
-// Each of these dispatches on the selected index, so one action serves a whole
-// screen instead of a function per button.
-static const MenuItem kTopServoItems[] = {
-    { "Extend",  nullptr, actTopServo, "Grip the cube." },
-    { "Partial", nullptr, actTopServo, "Halfway." },
-    { "Retract", nullptr, actTopServo, "Clear of the cube." },
-};
-const MenuScreen kScreenTopServo = { "Top Servo", kTopServoItems, 3, MenuTheme::Blue };
-
-static const MenuItem kBotServoItems[] = {
-    { "Extend",  nullptr, actBotServo, "Lift and grip." },
-    { "Partial", nullptr, actBotServo, "Halfway." },
-    { "Retract", nullptr, actBotServo, "Drop clear." },
-};
-const MenuScreen kScreenBotServo = { "Bottom Servo", kBotServoItems, 3, MenuTheme::Blue };
-
-static const MenuItem kRingItems[] = {
-    { "Extend",  nullptr, actRing, "Ring in to the cube." },
-    { "Middle",  nullptr, actRing, "Halfway position." },
-    { "Retract", nullptr, actRing, "Ring clear." },
-};
-const MenuScreen kScreenRing = { "Ring", kRingItems, 3, MenuTheme::Violet };
-
-static const MenuItem kFacesItems[] = {
-    { "Up / Down",    &kScreenAxisUD, nullptr, "The vertical axis." },
-    { "Left / Right", &kScreenAxisLR, nullptr, "The horizontal axis." },
-    { "Front / Back", &kScreenAxisFB, nullptr, "The depth axis." },
-};
-const MenuScreen kScreenFaces = { "Face Motors", kFacesItems, 3, MenuTheme::Yellow };
-
-static const MenuItem kAxisUDItems[] = {
-    { "Up  90",    nullptr, actFaceMove, "Sends U" },
-    { "Up  -90",   nullptr, actFaceMove, "Sends U-prime" },
-    { "Down  90",  nullptr, actFaceMove, "Sends D" },
-    { "Down  -90", nullptr, actFaceMove, "Sends D-prime" },
-};
-const MenuScreen kScreenAxisUD = { "Up / Down", kAxisUDItems, 4, MenuTheme::Yellow };
-
-static const MenuItem kAxisLRItems[] = {
-    { "Left  90",   nullptr, actFaceMove, "Sends L" },
-    { "Left  -90",  nullptr, actFaceMove, "Sends L-prime" },
-    { "Right  90",  nullptr, actFaceMove, "Sends R" },
-    { "Right  -90", nullptr, actFaceMove, "Sends R-prime" },
-};
-const MenuScreen kScreenAxisLR = { "Left / Right", kAxisLRItems, 4, MenuTheme::Yellow };
-
-static const MenuItem kAxisFBItems[] = {
-    { "Front  90",  nullptr, actFaceMove, "Sends F" },
-    { "Front  -90", nullptr, actFaceMove, "Sends F-prime" },
-    { "Back  90",   nullptr, actFaceMove, "Sends B" },
-    { "Back  -90",  nullptr, actFaceMove, "Sends B-prime" },
-};
-const MenuScreen kScreenAxisFB = { "Front / Back", kAxisFBItems, 4, MenuTheme::Yellow };
+const MenuScreen kScreenAct = { "Actuators", kActItems, 3, MenuTheme::Red };
 
 static const MenuItem kRotateItems[] = {
     { "Rotate X", nullptr, actCubeRotate, "Tip the cube forward." },
@@ -435,6 +368,158 @@ static void actEject() {
 }
 
 // ---------------------------------------------------------------------------
+//  Jog pages — direct actuator control
+// ---------------------------------------------------------------------------
+//  A menu is the wrong shape for this. Driving a servo through Extend, Partial
+//  and Retract is nine menu entries across three screens once the ring is in
+//  too, and the face motors are twelve more — all of it clicked through one
+//  item at a time, when what you actually want is to pick a thing and nudge it
+//  while you watch it move.
+//
+//  So these two pages are direct manipulation instead, and they can be because
+//  the wheel and the UP/DOWN BUTTONS are separate inputs on this encoder. The
+//  menu collapses them into one meaning; here they get two:
+//
+//      wheel        choose which part
+//      UP / DOWN    move that part
+//      LEFT         back, exactly as everywhere else
+//
+//  One page for the grippers, one for the faces, and no submenu below either.
+enum class Jog : uint8_t { None, Grippers, Faces };
+static Jog    jogPage = Jog::None;
+static int8_t jogSel  = 0;
+
+static const char* const kGripName[3] = { "Top servo", "Bottom servo", "Ring" };
+static const char* const kGripPos[3][3] = {
+    { "Retract", "Partial", "Extend" },
+    { "Retract", "Partial", "Extend" },
+    { "Retract", "Middle",  "Extend" },
+};
+
+// Where each gripper is, as an index into the row above. -1 until it has been
+// driven from here: the servos remember their position across a reset, but
+// nothing exposes it, and guessing would be worse than admitting we do not know.
+static int8_t gripAt[3] = { -1, -1, -1 };
+
+static const char* const kFaceName[6] = { "Up", "Right", "Front", "Down", "Left", "Back" };
+static const char* const kFaceMove[6][2] = {
+    { "U", "U'" }, { "R", "R'" }, { "F", "F'" },
+    { "D", "D'" }, { "L", "L'" }, { "B", "B'" },
+};
+
+static void drawJog(const char* busy) {
+    if (jogPage == Jog::Grippers) {
+        static char rows[3][40];
+        const char* lines[3];
+        CubeDisplay::RowMark marks[3];
+
+        for (int i = 0; i < 3; ++i) {
+            const char* at = (i == jogSel && busy) ? busy
+                           : (gripAt[i] < 0)       ? "?"
+                           : kGripPos[i][gripAt[i]];
+            snprintf(rows[i], sizeof(rows[i]), "%s\t%s", kGripName[i], at);
+            lines[i] = rows[i];
+            // The cursor IS the marked row — there is no bar art here, because
+            // these rows are a readout you are steering, not a list of choices.
+            marks[i] = (i == jogSel) ? CubeDisplay::RowMark::Busy
+                                     : CubeDisplay::RowMark::Plain;
+        }
+        // The sub-line says what UP and DOWN will step THROUGH for the part
+        // under the cursor. Naming the part again would only repeat the row
+        // that is already lit.
+        char sub[48];
+        if (busy) snprintf(sub, sizeof(sub), "Moving to %s", busy);
+        else      snprintf(sub, sizeof(sub), "%s  -  %s  -  %s",
+                           kGripPos[jogSel][0], kGripPos[jogSel][1], kGripPos[jogSel][2]);
+
+        cubeDisplay.showOperation(Op::Calibrate, "Grippers", nullptr,
+                                  "wheel picks - UP/DOWN moves");
+        cubeDisplay.setStatus(sub);
+        cubeDisplay.setOpLines(lines, 3, marks);
+    } else {
+        // The scan's face row, reused as a selector: hollow boxes with their
+        // letters, and the bright rim marking the one the wheel is on.
+        int8_t faces[6] = { -1, -1, -1, -1, -1, -1 };
+
+        // Which move strings the two buttons will send. On a bench tool that is
+        // the fact worth showing — the hint bar already says what the buttons
+        // are for.
+        char sub[48];
+        if (busy) snprintf(sub, sizeof(sub), "Sending %s", busy);
+        else      snprintf(sub, sizeof(sub), "UP sends %s      DOWN sends %s",
+                           kFaceMove[jogSel][0], kFaceMove[jogSel][1]);
+
+        cubeDisplay.showOperation(Op::Calibrate, "Face Motors", kFaceName[jogSel],
+                                  "wheel picks - UP/DOWN turns");
+        cubeDisplay.setStatus(sub);
+        cubeDisplay.setOpFaces(faces, jogSel, -1);
+    }
+    Cube.displayUpdate();
+}
+
+static void driveGripper(int part, int pos) {
+    if (part == 0) {
+        if (pos == 0)      Cube.topServoRetract();
+        else if (pos == 1) Cube.topServoPartial();
+        else               Cube.topServoExtend();
+    } else if (part == 1) {
+        if (pos == 0)      Cube.botServoRetract();
+        else if (pos == 1) Cube.botServoPartial();
+        else               Cube.botServoExtend();
+    } else {
+        if (pos == 0)      Cube.ringRetract();
+        else if (pos == 1) Cube.ringMiddle();
+        else               Cube.ringExtend();
+    }
+}
+
+static void jogMove(int dir) {
+    if (jogPage == Jog::Grippers) {
+        // From "unknown", either direction lands on the end it is heading for,
+        // so the first press always does something visible.
+        int pos = (gripAt[jogSel] < 0) ? (dir > 0 ? 2 : 0)
+                                       : gripAt[jogSel] + dir;
+        if (pos < 0) pos = 0;
+        if (pos > 2) pos = 2;
+        if (pos == gripAt[jogSel]) return;      // already at the end stop
+
+        drawJog(kGripPos[jogSel][pos]);         // say where it is going first
+        driveGripper(jogSel, pos);
+        gripAt[jogSel] = (int8_t)pos;
+        drawJog(nullptr);
+    } else {
+        const char* mv = kFaceMove[jogSel][dir > 0 ? 0 : 1];
+        drawJog(mv);
+        // align = true: this is the screen for checking a motor lands on its
+        // detent, so let the alignment pass run and report if it cannot.
+        const int e = Cube.executeMove(mv, false, true);
+        if (e) {
+            char sub[48];
+            snprintf(sub, sizeof(sub), "%s  -  code %d", mv, e);
+            showScreen(Op::Error, "Face Motors", "Move failed");
+            cubeDisplay.setStatus(sub);
+            Cube.displayUpdate();
+            return;                              // a failure is worth stopping for
+        }
+        drawJog(nullptr);
+    }
+}
+
+static void actJogGrippers() {
+    jogPage = Jog::Grippers;
+    jogSel  = 0;
+    state   = TState::Jog;
+    drawJog(nullptr);
+}
+
+static void actJogFaces() {
+    jogPage = Jog::Faces;
+    jogSel  = 0;
+    state   = TState::Jog;
+    drawJog(nullptr);
+}
+
+// ---------------------------------------------------------------------------
 //  Actions — driving the actuators
 // ---------------------------------------------------------------------------
 //  Every one of these moves real hardware. They draw a "moving" screen and push
@@ -469,60 +554,6 @@ static void showMoving(const char* title, const char* what) {
 static const char* selectedLabel() {
     const MenuItem* it = Menu.selectedItem();
     return (it && it->label) ? it->label : "?";
-}
-
-static void actTopServo() {
-    const char* what = selectedLabel();
-    showMoving("Top Servo", what);
-    switch (Menu.selectedIndex()) {
-    case 0:  Cube.topServoExtend();  break;
-    case 1:  Cube.topServoPartial(); break;
-    default: Cube.topServoRetract(); break;
-    }
-    afterAction("Top Servo", what, 0);
-}
-
-static void actBotServo() {
-    const char* what = selectedLabel();
-    showMoving("Bottom Servo", what);
-    switch (Menu.selectedIndex()) {
-    case 0:  Cube.botServoExtend();  break;
-    case 1:  Cube.botServoPartial(); break;
-    default: Cube.botServoRetract(); break;
-    }
-    afterAction("Bottom Servo", what, 0);
-}
-
-static void actRing() {
-    const char* what = selectedLabel();
-    showMoving("Ring", what);
-    switch (Menu.selectedIndex()) {
-    case 0:  Cube.ringExtend();  break;
-    case 1:  Cube.ringMiddle();  break;
-    default: Cube.ringRetract(); break;
-    }
-    afterAction("Ring", what, 0);
-}
-
-// One action for all three axis screens: which screen we are on picks the row
-// of moves, and the cursor picks the column. Twelve menu entries, one function.
-static void actFaceMove() {
-    static const char* const kMoves[3][4] = {
-        { "U", "U'", "D", "D'" },
-        { "L", "L'", "R", "R'" },
-        { "F", "F'", "B", "B'" },
-    };
-    const MenuScreen* scr = Menu.current();
-    const int axis = (scr == &kScreenAxisUD) ? 0
-                   : (scr == &kScreenAxisLR) ? 1 : 2;
-    const int idx  = Menu.selectedIndex() & 3;
-    const char* mv = kMoves[axis][idx];
-
-    showMoving("Face Motors", selectedLabel());
-    // align = true: this is the screen for checking a motor actually lands on
-    // its detent, so let the alignment pass run and report if it cannot.
-    const int e = Cube.executeMove(mv, false, true);
-    afterAction("Face Motors", mv, e);
 }
 
 static void actCubeRotate() {
@@ -880,6 +911,45 @@ static MenuEvent pollEvent() {
     return MenuEvent::None;
 }
 
+// Input for a jog page.
+//
+// Separate from pollEvent() because it needs the wheel and the UP/DOWN buttons
+// to mean DIFFERENT things, and pollEvent() deliberately collapses them into
+// one event — which is right for a menu and wrong here. Only one of the two
+// runs per pass, so they can share the edge-detection state below.
+struct JogInput {
+    int  turn;      // wheel detents, signed
+    bool up;
+    bool down;
+    bool back;
+};
+
+static JogInput pollJog() {
+    JogInput in = { 0, false, false, false };
+    if (!Cube.encoderInitialized) return in;
+
+    const uint32_t now = millis();
+    if (now - lastPoll < 25) return in;
+    lastPoll = now;
+
+    const uint8_t b = menuEncoder.readButtons();
+    const bool upDown   = b & RotaryEncoder::BTN_UP;
+    const bool downDown = b & RotaryEncoder::BTN_DOWN;
+    const bool leftDown = b & RotaryEncoder::BTN_LEFT;
+    const bool selDown  = b & RotaryEncoder::BTN_SELECT;
+
+    in.up   = upDown   && !prevUp;
+    in.down = downDown && !prevDown;
+    in.back = leftDown && !prevLeft && !selDown;   // never the abort chord
+
+    prevUp = upDown; prevDown = downDown; prevLeft = leftDown; prevSelect = selDown;
+
+    const int32_t pos = menuEncoder.getPosition();
+    in.turn = (int)(pos - prevPos);
+    prevPos = pos;
+    return in;
+}
+
 // ---------------------------------------------------------------------------
 void setup() {
     Serial.begin(115200);
@@ -907,6 +977,28 @@ void loop() {
     // Always service the display, whatever state we are in.
     Cube.displayUpdate();
 
+    // A jog page owns the input while it is up: it needs the wheel and the
+    // buttons separated, which pollEvent() cannot give it.
+    if (state == TState::Jog) {
+        const JogInput in = pollJog();
+        if (in.back) {
+            jogPage = Jog::None;
+            toMenu();
+        } else if (in.turn != 0) {
+            const int n = (jogPage == Jog::Grippers) ? 3 : 6;
+            int sel = jogSel + (in.turn > 0 ? 1 : -1);
+            if (sel < 0)  sel = n - 1;          // wrap, same as the menu does
+            if (sel >= n) sel = 0;
+            jogSel = (int8_t)sel;
+            drawJog(nullptr);
+        } else if (in.up) {
+            jogMove(+1);
+        } else if (in.down) {
+            jogMove(-1);
+        }
+        return;
+    }
+
     const MenuEvent ev = pollEvent();
 
     switch (state) {
@@ -918,6 +1010,9 @@ void loop() {
         // panel lying about what is on it.
         if (state == TState::Menu) Menu.render();
         break;
+
+    case TState::Jog:
+        break;      // handled above; nothing here consumes a MenuEvent
 
     case TState::Screen:
         if (ev == MenuEvent::Select || ev == MenuEvent::Back) {

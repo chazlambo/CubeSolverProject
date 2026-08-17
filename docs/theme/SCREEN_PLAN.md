@@ -227,28 +227,46 @@ a numbered list over Serial. It is where you go to answer "does that servo
 actually reach retract", and where you drive one part at a time to show the
 machine off.
 
-So it is a MENU, and bars are correct throughout. Grouped by part, because five
-items is the screen limit and there are six face motors — opposite faces share a
-screen, which is a grouping that means something rather than an arbitrary split:
+It started as a menu of every action, and that was wrong: nine entries across
+three screens for the grippers alone, twelve more for the faces, all clicked
+through one at a time — when what you want is to pick a thing and nudge it while
+you watch it move.
+
+So the two busy pages are **direct manipulation**, not menus. They can be,
+because the wheel and the UP/DOWN BUTTONS are separate inputs on this encoder.
+A menu collapses them into one meaning; a jog page gives them two:
 
 ```
-   Actuators
-   ├─ Top Servo      -> Extend / Partial / Retract
-   ├─ Bottom Servo   -> Extend / Partial / Retract
-   ├─ Ring           -> Extend / Middle / Retract
-   ├─ Face Motors    -> Up/Down -> U 90, U -90, D 90, D -90
-   │                    Left/Right, Front/Back likewise
-   └─ Cube Rotate    -> Rotate X / Rotate Z
+    wheel        choose which part
+    UP / DOWN    move that part
+    LEFT         back, exactly as everywhere else
 ```
 
-A move that works goes **straight back to the menu**, cursor still on the item
-you fired. This is a jog tool: you press it repeatedly to watch a motor, and a
-result screen demanding SELECT between presses would make that miserable. Only a
-FAILURE stops and says so, with the move and the code.
+Two pages, no submenu below either:
 
-While a part is moving the panel says so — the servo sweeps take seconds, and
-the cooperative pump refreshes the display throughout, so without it the panel
-would sit on the old menu looking frozen.
+```
+   Grippers                      Face Motors
+   Top servo      Extend            [U] R  F  D  L  B
+   Bottom servo   Retract
+   Ring           ?                 UP sends R   DOWN sends R'
+   Retract - Partial - Extend
+```
+
+Grippers is a status table with the cursor as a **marked row** rather than a
+bar — these rows are a readout you are steering, not a list of choices, and bar
+art would promise the wrong thing. Position shows "?" until driven from here:
+the servos remember across a reset but nothing exposes it, and guessing is worse
+than admitting it.
+
+Face Motors reuses the scan's face row as a selector — hollow boxes with their
+letters, bright rim on the one the wheel is on.
+
+The sub-line on each says the thing that is NOT already on screen: the range the
+buttons will step through, or the exact move strings they will send. Naming the
+selected part again would only repeat the row that is already lit.
+
+A failed move stops and says so, with the move and the code. Everything else
+just happens, so jogging stays a single press.
 
 **Built** in `Test_Menu` under Actuators. What remains is porting the tree into
 the firmware's Diagnostics menu; the actions already call the real CubeSystem
