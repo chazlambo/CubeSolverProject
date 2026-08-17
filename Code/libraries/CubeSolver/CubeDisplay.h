@@ -34,6 +34,12 @@ public:
     void showOperation(OpKind kind, const char* title,
                        const char* headline, const char* hint = nullptr);
 
+    // Recolour the frame without disturbing anything on the screen. For an
+    // operation that changes character partway through — a scramble becoming a
+    // solve — where calling showOperation() again would clear the progress bar
+    // and flicker. The frame is the state, so the state has to be able to move.
+    void setOpKind(OpKind kind);
+
     // Body rows under the headline, for the screens that are mostly text.
     // A row containing a '\t' is split: the part before it is left-aligned and
     // the part after is right-aligned, which is what makes a status list read

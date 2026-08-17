@@ -285,8 +285,12 @@ time. Six rows is exactly enough, so resist adding a seventh.
 
 1. **Patterns** — now unblocked. The net exists; a pattern is a name plus a move
    sequence, and the preview pane is the obvious home for a small one.
-2. **Scramble Solve** — no new primitives, proves the phase-colour idea (red
-   while scrambling, green the moment it starts solving).
+2. **Scramble Solve** — screen **prototyped** in `Test_Menu` (Screens >
+   Operations > Scramble Solve): red frame while scrambling, green the moment
+   it starts solving, one progress bar throughout. `setOpKind()` recolours the
+   frame without tearing the screen down, which is what makes the phase change
+   free. What remains is the machine side — generating a scramble and running
+   it — not the screen.
 3. **Row status marks** then **Hardware Test** — smallest new primitive, and
    Hardware Test is the most useful diagnostic to have on the bench.
 4. **Move ribbon** then **Step Solve**; Demo Mode falls out nearly free.
@@ -300,6 +304,25 @@ new primitive, only `scanConf` plumbed through.
 
 Idle Mode can slot in any time after Stats has real numbers.
 
-Every one of these can be built and judged in the simulator with no machine
-attached — and `Test Code/Test_Menu` is the right place to prototype a new
-primitive before wiring it to hardware.
+## Where to build them
+
+**In `Code/Test Code/Test_Menu`, first.** Not in the firmware.
+
+That sketch needs no cube, no machine and no solver, its `Screens` submenu draws
+every operation screen from canned data, and it runs in the simulator:
+
+```sh
+cmake -S Code/sim -B Code/sim/build-test -DSIM_SKETCH=Test_Menu
+cmake --build Code/sim/build-test -j && ./Code/sim/build-test/cubesim
+```
+
+A screen prototyped there can be judged against every frame colour and item
+count in seconds, and it keeps half-finished UI out of the sketch that drives
+real motors. Move it into the firmware once it looks right and there is
+something behind it to show.
+
+The corollary matters too: when a screen changes in the firmware, the demo in
+`Test_Menu` should follow. The bench sketch being *behind* the firmware is how
+it stops being useful. Anything shared — the required calibration orientation,
+the scan pass labels — should be referenced from `CubeSystem`'s constants rather
+than copied, so the demo cannot drift from the machine.

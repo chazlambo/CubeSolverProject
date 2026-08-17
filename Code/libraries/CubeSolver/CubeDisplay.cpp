@@ -881,6 +881,10 @@ void CubeDisplay::showOperation(OpKind kind, const char* title,
     }
 }
 
+void CubeDisplay::setOpKind(OpKind kind) {
+    if (opActive) applyTheme(themeForKind(kind));
+}
+
 void CubeDisplay::setOpLines(const char* const* lines, int count) {
     if (!lbl_line[0]) return;
     if (count > kOpLines) count = kOpLines;

@@ -68,7 +68,7 @@ static TState state = TState::Menu;
 
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
-enum class Live : uint8_t { None, Input, Steps, Chips, Progress };
+enum class Live : uint8_t { None, Input, Steps, Chips, Progress, Scramble };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -88,6 +88,9 @@ static uint32_t lastPoll   = 0;
 // ---------------------------------------------------------------------------
 extern const MenuScreen kScreenNav;
 extern const MenuScreen kScreenScreens;
+extern const MenuScreen kScreenOps;
+extern const MenuScreen kScreenCube;
+extern const MenuScreen kScreenMsg;
 extern const MenuScreen kScreenThree;
 extern const MenuScreen kScreenFour;
 extern const MenuScreen kScreenFive;
@@ -103,6 +106,10 @@ static void actDemoSteps();
 static void actDemoChips();
 static void actDemoProgress();
 static void actDemoError();
+static void actDemoScramble();
+static void actDemoNetSolved();
+static void actDemoNetScrambled();
+static void actDemoNetLoad();
 
 // ---------------------------------------------------------------------------
 //  Menu tables
@@ -113,7 +120,9 @@ static void actDemoError();
 //  ellipsise, and a stack deep enough to hit CubeMenu's depth limit.
 
 static const char* const kPrevNav[]     = { "3 items", "4 items", "5 items", "Long" };
-static const char* const kPrevScreens[] = { "Info", "Steps", "Chips", "Bar", "Error" };
+static const char* const kPrevScreens[] = { "Operations", "Cube views", "Messages" };
+static const char* const kPrevOps[]     = { "Faces", "Chips", "Bar", "Scramble" };
+static const char* const kPrevCube[]    = { "Solved", "Scrambled", "Load" };
 static const char* const kPrevDeep[]    = { "Deeper", "and", "deeper" };
 
 // ---- root ----
@@ -125,7 +134,7 @@ static const MenuItem kMainItems[] = {
     { "Navigation",  &kScreenNav,      nullptr,        "Screens of every size.",
       kPrevNav, 4, MenuTheme::Red },
     { "Screens",     &kScreenScreens,  nullptr,        "Draw the panel, no hardware.",
-      kPrevScreens, 5, MenuTheme::Yellow },
+      kPrevScreens, 3, MenuTheme::Yellow },
     { "Input Report", nullptr,         actInputReport, "Live wheel and buttons.",
       nullptr, 0, MenuTheme::Purple },
 };
@@ -188,14 +197,40 @@ static const MenuItem kDeepItems[] = {
 const MenuScreen kScreenDeep = { "Depth Test", kDeepItems, 2, MenuTheme::Green };
 
 // ---- screen demos ----
+//
+// Split three ways rather than crammed into one screen: five items is the
+// design limit, and this was already at it. A screen that wants a sixth wants
+// splitting, which is the same rule the real menu follows.
 static const MenuItem kScreensItems[] = {
-    { "Info Panel",   nullptr, actDemoInfo,     "Aligned label/value rows." },
-    { "Scan Faces",   nullptr, actDemoSteps,    "Faces fill as they are read." },
-    { "Colour Chips", nullptr, actDemoChips,    "Two boards, six colours." },
-    { "Progress Bar", nullptr, actDemoProgress, "Fills over four seconds." },
-    { "Error Screen", nullptr, actDemoError,    "The red stopped look." },
+    { "Operations",  &kScreenOps,  nullptr, "Progress while working.",
+      kPrevOps,  4, MenuTheme::Blue },
+    { "Cube Views",  &kScreenCube, nullptr, "The unfolded cube net.",
+      kPrevCube, 3, MenuTheme::Green },
+    { "Messages",    &kScreenMsg,  nullptr, "Status and faults.",
+      nullptr,   0, MenuTheme::Red },
 };
-const MenuScreen kScreenScreens = { "Screens", kScreensItems, 5, MenuTheme::Yellow };
+const MenuScreen kScreenScreens = { "Screens", kScreensItems, 3, MenuTheme::Yellow };
+
+static const MenuItem kOpsItems[] = {
+    { "Scan Faces",     nullptr, actDemoSteps,    "Faces fill as they are read." },
+    { "Colour Chips",   nullptr, actDemoChips,    "Two boards, six colours." },
+    { "Progress Bar",   nullptr, actDemoProgress, "Fills over four seconds." },
+    { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colours." },
+};
+const MenuScreen kScreenOps = { "Operations", kOpsItems, 4, MenuTheme::Blue };
+
+static const MenuItem kCubeItems[] = {
+    { "Solved Cube",     nullptr, actDemoNetSolved,    "Every face one colour." },
+    { "Scrambled Cube",  nullptr, actDemoNetScrambled, "Checkerboard, 9 of each." },
+    { "Load Orientation",nullptr, actDemoNetLoad,      "The calibration prompt." },
+};
+const MenuScreen kScreenCube = { "Cube Views", kCubeItems, 3, MenuTheme::Green };
+
+static const MenuItem kMsgItems[] = {
+    { "Info Panel",   nullptr, actDemoInfo,  "Aligned label/value rows." },
+    { "Error Screen", nullptr, actDemoError, "The red stopped look." },
+};
+const MenuScreen kScreenMsg = { "Messages", kMsgItems, 2, MenuTheme::Red };
 
 // ---------------------------------------------------------------------------
 //  Display helpers
@@ -333,6 +368,67 @@ static void actDemoProgress() {
     showScreen(Op::Solve, "Progress Bar", "21 moves to run", Live::Progress);
 }
 
+// A scramble followed by a solve. The frame carries the phase — red while it is
+// scrambling, green the moment it starts solving — which is the whole idea the
+// real Scramble Solve is meant to prove, and the reason setOpKind() exists.
+static void actDemoScramble() {
+    showScreen(Op::Error, "Scramble Solve", "Scrambling", Live::Scramble);
+}
+
+// The six cube colours, in the order CubeDisplay's chips use them.
+static const char kNetOrder[6] = { 'W', 'Y', 'R', 'O', 'G', 'B' };
+
+// A solved cube in net order (U R F D L B). Same scheme the simulator scans.
+static void buildSolvedNet(char* net) {
+    static const char kFace[6] = { 'W', 'R', 'G', 'Y', 'O', 'B' };
+    for (int f = 0; f < 6; ++f)
+        for (int k = 0; k < 9; ++k) net[f * 9 + k] = kFace[f];
+}
+
+static void actDemoNetSolved() {
+    char net[CubeDisplay::kNetFacelets];
+    buildSolvedNet(net);
+    showScreen(Op::Info, "Solved Cube", nullptr);
+    cubeDisplay.setOpCubeNet(net);
+    cubeDisplay.setStatus("Every face one colour");
+    Cube.displayUpdate();
+}
+
+// The classic checkerboard: each sticker is either its own face colour or the
+// opposite one. Worth having as the scrambled case because it is a REAL state —
+// five of a face's own colour and four of its opposite, so each opposite pair
+// still totals nine of each. A random splash of colour would not be a cube, and
+// would hide exactly the bugs this screen is for.
+static void actDemoNetScrambled() {
+    static const char kOpp[6] = { 'Y', 'W', 'O', 'R', 'B', 'G' };   // vs kNetOrder
+    char net[CubeDisplay::kNetFacelets];
+    buildSolvedNet(net);
+
+    for (int f = 0; f < 6; ++f) {
+        char own = net[f * 9];
+        char opp = own;
+        for (int c = 0; c < 6; ++c) if (kNetOrder[c] == own) opp = kOpp[c];
+        for (int k = 0; k < 9; ++k) {
+            const bool even = (((k / 3) + (k % 3)) % 2) == 0;
+            net[f * 9 + k] = even ? own : opp;
+        }
+    }
+
+    showScreen(Op::Info, "Scrambled Cube", nullptr);
+    cubeDisplay.setOpCubeNet(net);
+    cubeDisplay.setStatus("Checkerboard - nine of each");
+    Cube.displayUpdate();
+}
+
+// The orientation colour calibration requires. Drawn from the firmware's own
+// constant, not a copy, so this cannot drift from what the machine expects.
+static void actDemoNetLoad() {
+    showScreen(Op::Calibrate, "Load Orientation", nullptr);
+    cubeDisplay.setOpCubeNet(CubeSystem::kCalStartFacelets);
+    cubeDisplay.setStatus(CubeSystem::kCalStartText);
+    Cube.displayUpdate();
+}
+
 static void actDemoError() {
     showScreen(Op::Error, "Stopped", "Move failed - cube released");
     const char* lines[] = { "Canned - nothing actually failed." };
@@ -405,6 +501,34 @@ static void updateDemo() {
         snprintf(sub, sizeof(sub), "Move %d/21", done);
         cubeDisplay.setStatus(sub);
         Cube.displayProgress(done, 21);
+        break;
+    }
+
+    case Live::Scramble: {
+        // 25 scramble moves, then 21 solve moves, then a beat on the result.
+        const uint32_t cycle = t % 10000;
+        if (cycle < 4000) {
+            const int done = (int)((cycle * 25) / 4000);
+            char sub[32];
+            snprintf(sub, sizeof(sub), "Move %d/25", done);
+            cubeDisplay.setOpKind(Op::Error);          // red: scrambling
+            cubeDisplay.setMessage("Scrambling");
+            cubeDisplay.setStatus(sub);
+            Cube.displayProgress(done, 25);
+        } else if (cycle < 8000) {
+            const int done = (int)(((cycle - 4000) * 21) / 4000);
+            char sub[32];
+            snprintf(sub, sizeof(sub), "Move %d/21", done);
+            cubeDisplay.setOpKind(Op::Solve);          // green: solving
+            cubeDisplay.setMessage("Solving");
+            cubeDisplay.setStatus(sub);
+            Cube.displayProgress(done, 21);
+        } else {
+            cubeDisplay.setOpKind(Op::Done);
+            cubeDisplay.setMessage("Solved!");
+            cubeDisplay.setStatus("21 moves in 4.62 s");
+            Cube.displayProgress(21, 21);
+        }
         break;
     }
 

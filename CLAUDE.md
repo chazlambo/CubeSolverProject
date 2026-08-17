@@ -32,10 +32,16 @@ g++ -fsyntax-only -std=c++17 -DLV_CONF_INCLUDE_SIMPLE -ICode/sim/shim \
   Code/libraries/CubeSolver/CubeSystem.cpp
 ```
 
-`-DSIM_SKETCH=Test_Menu` builds `Code/Test Code/Test_Menu` into the simulator
-instead of the firmware — a menu/panel bench sketch whose `Screens` submenu
-draws every operation screen from canned data. It is usually the fastest way to
-see a UI change, and to check one against every frame colour and item count:
+**New screens get prototyped in `Code/Test Code/Test_Menu`, not in the
+firmware.** `-DSIM_SKETCH=Test_Menu` builds it into the simulator instead: a
+bench sketch needing no cube, no machine and no solver, whose `Screens` submenu
+draws every operation screen from canned data. It is the fastest way to see a UI
+change and to check one against every frame colour and item count, and it keeps
+half-finished UI out of the sketch that drives real motors.
+
+When a screen changes in the firmware, update the demo there too — the bench
+sketch falling behind is how it stops being useful. Reference shared facts from
+`CubeSystem`'s constants rather than copying them, so the demo cannot drift.
 
 ```sh
 cmake -S Code/sim -B Code/sim/build-test -DSIM_SKETCH=Test_Menu
