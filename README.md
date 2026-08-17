@@ -203,6 +203,20 @@ marked unconnected. Since the machine works, there must be a bodge wire.
 > **TODO:** confirm the bodge and either roll it into a Rev B or note it on the
 > board. Right now this exists only in the hardware and in your head.
 
+- **The colour scanner is rotated 90° from what the firmware comments used to
+  say.** It was turned in CAD to make the assembly fit, which changed which
+  faces each scan pass reads — from `[L,B] [U,F] [D,R]` to
+  `[Back,Right] [Left,Down] [Up,Front]` — and **no firmware changed**, because
+  `scanCube()` identifies each face from its own centre colour rather than
+  assuming which one it is looking at. What the design does rely on is the two
+  sensors' position *relative to each other*, and rotating the whole assembly
+  preserves that. Moving one sensor relative to the other would not, and would
+  break `left1`/`left2` in `scanCube()`.
+
+  The only thing tracking the physical order is `kScanPassFaces` in
+  `CubeOpShape.cpp`, which fills the panel's face row during a scan. Rotate the
+  scanner again and that table is the one thing to update.
+
 Two other things worth knowing:
 - **Pin 10 must be the display DC.** ILI9341_T4 drives DC through the SPI
   peripheral's chip-select logic during DMA, so it has to be a hardware CS pin —

@@ -223,10 +223,25 @@ int CubeSystem::scanCube(){
     // Move and scan the cube
     //
     // Two faces per pass, one per colour board, with a reorientation between:
-    // [Back, Right], [Left, Down], [Up, Front]. Nothing below depends on that
-    // being right — faces are recorded in scan order and identified afterwards
-    // from their centre colour — but the panel's face row does, via
-    // kScanPassFaces.
+    // [Back, Right], [Left, Down], [Up, Front].
+    //
+    // It used to be [Left, Back], [Up, Front], [Down, Right]. The colour scanner
+    // was rotated 90 degrees in CAD to make the assembly fit, which changed
+    // which faces each pass sees — and NO CODE CHANGED, because nothing here
+    // depends on knowing that in advance.
+    //
+    // That is worth understanding before touching this loop. Faces are recorded
+    // in scan order and identified afterwards from their own centre colour plus
+    // their neighbour's (scanFaceColor / scanLeftColor, resolved by
+    // setOrientation below). What the pass order actually has to preserve is the
+    // GEOMETRY BETWEEN THE TWO SENSORS — sensor 2 sits to the left of sensor 1,
+    // which the left1/left2 assignment below relies on. Rotating the whole
+    // scanner assembly moves both sensors together and leaves that intact, so it
+    // costs nothing. Moving one sensor relative to the other would not.
+    //
+    // The only thing that does track the physical order is the panel's face row,
+    // via kScanPassFaces in CubeOpShape.cpp. Rotate the scanner again and that
+    // table is the one place to update.
     char lastface1 = 'X';
     char lastface2 = 'X';
 

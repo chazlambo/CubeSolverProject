@@ -24,6 +24,12 @@ const char* const CubeSystem::kScanPassLabels[CubeSystem::kScanPasses] = {
 // (scanFaceColor / scanLeftColor / setOrientation), so a wrong entry here
 // misdraws the panel and changes nothing else.
 //
+// Which also means this table is the ONE place that tracks the scanner's
+// physical orientation. It was [L,B] [U,F] [D,R] until the scanner was rotated
+// 90 degrees in CAD to make the assembly fit; that change needed no firmware at
+// all, and if the scanner moves again this is the only thing to update. See the
+// note at the top of the scan loop in CubeSystem.cpp.
+//
 // If a pair ever comes up with its two colours swapped on screen, the sensors
 // are the other way round for that pass — swap the entry, not the sequence.
 const uint8_t CubeSystem::kScanPassFaces[CubeSystem::kScanPasses][2] = {
