@@ -6,7 +6,7 @@ obvious from the tree and that have already cost someone time.
 
 ## Build and verify
 
-The sketch is `Code/Firmware/CubeSolver/CubeSolver.ino`. `Code/libraries/` is an
+The sketch is `Code/Main Code/CubeSolver/CubeSolver.ino`. `Code/libraries/` is an
 Arduino *sketchbook libraries* folder; Arduino's sketchbook location must point
 at `Code/`.
 

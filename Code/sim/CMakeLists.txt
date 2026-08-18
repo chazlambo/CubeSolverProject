@@ -34,7 +34,7 @@ set(LIBS ${CMAKE_CURRENT_SOURCE_DIR}/../libraries)
 set(SIM_SKETCH "CubeSolver" CACHE STRING "Sketch to build: CubeSolver or Test_Menu")
 
 if(SIM_SKETCH STREQUAL "CubeSolver")
-    set(SKETCH ${CMAKE_CURRENT_SOURCE_DIR}/../Firmware/CubeSolver)
+    set(SKETCH "${CMAKE_CURRENT_SOURCE_DIR}/../Main Code/CubeSolver")
 else()
     set(SKETCH "${CMAKE_CURRENT_SOURCE_DIR}/../Test Code/${SIM_SKETCH}")
 endif()

@@ -24,7 +24,7 @@ something that does not match — bake it instead.
 | Generated placement constants | `Code/libraries/CubeSolver/utility/CubeThemeAssets.h` |
 | Renderer | `Code/libraries/CubeSolver/CubeDisplay.{h,cpp}` |
 | Menu engine (no LVGL) | `Code/libraries/CubeSolver/CubeMenu.{h,cpp}` |
-| Menu tables + screens | `Code/Firmware/CubeSolver/CubeSolver.ino` |
+| Menu tables + screens | `Code/Main Code/CubeSolver/CubeSolver.ino` |
 | Operation sequence shape | `Code/libraries/CubeSolver/CubeOpShape.cpp` |
 | Desktop simulator | `Code/sim/` — see its README |
 

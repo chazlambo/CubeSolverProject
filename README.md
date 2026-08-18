@@ -38,7 +38,7 @@ diagnostics, an EEPROM fault log, and lifetime stats.
 
 ## Which sketch do I flash?
 
-**`Code/Firmware/CubeSolver/CubeSolver.ino`** — that's the program.
+**`Code/Main Code/CubeSolver/CubeSolver.ino`** — that's the program.
 
 Everything under `Code/Test Code/` is bring-up and calibration tooling. The ones
 still worth keeping:
@@ -347,7 +347,7 @@ something outside the cube model and is **not currently implemented**.
 3D Models/      SolidWorks parts and assemblies, plus print-ready STLs
 Circuitry/      KiCad projects: Motherboard, Motor Breakout, Color Sensor
 Code/
-  Firmware/CubeSolver/    <- THE PROGRAM
+  Main Code/CubeSolver/   <- THE PROGRAM
   Test Code/              bring-up and calibration sketches
   libraries/
     lv_conf.h             required LVGL config (see above)
