@@ -71,9 +71,9 @@ for adding a menu item, a screen, or an operation screen. Its most-broken rule:
 **bar art means "you can select this"** — status uses chips, the progress bar or
 the status table, never bars.
 
-`docs/theme/SCREEN_PLAN.md` designs every screen behind a "Not implemented yet"
-menu item, and ranks the shared pieces they need. Check it before designing a
-new screen.
+`docs/theme/SCREEN_PLAN.md` designed every screen before it was written — all
+of them are built now, and it records how each one works and which shared
+pieces exist. Check it before designing a new screen or changing one.
 
 ## Conventions worth keeping
 

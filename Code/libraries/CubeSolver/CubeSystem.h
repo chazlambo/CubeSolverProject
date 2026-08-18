@@ -198,6 +198,38 @@ public:
     // because the scan is what produces those letters.
     static int8_t chipIndexForColor(char c);
 
+    // Every move the face motors accept: six faces x { plain, prime, double },
+    // in the display's face-row order (U R F D L B). The scramble generator,
+    // the jog page and the idle turner all draw from this one table. Each
+    // sketch used to carry its own subset, and a move table that exists more
+    // than once is a string waiting to drift from the exact grammar
+    // executeMove() parses — it validates by whole-string comparison, so a
+    // drifted token is a code 3, not a typo warning. Defined in
+    // CubeOpShape.cpp, like the scan shape above, so the simulator and the
+    // bench sketch compile the same copy.
+    static const char* const kFaceMoves[6][3];
+
+    // How many moves a scramble is. Shared so the bench sketch's canned
+    // scramble and the firmware's real one cannot quietly run different
+    // lengths. In-class constexpr: array bounds can use it with no
+    // out-of-line definition.
+    static constexpr int kScrambleLen = 30;
+
+    // The pattern library: fixed move sequences folded from a SOLVED cube,
+    // and the 54-facelet nets they produce (net order, as setOpCubeNet
+    // draws it). One copy for the firmware's Patterns mode and the bench
+    // sketch's previews — a net that existed twice would drift from the
+    // sequence that makes it, and the menu's preview is a promise the
+    // machine has to keep. The sequences are the canonical definition; the
+    // nets were computed by running each one through VirtualCube, never
+    // drawn by hand. Row order is order everywhere: the menu tables in both
+    // sketches index these by position. Defined in CubeOpShape.cpp, like
+    // every shared shape constant.
+    static const int                kPatternCount = 4;
+    static const char* const* const kPatternMoves[kPatternCount];      // ribbon-ready token arrays
+    static const uint8_t            kPatternMoveCounts[kPatternCount];
+    static const char               kPatternNets[kPatternCount][55];   // expected result
+
     // What the last scan read, per face, in face-row order (U R F D L B) as
     // chip color indices; -1 where nothing was read. Kept after scanCube()
     // returns so the result screen can show the cube it just found rather than

@@ -15,6 +15,8 @@ int colorSensor2EEPROMFlag;
 int colorSensor1EEPROMAddresses[9][7][4];
 int colorSensor2EEPROMAddresses[9][7][4];
 int tuningEEPROMAddress;
+int faultLogEEPROMAddress;
+int statsEEPROMAddress;
 int eepromBytesUsed;
 
 // Initialize EEPROM layout IMMEDIATELY (before any objects are created)
@@ -257,16 +259,27 @@ void initializeEEPROMLayout(int startAddress) {
         }
     }
 
-    // Tuning block. LAST, and it has to stay last.
+    // Tuning block, then the fault log, then the stats counters. The stats
+    // block is the END of the layout for now, and whatever comes next must be
+    // appended after it — never inserted above.
     //
     // Addresses here are handed out sequentially, so anything inserted above
     // shifts every block below it. On a machine that is already calibrated that
     // does not fail loudly — the motor and color calibration flags still match,
     // and their values are simply read from the wrong addresses. Appending
-    // cannot do that to anyone.
+    // cannot do that to anyone: a newer image finds the appended block blank
+    // (invalid magic) and simply starts it fresh.
     tuningEEPROMAddress = addr;
     addr += CubeTuning::kBlockBytes;
     cubeTuning.begin(tuningEEPROMAddress);
+
+    faultLogEEPROMAddress = addr;
+    addr += CubeFaultLog::kBlockBytes;
+    cubeFaultLog.begin(faultLogEEPROMAddress);
+
+    statsEEPROMAddress = addr;
+    addr += CubeStats::kBlockBytes;
+    cubeStats.begin(statsEEPROMAddress);
 
     eepromBytesUsed = addr - startAddress;
 }

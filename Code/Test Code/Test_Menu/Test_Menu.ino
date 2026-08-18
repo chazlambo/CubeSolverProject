@@ -20,8 +20,9 @@
 //  Diagnostics is drawing and navigation only.
 //
 //  Tuning edits the real values and SAVES them to EEPROM on leaving a section.
-//  Defaults live in the kTune table; Diagnostics > Tuning > Reset Defaults puts
-//  every one of them back.
+//  Defaults live in the shared kTune table (CubeTuneTable — one copy for this
+//  sketch and the firmware); Diagnostics > Tuning > Reset Defaults puts every
+//  one of them back.
 //
 //  THE TREE
 //  --------
@@ -68,6 +69,7 @@
 #include <CubeSystem.h>
 #include <CubeHardwareConfig.h>
 #include <CubeMenu.h>
+#include <CubeTuneTable.h>   // the shared tuning table; the editor UI is here
 
 CubeSystem Cube;
 CubeMenu   Menu;
@@ -172,19 +174,12 @@ static const char* const kPrevNav[]     = { "3 items", "4 items", "5 items", "Lo
 static const char* const kPrevScreens[] = { "Operations", "Modes", "Cube views",
                                             "Messages", "Navigation" };
 
-// Cube states for the pattern previews, in net order (U R F D L B).
-//
-// Computed by applying each sequence to a solved cube, not drawn by hand — and
-// every one checked for nine of each color, because a preview that is not a
-// real cube would hide exactly the bugs this screen is for.
-static const char kPatCheckerboard[55] =
-    "WYWYWYWYW" "ROROROROR" "GBGBGBGBG" "YWYWYWYWY" "ORORORORO" "BGBGBGBGB";
-static const char kPatCubeInCube[55] =
-    "GGGGWWGWW" "RRWRRWWWW" "RGGRGGRRR" "BBBYYBYYB" "YYYOOYOOY" "OOOOBBOBB";
-static const char kPatSixSpot[55] =
-    "GGGGWGGGG" "WWWWRWWWW" "RRRRGRRRR" "BBBBYBBBB" "YYYYOYYYY" "OOOOBOOOO";
-static const char kPatSuperflip[55] =
-    "WBWOWRWGW" "RWRGRBRYR" "GWGOGRGYG" "YGYOYRYBY" "OWOBOGOYO" "BWBRBOBYB";
+// The pattern previews come from CubeSystem::kPatternNets — the same tables
+// the firmware folds from, computed by running each sequence through
+// VirtualCube rather than drawn by hand, and checked for nine of each color.
+// This sketch used to carry its own copies; they turned out to have been
+// computed in a different frame from the one the model actually builds,
+// which is exactly the drift owning a second copy invites.
 static const char* const kPrevOps[]   = { "Faces", "Chips" };
 static const char* const kPrevModes[] = { "Scramble", "Idle", "Demo", "Step",
                                           "Patterns" };
@@ -202,8 +197,11 @@ static const char* const kStepMoves[21] = {
 // scramble looks like, and the reason it reads differently from a solution.
 // A separate list so Demo Mode's two halves do not look like the same thing
 // twice.
-static const int kScrambleLen = 30;
-static const char* const kScrambleMoves[kScrambleLen] = {
+//
+// Sized by the firmware's own constant, not a local one, so this rehearsal
+// cannot quietly run a different length from the scramble the machine
+// generates — one entry too many here is a compile error.
+static const char* const kScrambleMoves[CubeSystem::kScrambleLen] = {
     "D2", "L",  "B'", "R",  "U'", "F2", "D",  "L2", "B",  "R'",
     "U2", "F",  "D'", "L'", "B2", "R2", "U",  "F'", "D",  "L",
     "B",  "R",  "U2", "F2", "D'", "L2", "B'", "R2", "U'", "F",
@@ -214,25 +212,29 @@ static const char* const kPrevTuning[]  = { "Servos", "Face motors", "Alignment"
                                             "Color" };
 static const char* const kPrevServoT[]  = { "Top", "Bottom", "Ring" };
 
-// Canned fault history. Real codes and real wording, taken from the error
-// tables in the sketch and the README — a log full of invented faults would not
-// tell you whether the screen can show the ones you will actually meet.
+// Canned fault history, in the FIRMWARE's row format: `when` is uptime at the
+// fault (the machine has no RTC, so seconds-since-boot is the only clock it
+// can honestly report — newest first, so the times run downwards), `what` is
+// the SOURCE — which code space the fault's number belongs to, the thing that
+// keeps a bare 25 decodable — and the codes are real ones from the error
+// tables and the README. The source names come from CubeFaultLog itself, so
+// this rehearsal cannot drift from the rows the machine draws.
 struct FaultEntry { const char* when; const char* what; int code; };
 static const FaultEntry kFaults[] = {
-    { "12:04", "Solve stopped",   122 },
-    { "11:58", "Scan failed",      60 },
-    { "11:51", "Aborted",          70 },
-    { "11:44", "Scan failed",      42 },
-    { "11:30", "Move failed",      81 },
-    { "11:12", "Solve stopped",   125 },
-    { "10:58", "Scan failed",      13 },
-    { "10:41", "Cal failed",       82 },
-    { "10:29", "Aborted",          70 },
-    { "10:02", "Scan failed",      60 },
-    { "09:47", "Encoder fault",    24 },
-    { "09:31", "Board offline",    90 },
-    { "09:15", "Solve stopped",   121 },
-    { "08:52", "Scan failed",      41 },
+    { "3h12m",  CubeFaultLog::kSourceNames[CubeFaultLog::Solve], 122 },
+    { "3h05m",  CubeFaultLog::kSourceNames[CubeFaultLog::Scan],   60 },
+    { "2h58m",  CubeFaultLog::kSourceNames[CubeFaultLog::Mode],   25 },
+    { "2h44m",  CubeFaultLog::kSourceNames[CubeFaultLog::Scan],   42 },
+    { "2h30m",  CubeFaultLog::kSourceNames[CubeFaultLog::Scan],   81 },
+    { "2h12m",  CubeFaultLog::kSourceNames[CubeFaultLog::Solve], 125 },
+    { "1h58m",  CubeFaultLog::kSourceNames[CubeFaultLog::Scan],   13 },
+    { "1h41m",  CubeFaultLog::kSourceNames[CubeFaultLog::Cal],     8 },
+    { "1h29m",  CubeFaultLog::kSourceNames[CubeFaultLog::Scan],   70 },
+    { "1h02m",  CubeFaultLog::kSourceNames[CubeFaultLog::Mode],   22 },
+    { "47m10s", CubeFaultLog::kSourceNames[CubeFaultLog::Jog],    24 },
+    { "31m05s", CubeFaultLog::kSourceNames[CubeFaultLog::Cal],    90 },
+    { "15m44s", CubeFaultLog::kSourceNames[CubeFaultLog::Solve], 121 },
+    { "0m52s",  CubeFaultLog::kSourceNames[CubeFaultLog::Scan],   41 },
 };
 static const int kFaultCount = (int)(sizeof(kFaults) / sizeof(kFaults[0]));
 
@@ -405,15 +407,20 @@ const MenuScreen kScreenModes = { "Modes", kModesItems, 5, MenuTheme::Red };
 
 // The point of this screen: the preview pane shows what each pattern PRODUCES.
 // A list of names would say nothing about what you are choosing between.
+//
+// Item order IS table order: each row's previewNet indexes the shared
+// kPattern* tables by position, and actFoldPattern() reuses selectedIndex()
+// the same way — the same contract as the firmware's Patterns screen, which
+// this one rehearses row for row.
 static const MenuItem kPatternItems[] = {
-    { "Checkerboard", nullptr, actFoldPattern, "R2 L2 F2 B2 U2 D2",
-      nullptr, 0, MenuTheme::Blue,   kPatCheckerboard },
+    { "Checkerboard", nullptr, actFoldPattern, "U2 D2 R2 L2 F2 B2",
+      nullptr, 0, MenuTheme::Blue,   CubeSystem::kPatternNets[0] },
     { "Cube in Cube", nullptr, actFoldPattern, "Fifteen moves.",
-      nullptr, 0, MenuTheme::Green,  kPatCubeInCube },
+      nullptr, 0, MenuTheme::Green,  CubeSystem::kPatternNets[1] },
     { "Six Spot",     nullptr, actFoldPattern, "U D' R L' F B' U D'",
-      nullptr, 0, MenuTheme::Yellow, kPatSixSpot },
+      nullptr, 0, MenuTheme::Yellow, CubeSystem::kPatternNets[2] },
     { "Superflip",    nullptr, actFoldPattern, "Every edge flipped.",
-      nullptr, 0, MenuTheme::Purple, kPatSuperflip },
+      nullptr, 0, MenuTheme::Purple, CubeSystem::kPatternNets[3] },
 };
 const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 4, MenuTheme::Violet };
 
@@ -554,10 +561,11 @@ static const char* const kGripPos[3][3] = {
 static int8_t gripAt[3] = { -1, -1, -1 };
 
 static const char* const kFaceName[6] = { "Up", "Right", "Front", "Down", "Left", "Back" };
-static const char* const kFaceMove[6][2] = {
-    { "U", "U'" }, { "R", "R'" }, { "F", "F'" },
-    { "D", "D'" }, { "L", "L'" }, { "B", "B'" },
-};
+
+// Face moves come from CubeSystem::kFaceMoves — the firmware's own table,
+// not a copy, so the notation this page sends cannot drift from the grammar
+// the machine parses. Columns 0-1 are plain and prime; the jog wheel has no
+// gesture for a double turn.
 
 // The chip strip: the six faces, then the two whole-cube rotations. They belong
 // in the same row because they are the same gesture — point at a thing, turn it.
@@ -649,8 +657,19 @@ static void jogSend() {
 // which has no inverse in the move set so both buttons send the same thing.
 static void jogTurn(int dir) {
     const int i = jogSel - kJogRows;
-    const char* mv = (i < kJogFaces) ? kFaceMove[i][dir > 0 ? 0 : 1]
+    const char* mv = (i < kJogFaces) ? CubeSystem::kFaceMoves[i][dir > 0 ? 0 : 1]
                                      : kRotMove[i - kJogFaces];
+
+    // Mirrored from the firmware's jog page — change both. A jogged turn is
+    // untracked (moveVirtual is off, this page cannot promise a ready model),
+    // so a model that IS ready stops describing the cube the moment the motor
+    // moves and must be wiped before it. Never true in this sketch — nothing
+    // here scans — but the two pages are the same code and must not drift.
+    if (Cube.virtualCube.isReady()) {
+        Cube.virtualCube.resetCube();
+        Cube.clearSolution();
+    }
+
     drawJog(mv);
     // align = true: this is the screen for checking a motor lands on its
     // detent, so let the alignment pass run and report if it cannot.
@@ -681,10 +700,19 @@ static void jogCube() {
         drawJog("releasing");
         Cube.unloadCube();      // ring, then top, then bottom - all retracted
         Cube.botServoEject();   // then present the cube, at the tuned height
+        // Mirrored from the firmware's jog page — change both. Out of the
+        // machine's grip the stored state is a guess, so it goes with the
+        // cube. Never true here — this sketch does not scan — but the two
+        // pages must not drift.
+        Cube.virtualCube.resetCube();
+        Cube.clearSolution();
         gripAt[0] = 0;          // top    retracted
-        gripAt[1] = 1;          // bottom at the eject height, which the row
-                                //        still labels "Partial" - both are the
-                                //        same in-between state to the servo
+        gripAt[1] = -1;         // bottom sits at the EJECT height, which is
+                                //        not one of this page's three stops -
+                                //        it was the same value as Partial
+                                //        until the tuning table pinned them
+                                //        apart, and "?" beats a label that is
+                                //        only true until someone tunes it
         gripAt[2] = 0;          // ring   retracted
     }
     cubeLoaded = !cubeLoaded;
@@ -699,7 +727,7 @@ static void actJog() {
 }
 
 // ---------------------------------------------------------------------------
-//  Tuning — the value editor and its parameter table
+//  Tuning — the value editor
 // ---------------------------------------------------------------------------
 //  The one interaction the menu cannot express: the wheel has to change a
 //  NUMBER, not move a cursor. Two levels, the same shape the grippers on the
@@ -709,189 +737,12 @@ static void actJog() {
 //  Kept out of CubeMenu deliberately. CubeMenu is navigation-only and testable
 //  on a host without a screen; editing values is a different job.
 //
-//  WHY ACCESSORS, NOT GLOBALS
-//  Every value is reached through a get/set pair rather than by writing the
-//  config globals. Those are read once at construction — CubeServo copies
-//  topExtPos and never looks at it again — so an editor that wrote them would
-//  show numbers changing and move nothing at all.
-//
-//  WHY THE TABLE IS ONE FLAT ARRAY
-//  It is what EEPROM is indexed by. Screens are windows onto it (first, count),
-//  so adding a parameter to a section in the middle shifts every index after it
-//  and MUST come with a CubeTuning::kVersion bump — otherwise the next boot
-//  hands an alignment tolerance to a servo. Appending to the end is free.
-struct TuneParam {
-    const char*        name;
-    const char*        help;     // one line, shown while the row is selected
-    const char*        units;
-    int32_t            def;
-    int32_t            lo, hi, step;
-    uint8_t            flags;
-    int32_t          (*get)();
-    void             (*set)(int32_t);
-    const char* const* names;    // TP_ENUM only
-};
-
-static const uint8_t TP_PLAIN = 0x00;
-static const uint8_t TP_LIVE  = 0x01;   // moves hardware as the wheel turns
-static const uint8_t TP_GATE  = 0x02;   // confirm before entering edit
-static const uint8_t TP_HUND  = 0x04;   // stored in hundredths, shown as 0.15
-static const uint8_t TP_BOOL  = 0x08;   // Off / On
-static const uint8_t TP_ENUM  = 0x10;   // index into names[]
-
-static const char* const kITNames[6] = { "40 ms", "80 ms", "160 ms",
-                                         "320 ms", "640 ms", "1280 ms" };
-
-// Ranges on the servo rows are the full 0-270 the horn can reach. Narrowing
-// them here would be a guess at this machine's geometry, and a guess that was
-// too tight would stop a real endpoint being reachable — which is worse than
-// one that is too wide, because the confirm gate and one-degree steps already
-// stand between a wheel and a jam.
-static const TuneParam kTune[] = {
-    // --- Top servo, indices 0-2 ---
-    { "Extend", "Swings in to grip the cube", "deg", 205, 0, 270, 1,
-      TP_LIVE | TP_GATE,
-      []() -> int32_t { return (int32_t)topServo.extended(); },
-      [](int32_t v){ topServo.setExtended((unsigned)v); topServo.previewRaw((unsigned)v); }, nullptr },
-    { "Retract", "Parks clear of a turning face", "deg", 0, 0, 270, 1,
-      TP_LIVE | TP_GATE,
-      []() -> int32_t { return (int32_t)topServo.retracted(); },
-      [](int32_t v){ topServo.setRetracted((unsigned)v); topServo.previewRaw((unsigned)v); }, nullptr },
-    { "Sweep delay", "Per step. Higher is gentler.", "ms", 15, 1, 100, 1,
-      TP_PLAIN,
-      []() -> int32_t { return topServo.sweepStepDelay(); },
-      [](int32_t v){ topServo.setSweepStepDelay((int)v); }, nullptr },
-
-    // --- Bottom servo, indices 3-7 ---
-    { "Extend", "Swings in to grip the cube", "deg", 260, 0, 270, 1,
-      TP_LIVE | TP_GATE,
-      []() -> int32_t { return (int32_t)botServo.extended(); },
-      [](int32_t v){ botServo.setExtended((unsigned)v); botServo.previewRaw((unsigned)v); }, nullptr },
-    { "Retract", "Parks clear of a turning face", "deg", 0, 0, 270, 1,
-      TP_LIVE | TP_GATE,
-      []() -> int32_t { return (int32_t)botServo.retracted(); },
-      [](int32_t v){ botServo.setRetracted((unsigned)v); botServo.previewRaw((unsigned)v); }, nullptr },
-    { "Partial", "Holds the cube centred mid-scan", "deg", 195, 0, 270, 1,
-      TP_LIVE | TP_GATE,
-      []() -> int32_t { return (int32_t)botServo.partialTarget(); },
-      [](int32_t v){ botServo.setPartial((unsigned)v); botServo.previewRaw((unsigned)v); }, nullptr },
-    { "Eject", "Lifts the cube out to be taken", "deg", 195, 0, 270, 1,
-      TP_LIVE | TP_GATE,
-      []() -> int32_t { return (int32_t)botServo.ejectTarget(); },
-      [](int32_t v){ botServo.setEject((unsigned)v); botServo.previewRaw((unsigned)v); }, nullptr },
-    { "Sweep delay", "Per step. Higher is gentler.", "ms", 15, 1, 100, 1,
-      TP_PLAIN,
-      []() -> int32_t { return botServo.sweepStepDelay(); },
-      [](int32_t v){ botServo.setSweepStepDelay((int)v); }, nullptr },
-
-    // --- Ring, indices 8-13 ---
-    { "Retract", "Fully clear of the cube", "steps", 0, 0, 2000, 5,
-      TP_GATE,
-      []() -> int32_t { return cubeMotors.getRingRetPos(); },
-      [](int32_t v){ cubeMotors.setRingRetPos((int)v); }, nullptr },
-    { "Partial", "Just off the cube", "steps", 200, 0, 2000, 5,
-      TP_GATE,
-      []() -> int32_t { return cubeMotors.getRingPartialPos(); },
-      [](int32_t v){ cubeMotors.setRingPartialPos((int)v); }, nullptr },
-    { "Middle", "Clears a face but stays close", "steps", 450, 0, 2000, 5,
-      TP_GATE,
-      []() -> int32_t { return cubeMotors.getRingHalfPos(); },
-      [](int32_t v){ cubeMotors.setRingHalfPos((int)v); }, nullptr },
-    { "Extend", "Closed on the cube", "steps", 800, 0, 2000, 5,
-      TP_GATE,
-      []() -> int32_t { return cubeMotors.getRingExtPos(); },
-      [](int32_t v){ cubeMotors.setRingExtPos((int)v); }, nullptr },
-    { "Speed", "How fast the ring travels", "sps", 800, 50, 5000, 25,
-      TP_PLAIN,
-      []() -> int32_t { return cubeMotors.getRingSpeed(); },
-      [](int32_t v){ cubeMotors.setRingSpeed((int)v); }, nullptr },
-    { "Accel", "How hard it starts and stops", "sps2", 400, 50, 5000, 25,
-      TP_PLAIN,
-      []() -> int32_t { return cubeMotors.getRingAccel(); },
-      [](int32_t v){ cubeMotors.setRingAccel((int)v); }, nullptr },
-
-    // --- Face motors, indices 14-17 ---
-    { "Step speed", "Faster solves, more missed steps", "sps", 1000, 50, 5000, 25,
-      TP_PLAIN,
-      []() -> int32_t { return cubeMotors.getStepSpeed(); },
-      [](int32_t v){ cubeMotors.setStepSpeed((int)v); }, nullptr },
-    { "Step delay", "Settle time after a face turn", "ms", 50, 0, 500, 5,
-      TP_PLAIN,
-      []() -> int32_t { return cubeMotors.getStepDelay(); },
-      [](int32_t v){ cubeMotors.setStepDelay((int)v); }, nullptr },
-    { "Rotate delay", "Settle time after a whole turn", "ms", 60, 0, 500, 5,
-      TP_PLAIN,
-      []() -> int32_t { return cubeMotors.getRotStepDelay(); },
-      [](int32_t v){ cubeMotors.setRotStepDelay((int)v); }, nullptr },
-    { "Servo delay", "Wait after every servo move", "ms", 200, 0, 1000, 10,
-      TP_PLAIN,
-      []() -> int32_t { return Cube.servoDelay; },
-      [](int32_t v){ Cube.servoDelay = (int)v; }, nullptr },
-
-    // --- Alignment, indices 18-21 ---
-    { "Tolerance", "Counts a motor may sit off centre", "cts", 20, 1, 200, 1,
-      TP_PLAIN,
-      []() -> int32_t { return Cube.motorAlignmentTol; },
-      [](int32_t v){ Cube.motorAlignmentTol = (int)v; }, nullptr },
-    { "Align timeout", "Give up realigning after this", "ms", 500, 50, 5000, 50,
-      TP_PLAIN,
-      []() -> int32_t { return (int32_t)Cube.alignTimeout; },
-      [](int32_t v){ Cube.alignTimeout = (unsigned long)v; }, nullptr },
-    { "Home timeout", "Give up homing after this", "ms", 1000, 50, 10000, 50,
-      TP_PLAIN,
-      []() -> int32_t { return (int32_t)Cube.homeTimeout; },
-      [](int32_t v){ Cube.homeTimeout = (unsigned long)v; }, nullptr },
-    { "Debug log", "Print align error every move", "", 0, 0, 1, 1,
-      TP_BOOL,
-      []() -> int32_t { return Cube.debugAlignLog ? 1 : 0; },
-      [](int32_t v){ Cube.debugAlignLog = (v != 0); }, nullptr },
-
-    // --- Color, indices 22-27 ---
-    // Every one of these writes BOTH boards. They are properties of how a
-    // sticker is judged, not of one piece of hardware, and letting the two
-    // boards drift apart would make a scan depend on which half of the cube a
-    // face was read from.
-    { "Scans averaged", "More is slower and less noisy", "", 1, 1, 10, 1,
-      TP_PLAIN,
-      []() -> int32_t { return colorSensor1.numScans; },
-      [](int32_t v){ colorSensor1.numScans = (int)v; colorSensor2.numScans = (int)v; }, nullptr },
-    { "Integration", "Longer sees dimmer stickers", "", 2, 0, 5, 1,
-      TP_ENUM,
-      []() -> int32_t { return colorSensor1.getIntegrationIndex(); },
-      [](int32_t v){ colorSensor1.setIntegrationIndex((int)v);
-                     colorSensor2.setIntegrationIndex((int)v); }, kITNames },
-    { "Color tol", "How far off a color may read", "", 15, 1, 100, 1,
-      TP_HUND,
-      []() -> int32_t { return (int32_t)(colorSensor1.colorTol * 100.0f + 0.5f); },
-      [](int32_t v){ colorSensor1.colorTol = v / 100.0f;
-                     colorSensor2.colorTol = v / 100.0f; }, nullptr },
-    { "Margin frac", "How clear the winner must be", "", 35, 1, 100, 1,
-      TP_HUND,
-      []() -> int32_t { return (int32_t)(colorSensor1.marginFraction * 100.0f + 0.5f); },
-      [](int32_t v){ colorSensor1.marginFraction = v / 100.0f;
-                     colorSensor2.marginFraction = v / 100.0f; }, nullptr },
-    { "Distance frac", "Absolute distance allowed", "", 200, 10, 500, 5,
-      TP_HUND,
-      []() -> int32_t { return (int32_t)(colorSensor1.distanceFraction * 100.0f + 0.5f); },
-      [](int32_t v){ colorSensor1.distanceFraction = v / 100.0f;
-                     colorSensor2.distanceFraction = v / 100.0f; }, nullptr },
-    { "Min separation", "Below this a sensor is unusable", "", 2, 1, 50, 1,
-      TP_HUND,
-      []() -> int32_t { return (int32_t)(colorSensor1.minUsableSeparation * 100.0f + 0.5f); },
-      [](int32_t v){ colorSensor1.minUsableSeparation = v / 100.0f;
-                     colorSensor2.minUsableSeparation = v / 100.0f; }, nullptr },
-};
-static const uint8_t kTuneCount = (uint8_t)(sizeof(kTune) / sizeof(kTune[0]));
-
-// A screen is a window onto the flat table.
-struct TuneSection { const char* title; uint8_t first, count; };
-static const TuneSection kSecTopServo = { "Top Servo",    0,  3 };
-static const TuneSection kSecBotServo = { "Bottom Servo", 3,  5 };
-static const TuneSection kSecRing     = { "Ring",         8,  6 };
-static const TuneSection kSecFaces    = { "Face Motors", 14,  4 };
-static const TuneSection kSecAlign    = { "Alignment",   18,  4 };
-static const TuneSection kSecColor    = { "Color",       22,  6 };
-
+//  The parameter table itself lives in the library — CubeTuneTable — because
+//  the index is the EEPROM slot and the firmware reads the same block: two
+//  per-sketch copies could drift by a row and silently hand values to the
+//  wrong owners, which is why the table is shared and only this editor UI is
+//  duplicated. (See CubeTuneTable.h for the accessors-not-globals and
+//  frozen-order essays that used to live here.)
 static const TuneSection* parSec  = nullptr;
 static int8_t             parSel  = 0;
 static bool               parEdit = false;
@@ -1003,50 +854,6 @@ static void actFaceMot()  { tuneEnter(&kSecFaces);    }
 static void actAlignPar() { tuneEnter(&kSecAlign);    }
 static void actColorPar() { tuneEnter(&kSecColor);    }
 
-// Write every value to EEPROM. One block, so a single changed parameter costs
-// the same as all of them — and EEPROM.update() means the unchanged ones cost
-// no write at all.
-static void tuneSave() {
-    int32_t vals[kTuneCount];
-    for (uint8_t i = 0; i < kTuneCount; ++i) vals[i] = kTune[i].get();
-    cubeTuning.save(vals, kTuneCount);
-}
-
-// Apply stored values at boot, or the defaults if there is nothing to apply.
-//
-// Called unconditionally, defaults included, so that a value's owner and the
-// table cannot disagree about what the machine is set to. The bottom servo's
-// partial and eject positions become PINNED as a result — they no longer track
-// the extend position the way an untuned servo's do. That is the point of
-// making them parameters, but it is a behaviour change and worth knowing.
-static void tuneLoad() {
-    const bool stored = cubeTuning.isValid(kTuneCount);
-    for (uint8_t i = 0; i < kTuneCount; ++i) {
-        kTune[i].set(stored ? cubeTuning.get(i) : kTune[i].def);
-    }
-    Serial.print(F("Tuning: "));
-    Serial.println(stored ? F("loaded from EEPROM") : F("defaults"));
-
-    // Worth printing rather than assuming. The tuning block is appended to a
-    // layout that already holds two full color-sensor calibrations, and running
-    // off the end of EEPROM would not announce itself — writes past the end are
-    // simply dropped, so the symptom would be tuning that never saves.
-    Serial.print(F("EEPROM: "));
-    Serial.print(eepromBytesUsed);
-    Serial.print(F(" of "));
-    Serial.print((unsigned)EEPROM.length());
-    Serial.println(F(" bytes used"));
-    if ((unsigned)eepromBytesUsed > EEPROM.length()) {
-        Serial.println(F("ERROR: EEPROM layout overflows. Tuning will not save."));
-    }
-}
-
-static void tuneResetAll() {
-    cubeTuning.clear();
-    for (uint8_t i = 0; i < kTuneCount; ++i) kTune[i].set(kTune[i].def);
-    Serial.println(F("Tuning: reset to defaults"));
-}
-
 // Reset is gated like the hardware rows are, and for the same reason: it is the
 // one action here that cannot be undone by turning the wheel back. The servos
 // are NOT driven to their default positions afterwards - the values are what
@@ -1075,7 +882,7 @@ static void parLeave() {
         botServo.persist();
         parMoved = false;
     }
-    tuneSave();
+    tuneSaveAll();
     toMenu();
 }
 // ---------------------------------------------------------------------------
@@ -1139,9 +946,11 @@ static void updateInputReport() {
 //  numbers.
 //
 //  The readings here are canned but MOVING, so the screens are exercised as live
-//  ones rather than stills. On hardware they come from
-//  colorSensorN.getScanValRow(i) — four ints, R G B W — and
-//  MotorEncoders[i]->scan(), a raw 12-bit angle or a negative I2C error.
+//  ones rather than stills. The firmware's Sensor Test reads them for real:
+//  colorSensorN.scanSingle(i) fills currentRGBW — four ints, R G B W; NOT the
+//  getScanValRow() row, which serves scanFace()'s medians and a single-sensor
+//  scan never touches — classify() judges it, and MotorEncoders[i]->scan()
+//  returns a raw 12-bit angle or a negative I2C error.
 static int8_t senSel = 0;          // 0..17 across both boards, or the raw view
 
 static void senReadings(uint32_t t, int8_t* b1, int8_t* b2) {
@@ -1274,9 +1083,12 @@ static void drawFaultLog() {
         snprintf(text[i], sizeof(text[i]), "%s  %s\t%d", f.when, f.what, f.code);
         lines[i] = text[i];
         // An abort is the user stopping the machine, not the machine failing.
-        // Colouring it like a fault would teach the wrong thing.
-        marks[i] = (f.code == 70) ? CubeDisplay::RowMark::Plain
-                                  : CubeDisplay::RowMark::Bad;
+        // Colouring it like a fault would teach the wrong thing. The code set
+        // is the firmware's isAbortCode() — change both.
+        marks[i] = (f.code == 5 || f.code == 9 || f.code == 25 ||
+                    f.code == 70 || f.code == 105 || f.code == 125)
+                 ? CubeDisplay::RowMark::Plain
+                 : CubeDisplay::RowMark::Bad;
     }
 
     char hint[40];
@@ -1383,18 +1195,57 @@ static void actDemoNetLoad() {
     Cube.displayUpdate();
 }
 
-// Folding a pattern: the solve screen with the pattern named, then the result.
-// Running the moves is all the machine side would add — they are already known.
-static const char* g_foldNet  = nullptr;
+// Folding a pattern, animated from the firmware's own tables: the fold moves
+// march the ribbon at the machine's pace, then the screen becomes the
+// firmware's completion shape — Done frame, the pattern's net, its name on
+// the line beneath. Moves, counts and nets are all CubeSystem's copy, so
+// this rehearsal cannot drift from what the machine folds.
+static int8_t      g_foldIdx  = 0;
 static const char* g_foldName = nullptr;
 
 static void actFoldPattern() {
+    // Index FIRST, before the screen changes: the tick reads the shared
+    // tables by row, and selectedIndex() only means this row while the menu
+    // still shows it. Item order matches the kPattern* tables — see the
+    // table's comment.
+    g_foldIdx = (int8_t)Menu.selectedIndex();
     const MenuItem* it = Menu.selectedItem();
-    g_foldNet  = (it && it->previewNet) ? it->previewNet : nullptr;
     g_foldName = (it && it->label) ? it->label : "Pattern";
     showScreen(Op::Solve, "Patterns", "Folding", Live::Fold);
     cubeDisplay.setStatus(g_foldName);
     Cube.displayUpdate();
+}
+
+// ~140 ms per move — the same pace the scramble demos use, because it is the
+// machine's. Pieces only, per the 20 Hz rule.
+static void updateFold(uint32_t t) {
+    const char* const* moves  = CubeSystem::kPatternMoves[g_foldIdx];
+    const int          count  = CubeSystem::kPatternMoveCounts[g_foldIdx];
+    const uint32_t     foldMs = (uint32_t)count * 140;
+
+    if (t < foldMs) {
+        const int m = (int)((t * (uint32_t)count) / foldMs);
+        char sub[48];
+        snprintf(sub, sizeof(sub), "Move %d of %d   %s", m + 1, count, moves[m]);
+        cubeDisplay.setMessage("Folding");
+        cubeDisplay.setStatus(sub);
+        cubeDisplay.setOpRibbon(moves, count, m);
+        cubeDisplay.setOpProgress(m, count);
+        return;
+    }
+
+    // Done — the firmware's completion shape. The headline goes because the
+    // net owns the middle of the screen, and the fold's ribbon and bar go
+    // with it. Dropping live to None makes this a one-shot: the finished
+    // screen just sits, dismissed by the generic SELECT/LEFT handler, and
+    // the net is not rewritten twenty times a second for nothing.
+    cubeDisplay.setOpKind(Op::Done);
+    cubeDisplay.setMessage("");
+    cubeDisplay.setOpRibbon(nullptr, 0, -1);
+    cubeDisplay.setOpProgress(0, 0);
+    cubeDisplay.setOpCubeNet(CubeSystem::kPatternNets[g_foldIdx]);
+    cubeDisplay.setStatus(g_foldName);
+    live = Live::None;
 }
 
 // One move per press. The ribbon is the whole screen: where you are in the
@@ -1434,26 +1285,33 @@ static const uint32_t kStepComputeMs  = 1400;
 // the serial monitor. setMessage() prints only when the text actually changes.
 static void drawStepScramble(uint32_t t) {
     const bool computing = (t >= kStepScramMs);
-    const int  m = computing ? kScrambleLen
-                             : (int)((t * kScrambleLen) / kStepScramMs);
+    const int  m = computing ? CubeSystem::kScrambleLen
+                             : (int)((t * CubeSystem::kScrambleLen) / kStepScramMs);
 
+    // The wording is the firmware's, verbatim — headline "Scrambling" with the
+    // move counter on the status line, then "Computing the solution" — so the
+    // rehearsal shows the screens the machine actually paints (toComputing()
+    // and ModeScrambling in CubeSolver.ino), not a paraphrase of them.
     if (computing) {
         cubeDisplay.setOpKind(Op::Info);              // yellow: thinking
-        cubeDisplay.setMessage("Solving");
-        cubeDisplay.setStatus("Working out the moves");
+        cubeDisplay.setMessage("Computing the solution");
+        cubeDisplay.setStatus("");
         // Clear the scramble's furniture. Without this the finished ribbon and
-        // a full progress bar sit under the word "Solving", which reads as a
-        // solve that is already complete before it has started. Both hide on a
+        // a full progress bar sit under "Computing", which reads as a solve
+        // that is already complete before it has started. Both hide on a
         // null/zero argument.
         cubeDisplay.setOpRibbon(nullptr, 0, -1);
         cubeDisplay.setOpProgress(0, 0);
     } else {
-        char head[32];
-        snprintf(head, sizeof(head), "Scrambling %d of %d", m + 1, kScrambleLen);
+        const int shown = (m < CubeSystem::kScrambleLen) ? m : CubeSystem::kScrambleLen - 1;
+        char sub[40];
+        snprintf(sub, sizeof(sub), "Move %d of %d   %s",
+                 shown + 1, CubeSystem::kScrambleLen, kScrambleMoves[shown]);
         cubeDisplay.setOpKind(Op::Error);             // red: disordering it
-        cubeDisplay.setMessage(head);
-        cubeDisplay.setOpRibbon(kScrambleMoves, kScrambleLen, m);
-        cubeDisplay.setOpProgress(m, kScrambleLen);
+        cubeDisplay.setMessage("Scrambling");
+        cubeDisplay.setStatus(sub);
+        cubeDisplay.setOpRibbon(kScrambleMoves, CubeSystem::kScrambleLen, shown);
+        cubeDisplay.setOpProgress(m, CubeSystem::kScrambleLen);
     }
     Cube.displayUpdate();
 }
@@ -1499,13 +1357,13 @@ static void updateDemoMode(uint32_t t) {
 
     char sub[52];
     if (cycle < kDemoScrambleMs) {
-        const int m = (int)((cycle * kScrambleLen) / kDemoScrambleMs);
+        const int m = (int)((cycle * CubeSystem::kScrambleLen) / kDemoScrambleMs);
         cubeDisplay.setOpKind(Op::Error);                  // red: scrambling
         cubeDisplay.setMessage("Scrambling");
         snprintf(sub, sizeof(sub), "Run %d   -   Move %d of %d",
-                 run, m + 1, kScrambleLen);
-        cubeDisplay.setOpRibbon(kScrambleMoves, kScrambleLen, m);
-        Cube.displayProgress(m, kScrambleLen - 1);
+                 run, m + 1, CubeSystem::kScrambleLen);
+        cubeDisplay.setOpRibbon(kScrambleMoves, CubeSystem::kScrambleLen, m);
+        Cube.displayProgress(m, CubeSystem::kScrambleLen - 1);
     } else if (cycle < kDemoScrambleMs + kDemoComputeMs) {
         // The handover. The frame turns green here rather than at the first
         // solve move, because this is the moment it stops scrambling — and the
@@ -1534,21 +1392,69 @@ static void updateDemoMode(uint32_t t) {
     cubeDisplay.setStatus(sub);
 }
 
+// The firmware's Scramble Solve, rehearsed: one run of Demo Mode's phases
+// without the run counter, painting the status lines the firmware paints —
+// red scramble with ribbon and bar, green "Computing" with the furniture
+// cleared, green solve, then "Solved!". It loops like every other demo. The
+// machine holds at Solved! until SELECT, but the handovers are what this
+// rehearsal is for, and looping lets them be watched without re-picking the
+// item.
+static void updateScrambleSolve(uint32_t t) {
+    const uint32_t cycle = t % kDemoCycleMs;
+
+    char sub[48];
+    if (cycle < kDemoScrambleMs) {
+        const int m = (int)((cycle * CubeSystem::kScrambleLen) / kDemoScrambleMs);
+        cubeDisplay.setOpKind(Op::Error);                  // red: disordering it
+        cubeDisplay.setMessage("Scrambling");
+        snprintf(sub, sizeof(sub), "Move %d of %d   %s",
+                 m + 1, CubeSystem::kScrambleLen, kScrambleMoves[m]);
+        cubeDisplay.setStatus(sub);
+        cubeDisplay.setOpRibbon(kScrambleMoves, CubeSystem::kScrambleLen, m);
+        cubeDisplay.setOpProgress(m, CubeSystem::kScrambleLen);
+    } else if (cycle < kDemoScrambleMs + kDemoComputeMs) {
+        // The handover: green the moment it stops scrambling, and the
+        // scramble's furniture goes — a finished ribbon and a full bar under
+        // "Computing" read as a solve that finished before it started.
+        cubeDisplay.setOpKind(Op::Solve);
+        cubeDisplay.setMessage("Computing the solution");
+        cubeDisplay.setStatus("");
+        cubeDisplay.setOpRibbon(nullptr, 0, -1);
+        cubeDisplay.setOpProgress(0, 0);
+    } else if (cycle < kDemoScrambleMs + kDemoComputeMs + kDemoSolveMs) {
+        const int m = (int)(((cycle - kDemoScrambleMs - kDemoComputeMs) * 21)
+                            / kDemoSolveMs);
+        cubeDisplay.setOpKind(Op::Solve);                  // green: solving
+        cubeDisplay.setMessage("Solving");
+        snprintf(sub, sizeof(sub), "Move %d/%d   %s", m + 1, 21, kStepMoves[m]);
+        cubeDisplay.setStatus(sub);
+        cubeDisplay.setOpRibbon(kStepMoves, 21, m);
+        cubeDisplay.setOpProgress(m, 21);
+    } else {
+        cubeDisplay.setOpKind(Op::Done);
+        cubeDisplay.setMessage("Solved!");
+        cubeDisplay.setStatus("21 moves in 4.62 s");
+        cubeDisplay.setOpRibbon(kStepMoves, 21, 20);
+        cubeDisplay.setOpProgress(21, 21);
+    }
+}
+
 // ---------------------------------------------------------------------------
 //  Stats
 // ---------------------------------------------------------------------------
 //  Six rows, which is exactly enough — resist a seventh. The numbers here are
-//  canned; the work behind this screen is an EEPROM block of counters, not the
-//  drawing, and it wants a block of its own rather than a corner of the tuning
-//  one. Solve counts change every run and tuning changes almost never, so
-//  sharing would rewrite the tuning bytes on every solve for nothing.
+//  canned: the EEPROM block behind the real screen exists now (CubeStats,
+//  whose header carries the why-its-own-block design brief this comment used
+//  to hold), but the only question this demo answers on the bench is whether
+//  the label/value columns line up at realistic widths.
 //
-//  Times are pre-formatted strings rather than numbers waiting on a formatter,
-//  because the only interesting question this screen answers on the bench is
-//  whether the label/value columns line up at realistic widths.
+//  Row format mirrors the firmware's actStats — change both. That includes
+//  the "(+N step)" tally Step Solve adds to the Solves row (counted but
+//  untimed, so it must not inflate the count the average divides by) and the
+//  "-" a time shows before anything has been recorded.
 static void actStats() {
     static const char* const rows[6] = {
-        "Solves\t128",
+        "Solves\t128 (+6 step)",
         "Best\t12.4 s",
         "Average\t18.9 s",
         "Last\t15.2 s",
@@ -1556,7 +1462,7 @@ static void actStats() {
         "Faults\t3",
     };
     showScreen(Op::Info, "Stats", nullptr);
-    cubeDisplay.setStatus("Since the last reset");
+    cubeDisplay.setStatus("Since first use");
     cubeDisplay.setOpLines(rows, 6, nullptr);
     Cube.displayUpdate();
 }
@@ -1623,11 +1529,11 @@ static void drawIdle() {
     Cube.displayUpdate();
 }
 
-// One random quarter turn. Reuses the jog page's move table rather than
-// carrying a second copy — a demo that drifted from the moves the Actuators
-// page sends would be showing notation the machine does not use.
+// One random quarter turn. Reuses the firmware's move table rather than
+// carrying a copy — a demo that drifted from the moves the machine sends
+// would be showing notation the machine does not use.
 static void idleTurn() {
-    idleLastMove = kFaceMove[random(6)][random(2)];
+    idleLastMove = CubeSystem::kFaceMoves[random(6)][random(2)];
     idleMoves++;
     idleStep = (uint8_t)((idleStep + 1) % 6);
 
@@ -1755,6 +1661,14 @@ static void updateDemo() {
 
     case Live::Demo:
         updateDemoMode(t);
+        break;
+
+    case Live::Scramble:
+        updateScrambleSolve(t);
+        break;
+
+    case Live::Fold:
+        updateFold(t);
         break;
 
     case Live::IdleSolve:
@@ -1919,7 +1833,7 @@ void setup() {
 
     // Before anything can be shown or moved: the values a screen would display
     // and the positions a servo would sweep to both come from here.
-    tuneLoad();
+    tuneLoadAll();
 
     Menu.begin(&kScreenMain, drawMenu);
     if (Cube.encoderInitialized) prevPos = menuEncoder.getPosition();
@@ -2022,6 +1936,7 @@ void loop() {
                 drawTune();
             } else if (in.back) {               // put it back
                 p.set(parWas);
+                if (p.preview) p.preview(parWas);   // and move the part back too
                 parEdit = false;
                 drawTune();
             } else {
@@ -2035,6 +1950,10 @@ void loop() {
                     if (v < p.lo) v = p.lo;     // clamp: a range has ends
                     if (v > p.hi) v = p.hi;
                     p.set(v);
+                    // The edit path is the ONE place a preview runs: the
+                    // operator is watching, and the gate has already been
+                    // shown. Boot and reset call set() alone.
+                    if (p.preview) p.preview(v);
                     if (p.flags & TP_LIVE) parMoved = true;
                     drawTune();
                 }

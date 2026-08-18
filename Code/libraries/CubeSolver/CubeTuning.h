@@ -25,10 +25,12 @@
 //
 // WHERE IT SITS IN EEPROM
 // -----------------------
-// At the END of the layout, and it must stay there. initializeEEPROMLayout()
-// hands out addresses sequentially, so a block inserted anywhere else shifts
-// every address after it — which would quietly reinterpret an existing
-// machine's motor and color calibration as garbage.
+// After every calibration block, and nothing may ever be inserted above it.
+// initializeEEPROMLayout() hands out addresses sequentially, so an insertion
+// shifts every address after it — which would quietly reinterpret an existing
+// machine's motor and color calibration as garbage. Blocks added since (the
+// fault log, then the stats counters) are APPENDED after this one, for the
+// same reason.
 
 #ifndef CubeTuning_h
 #define CubeTuning_h

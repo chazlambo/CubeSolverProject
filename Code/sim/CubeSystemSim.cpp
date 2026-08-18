@@ -279,7 +279,12 @@ int CubeSystem::solveVirtual() {
 
     const bool injectFault = sim::consumeFaultInjection();
 
-    if (!simWait(kSolveComputeMs)) return 11;
+    // The wait's abort result is deliberately IGNORED: the real kociemba call
+    // blocks unpumped, so the machine cannot notice the chord during the
+    // compute — a latched abort surfaces at the first move boundary as 105,
+    // and the sim must rehearse that path, not invent an abortable compute
+    // (returning 11 here misreported it as "Cube not scanned yet" besides).
+    simWait(kSolveComputeMs);
     if (injectFault) return kFakeSolveFault;
 
     // A canned solution. Nothing executes these; they exist so solutionLength
@@ -375,15 +380,44 @@ int CubeSystem::calibrateColorSensors() {
     return 0;
 }
 
-// A single move, for the manual actuator screens. The real one drives a
-// stepper and checks the encoder; here it just takes a plausible amount of time
-// and can be aborted, which is enough to exercise the screens that call it.
-// Whole-cube rotations take longer because they re-grip.
+// A single move, for the manual actuator screens and the sketch-side modes
+// (scramble, idle turns, pattern folds). The real one drives a stepper and
+// checks the encoder; here it takes a plausible amount of time, can be
+// aborted, and consumes the F key's armed fault — the modes' per-move failure
+// paths are unreachable without that. An armed fault therefore also fails the
+// next jog turn; deliberate, since jog has a failure screen worth exercising
+// too. Whole-cube rotations take longer because they re-grip.
+//
+// moveVirtual is honored exactly as the real code honors it: applied AFTER
+// the wait — physical first, model last, so an abort mid-move leaves the
+// model untracked exactly as the machine does — and applied for EVERY token,
+// rotations included. That last part reproduces a trap on purpose:
+// VirtualCube parses a move's first character as its face, so "ROTX" with
+// moveVirtual=true silently runs an R turn on the model. The real firmware
+// has that trap, the callers are contracted around it, and a sim that
+// quietly skipped the model move for ROT/ALL would hide exactly the caller
+// bug it exists to catch before the bench. This is also what lets the
+// sketch's modes genuinely disorder the virtual cube in the sim — the only
+// way "skip the scramble when already scrambled" and "refuse a pattern on an
+// unsolved cube" can be seen working.
+//
+// Known wrinkle: solveVirtual()'s canned solution bears no relation to the
+// scrambled state, so a sim mode-solve leaves the model disordered rather
+// than solved — press C to reset it. Wiring the real solver fixes that, and
+// is Tier 2 (see the file banner).
 int CubeSystem::executeMove(const String& move, bool moveVirtual, bool align) {
-    (void)moveVirtual;
     (void)align;
+    // The real failure point is the pre-move encoder read, before any motion
+    // — so the injected fault fires before the wait, not after it.
+    if (sim::consumeFaultInjection()) return 20 + ERR_ENCODER_FAULT;   // 24, "Encoder unreadable"
     const bool whole = move.startsWith("ROT");
+    // ALL re-grips nothing (it turns all six faces at once), so it keeps the
+    // short duration.
     if (!simWait(whole ? kRingMoveMs : kPerMoveMs)) return 20 + ERR_ABORTED;
+    if (moveVirtual) {
+        const int r = virtualCube.executeMove(move);
+        if (r != 0) return 10 + r;
+    }
     return 0;
 }
 

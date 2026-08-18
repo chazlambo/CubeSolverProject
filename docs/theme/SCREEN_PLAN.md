@@ -1,12 +1,14 @@
 # Screen plan — what the rest of the machine needs to look like
 
-Every menu item that currently lands on "Not implemented yet", designed before
-it gets written. The point is not to lock anything down; it is so that the tenth
-screen looks like it belongs with the first, and so the shared pieces get built
-once instead of five slightly different times.
+Every menu item that once landed on "Not implemented yet", designed before it
+got written. As of firmware 1.0.0 every screen here is **BUILT**, machine side
+included — the per-screen statuses say so. The point was never to lock anything
+down; it is so that the tenth screen looks like it belongs with the first, and
+so the shared pieces get built once instead of five slightly different times.
 
 Read `UI_DESIGN.md` first — it covers the palette, the limits and the traps.
-This file is only about screens that do not exist yet.
+This file was about screens that did not exist yet; it stays as the record of
+why each one looks the way it does.
 
 ---
 
@@ -53,17 +55,18 @@ Built so far, and where each lives:
 | Cube net | `setOpCubeNet()` | Cube State, scan review, Patterns |
 | Chip row | `setOpChipRow()` / `setOpFaces()` | scan faces, calibration, the jog strip |
 | Move ribbon | `setOpRibbon()` | Step Solve |
-| Row status marks | `setOpLines(..., marks)` | the jog cursor; Sensor Test wants it too |
+| Row status marks | `setOpLines(..., marks)` | the jog cursor; Sensor Test uses it too |
 | Frame recolor | `setOpKind()` | phase changes, and "you are editing" |
 
-Still missing:
+Nothing is still missing — the last two landed with the machine side:
 
-1. **Scrolling status list** — Fault Log. More than six rows with a position
-   readout in the hint bar rather than a scrollbar the theme has no art for.
-2. **Value editor** — Parameters and Servo Positions. Mostly solved already:
-   the Actuators page's enter-pick-send on a gripper IS this interaction, and it
-   proved out. What is left is a NUMBER rather than three named positions, and
-   deciding the step size.
+1. **Scrolling status list** — BUILT, for Fault Log. More than six rows with a
+   position readout in the hint bar rather than a scrollbar the theme has no
+   art for.
+2. **Value editor** — BUILT, for Parameters and Servo Positions. The Actuators
+   page's enter-pick-send on a gripper proved the interaction; the editor adds
+   a NUMBER rather than three named positions, with the step size a column of
+   the shared parameter table.
 
 ### On the cube net — built, and how
 
@@ -110,7 +113,7 @@ screen says "last scan, not built" rather than pretending otherwise.
 Sketches are the ~240x150 content area inside the frame. The title sits top-left
 and the hint box along the bottom on every one of them.
 
-### Scramble Solve — Modes
+### Scramble Solve — Modes — **BUILT**
 
 Two phases, and the frame color should carry that: **red** while scrambling,
 **green** the moment it starts solving. Nothing else on the screen has to
@@ -122,8 +125,8 @@ change for the operator to know which half they are watching.
         ▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░              <- progress bar
 ```
 
-Reuses everything. Needs nothing new. Build this first — it is the cheapest of
-the Modes and it proves the phase-color idea.
+Reuses everything. Needed nothing new. Built first — it was the cheapest of
+the Modes and it proved the phase-color idea.
 
 ### Idle Mode — Modes — **BUILT**
 
@@ -158,8 +161,9 @@ semantic, and tying it to the moves at least makes it honest: a color change
 means something happened, so the machine reads as alive from further away than
 the move counter can be read.
 
-Idling **disorders the cube**, so it sets the scrambled flag — Step Solve must
-not then scramble a cube that is already scrambled.
+Idling **disorders the cube** — Step Solve must not then scramble a cube that
+is already scrambled. The firmware derives that from the cube model itself
+(`cubeIsSolved()`) rather than a flag, so the two cannot disagree.
 
 ### Demo Mode — Modes — **BUILT**
 
@@ -219,7 +223,7 @@ toward looking like buttons. Color alone carries the cursor.
 `setOpRibbon(moves, count, current)` centres the window on the current move and
 shows about seven. Hint: "SELECT for next move".
 
-### Patterns — Modes
+### Patterns — Modes — **BUILT**
 
 A *menu*, so bars are correct here — and the preview pane is the obvious home
 for a small cube net of what each pattern produces. That is the pane doing
@@ -242,7 +246,8 @@ The four states are computed by applying each well-known sequence to a solved
 cube and checked for nine of every color — a preview that is not a real cube
 would hide exactly the bugs this screen is for.
 
-What remains is the machine side: running the moves. The screen is done.
+The machine side — running the moves — is built now too. The fold refuses a
+cube that is not solved, because the preview is a promise about the result.
 
 ### Cube State — Diagnostics — **BUILT**
 
@@ -258,7 +263,7 @@ already record the runner-up color and the confidence for every sticker, so the
 data is there — a hollow or outlined sticker for "the classifier was unsure
 about this one" would turn this from *what it read* into *what to distrust*.
 
-### Fault Log — Diagnostics
+### Fault Log — Diagnostics — **BUILT**
 
 A list nobody selects from, so status rows rather than bars.
 
@@ -272,7 +277,7 @@ A list nobody selects from, so status rows rather than bars.
 Six rows at a time, wheel scrolls, and the position goes in the hint box —
 "7-12 of 24" — rather than inventing a scrollbar the theme has no art for.
 
-### Hardware Test — Diagnostics
+### Hardware Test — Diagnostics — **BUILT**
 
 **Not a self-test.** It is manual control: drive each actuator to each position,
 by hand, one at a time. The panel version of `Test Code/Actuator_Test`, which is
@@ -342,9 +347,9 @@ scan screen has always used.
 The hint bar carries what the buttons do and changes with what is selected —
 there is no one sentence true of both a servo and a face motor.
 
-**Built** in `Test_Menu` under Actuators. What remains is porting the tree into
-the firmware's Diagnostics menu; the actions already call the real CubeSystem
-methods.
+Built in `Test_Menu` under Actuators first, and now ported into the firmware's
+Diagnostics menu as **Hardware Test**; the bench page stays as the rehearsal —
+change both.
 
 ### Color Sensors — Diagnostics — **BUILT**
 
@@ -380,8 +385,10 @@ The demo draws board 2 sensor 2 as unusable, because on this machine it is (a
 dead green channel; see the README). A diagnostic that only ever shows healthy
 hardware is not a diagnostic.
 
-On hardware the values come from `colorSensorN.getScanValRow(i)` — four ints,
-R G B W. Wants a 3x3 grid per board eventually, to match the physical face.
+On hardware the values come from `colorSensorN.currentRGBW` right after a
+`scanSingle()` — `getScanValRow()` holds the last full-face scan, which this
+screen would show as stale data. Wants a 3x3 grid per board eventually, to
+match the physical face.
 
 ### Motor Sensors — Diagnostics — **BUILT**
 
@@ -393,7 +400,7 @@ an I2C error instead of an angle. `MotorEncoder::scan()` returns the angle or a
 negative error code, and showing the error rather than a plausible number is the
 point of the screen.
 
-### Tuning — Diagnostics > Tuning — **BUILT**
+### Tuning — Calibration > Servo Positions and Diagnostics > Parameters — **BUILT**
 
 The one that needed a genuinely new interaction: the wheel changes a *value*,
 not a cursor. Built as a settings list kept separate from `CubeMenu` rather than
@@ -481,50 +488,48 @@ boot applies every value whether it came from EEPROM or from the defaults.
 ### Stats — top level — **BUILT**
 
 Six rows — solves, best, average, last, run time, faults — which is exactly
-enough, so resist a seventh. The numbers are canned. The work behind this screen
-is an EEPROM block of counters, and it wants a block of ITS OWN rather than a
-corner of the tuning one: solve counts change every run and tuning changes
-almost never, so sharing would rewrite the tuning bytes on every solve for
-nothing.
+enough, so resist a seventh. The numbers are real now: an EEPROM block of
+counters (`CubeStats`), a block of ITS OWN rather than a corner of the tuning
+one: solve counts change every run and tuning changes almost never, so sharing
+would rewrite the tuning bytes on every solve for nothing.
 
 ---
 
 ## Suggested order
 
-Screens done, machine side outstanding:
+All of it landed, roughly in this order:
 
-- **Patterns** — the four states and the preview pane are built; running the
-  move sequence is not.
+- **Patterns** — the four states and the preview pane came first; the move
+  sequences now run, gated on a solved cube.
 - **Scramble Solve** — red while scrambling, green the moment it solves, one bar
-  throughout. Needs a scramble generated and run.
-- **Step Solve** — the ribbon works; needs the moves actually executed.
+  throughout. Done.
+- **Step Solve** — the ribbon works and the moves execute, one per SELECT. Done.
 - **Demo Mode** — scramble and solve on a loop with a run counter, showing the
-  moves rather than only a count. Needs the two operations behind it.
-- **Color Sensors** and **Motor Sensors** — both drawn, both on canned but
-  moving data. Need the sensors actually read, and **throttled**: every refresh
-  is I²C traffic on the bus the wheel is also using. `Test_Menu`'s Input Report
-  shows the pattern.
-- **Hardware Test** — the Actuators page drives real hardware already. What
-  remains is porting the page into the firmware's Diagnostics menu.
-- **Tuning** — six sections under Diagnostics > Tuning, editing the real
-  values, with defaults in the source and overrides in EEPROM. Done, including
-  persistence and reset.
+  moves rather than only a count. Done.
+- **Color Sensors** and **Motor Sensors** — real sensor reads, **throttled** and
+  round-robin: every refresh is I²C traffic on the bus the wheel is also using.
+  Done.
+- **Hardware Test** — the Actuators page, ported into the firmware's
+  Diagnostics menu. Done.
+- **Tuning** — six sections editing the real values, with defaults in the
+  source and overrides in EEPROM. Done, including persistence and reset.
 
-**Every screen is now drawn.** `Test_Menu` covers the whole tree, and its
-`Screens > Modes` submenu is deliberately the same five items in the same order
-as the firmware's `Modes` menu — a rehearsal that groups things differently from
-the machine stops being a rehearsal.
+**Every screen is now drawn AND wired.** `Test_Menu` covers the whole tree, and
+its `Screens > Modes` submenu is deliberately the same five items in the same
+order as the firmware's `Modes` menu — a rehearsal that groups things
+differently from the machine stops being a rehearsal.
 
-What is left is entirely machine side, in two kinds:
+The machine side landed too, in the two kinds this section predicted:
 
-1. **Two EEPROM stores**, both the shape `CubeTuning` already is — a fault ring
-   buffer (`CubeSystem::lastFault` is one int today) and the Stats counters.
-2. **Behaviour behind the five Modes**, plus porting the finished Diagnostics
-   screens into the firmware sketch, where ten menu items still say "Not
-   implemented yet".
+1. **Two EEPROM stores**, both the shape `CubeTuning` already is — the
+   `CubeFaultLog` ring buffer (replacing the one-int `CubeSystem::lastFault`)
+   and the `CubeStats` counters.
+2. **Behaviour behind the five Modes**, plus the finished Diagnostics screens
+   ported into the firmware sketch. No menu item says "Not implemented yet"
+   any more.
 
-Low-confidence marking on the Cube State net can slot in whenever; it needs no
-new primitive, only `scanConf` plumbed through.
+Low-confidence marking on the Cube State net can still slot in whenever; it
+needs no new primitive, only `scanConf` plumbed through.
 
 ## Where to build them
 

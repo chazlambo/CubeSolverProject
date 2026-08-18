@@ -55,7 +55,11 @@ lv_obj_t* label_button;
 lv_obj_t* label_counter;
 
 // ----------------- Cube System -----------------
-CubeSystem cube;
+// Named Cube, capital C: the library's CubeTuneTable.cpp declares
+// `extern CubeSystem Cube;`, and the Arduino 1.0 library format links every
+// library .cpp into every sketch — so any sketch using CubeSystem must define
+// the global under exactly this name.
+CubeSystem Cube;
 
 int32_t last_raw_pos = 0;
 long encoder_count   = 0;
@@ -121,7 +125,7 @@ void setup()
 
     // ------------------------ CUBE SYSTEM INIT ------------------------
     Serial.println("Initializing CubeSystem (includes menuEncoder.begin())...");
-    cube.begin();
+    Cube.begin();
 
     last_raw_pos = menuEncoder.getPosition();
 

@@ -44,6 +44,79 @@ int8_t CubeSystem::chipIndexForColor(char c) {
     return CubeDisplay::chipIndexForColor(c);
 }
 
+// The 18-token face-move grammar, exactly as executeMove() spells it: no
+// lowercase, no wide moves, no "U2'". Row order matches the display's face
+// row (U R F D L B) so a random face index doubles as a chip index. The
+// whole-cube tokens (ROTX/ROTZ/ALL) are deliberately NOT here: VirtualCube
+// parses a move's first character as its face, so passing one of them with
+// moveVirtual=true would silently corrupt the model — a table that cannot
+// express the mistake beats a comment warning against it.
+const char* const CubeSystem::kFaceMoves[6][3] = {
+    { "U", "U'", "U2" },
+    { "R", "R'", "R2" },
+    { "F", "F'", "F2" },
+    { "D", "D'", "D2" },
+    { "L", "L'", "L2" },
+    { "B", "B'", "B2" },
+};
+
+// The pattern library. The SEQUENCES are canonical; every token is inside
+// the 18-token face grammar above — no whole-cube rotations — so a fold can
+// run with moveVirtual=true and the model tracks every move.
+//
+// The nets are the model's own output, not hand-drawn: each sequence applied
+// by VirtualCube to a solved cube in the default frame (green left, orange
+// back — the frame setSolved() + setOrientation('G','O') builds, and the one
+// the simulator's fake scan reports), then checked for nine of each color.
+// On the real machine a scan can leave the frame in any orientation, so a
+// fold's actual colors may be a relabeling of the preview — same pattern,
+// different paint — which is why the completion screen draws the MODEL's net
+// rather than one of these.
+//
+// Row order is Checkerboard, Cube in Cube, Six Spot, Superflip. The menu
+// tables in both sketches index by that order — reorder here and they must
+// reorder with it.
+static const char* const kPatMovesCheckerboard[] = {
+    "U2", "D2", "R2", "L2", "F2", "B2",
+};
+static const char* const kPatMovesCubeInCube[] = {
+    "F", "L", "F", "U'", "R", "U", "F2", "L2", "U'", "L'", "B", "D'", "B'", "L2", "U",
+};
+static const char* const kPatMovesSixSpot[] = {
+    "U", "D'", "R", "L'", "F", "B'", "U", "D'",
+};
+static const char* const kPatMovesSuperflip[] = {
+    "U", "R2", "F", "B", "R", "B2", "R", "U2", "L", "B2",
+    "R", "U'", "D'", "R2", "F", "R'", "L", "B2", "U2", "F2",
+};
+
+const char* const* const CubeSystem::kPatternMoves[CubeSystem::kPatternCount] = {
+    kPatMovesCheckerboard,
+    kPatMovesCubeInCube,
+    kPatMovesSixSpot,
+    kPatMovesSuperflip,
+};
+
+// Counted by the compiler, not by hand: a count that drifted from its array
+// would end a fold early or run the pointer off it.
+const uint8_t CubeSystem::kPatternMoveCounts[CubeSystem::kPatternCount] = {
+    sizeof(kPatMovesCheckerboard) / sizeof(kPatMovesCheckerboard[0]),
+    sizeof(kPatMovesCubeInCube)   / sizeof(kPatMovesCubeInCube[0]),
+    sizeof(kPatMovesSixSpot)      / sizeof(kPatMovesSixSpot[0]),
+    sizeof(kPatMovesSuperflip)    / sizeof(kPatMovesSuperflip[0]),
+};
+
+const char CubeSystem::kPatternNets[CubeSystem::kPatternCount][55] = {
+    // Checkerboard: every face alternates its own color with its opposite's.
+    "WYWYWYWYW" "BGBGBGBGB" "ROROROROR" "YWYWYWYWY" "GBGBGBGBG" "ORORORORO",
+    // Cube in Cube: a smaller cube's colors wrapped around one corner.
+    "RRRRWWRWW" "BBWBBWWWW" "BRRBRRBBB" "OOOYYOYYO" "YYYGGYGGY" "GGGGOOGOO",
+    // Six Spot: each face solid in a neighbour's color, its own centre showing.
+    "RRRRWRRRR" "WWWWBWWWW" "BBBBRBBBB" "OOOOYOOOO" "YYYYGYYYY" "GGGGOGGGG",
+    // Superflip: every edge flipped in place; corners and centres untouched.
+    "WOWGWBWRW" "BWBRBOBYB" "RWRGRBRYR" "YRYGYBYOY" "GWGOGRGYG" "OWOBOGOYO",
+};
+
 // From calibrateColorSensors(): faceColors then topFaces, mapped to chip
 // indices. Between them each board sees all six colors.
 //   side: {R,G} {B,R} {O,B} {G,O}

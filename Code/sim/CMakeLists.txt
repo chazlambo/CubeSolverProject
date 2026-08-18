@@ -99,6 +99,9 @@ add_executable(cubesim
     ${FW}/RotaryEncoder.cpp
     ${FW}/CubePump.cpp
     ${FW}/CubeTuning.cpp
+    ${FW}/CubeTuneTable.cpp
+    ${FW}/CubeFaultLog.cpp
+    ${FW}/CubeStats.cpp
     ${FW}/CubeHardwareConfig.cpp
     ${FW}/CubeServo.cpp
     ${FW}/CubeMotors.cpp

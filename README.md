@@ -17,9 +17,17 @@ Everything here is one person's design: mechanical (SolidWorks), electrical
 live during scan and solve), abort gesture, encoder fault handling, piece-level
 cube validation with automatic scan repair, per-sensor color confidence.
 
+**New in firmware 1.0.0:** every menu item now lands on a real screen — the five
+Modes (Scramble Solve, Idle, Demo, Step Solve, Patterns), on-panel tuning with
+defaults in source and overrides in EEPROM, the hardware jog page, live sensor
+diagnostics, an EEPROM fault log, and lifetime stats.
+
 **Known unfinished:**
-- `VirtualCube::rebuildFromCubeArray()` — marked `UNFINISHED NEEDS DEBUGGING`.
-  The commented-out body is believed correct but has no rollback on failure.
+- `VirtualCube::rebuildFromCubeArray()` — still labeled `UNFINISHED NEEDS
+  DEBUGGING` in its header, but the body is live and the firmware now relies
+  on it (Cube State and pattern completion refresh the color array through
+  it). The stale part is the label, not the code; it has no rollback on
+  failure, which no current caller needs.
 - Color sensor board 2, sensor 2 has a **dead green channel** — it reads exactly
   `0` for all six sticker colors in every archived calibration run. The firmware
   now detects this (`ColorSensor::checkSensorHealth`) but it is a hardware fault.
@@ -257,9 +265,16 @@ bad calibration degrades classification measurably. Check the health report.
 
 ### 3. Servo endpoints
 
-`topExtPos` / `botExtPos` in `CubeHardwareConfig.cpp`.
+Menu → **Settings → Calibration → Servo Positions**. Rows preview live as the
+wheel turns, behind a red confirm; values persist in the tuning EEPROM block.
 
-> **TODO:** record how these were determined and how to retune them after
+The compiled defaults live in the shared parameter table
+(`Code/libraries/CubeSolver/CubeTuneTable.cpp`), not in
+`CubeHardwareConfig.cpp` — the `topExtPos` / `botExtPos` globals there are read
+once at servo construction and then overridden at boot by the table, so editing
+them no longer changes the machine.
+
+> **TODO:** record how the defaults were determined and how to retune after
 > changing a servo horn or linkage.
 
 ---
@@ -272,8 +287,9 @@ bad calibration degrades classification measurably. Check the health report.
 4. It scans (~25–40 s), solves, and reports the move count.
 5. Press SELECT to execute.
 
-**Abort:** hold SELECT for one second during a scan or solve. The machine stops
-at the next mechanically safe point, releases the cube, and returns to the menu.
+**Abort:** hold SELECT and LEFT together for 1.5 s during a scan or solve. The
+machine stops at the next mechanically safe point, releases the cube, and
+returns to the menu.
 
 **On any error that can leave the machine holding the cube, it is released
 automatically** — the solve paths and the abort paths all route through
@@ -302,8 +318,14 @@ the ring and both servos are already retracted.
 | Solve 15 | Solution longer than the move buffer |
 | Exec 105 / 125 | Aborted by the user (between moves / inside a move) |
 | Exec 1XX | A move failed; cube released and virtual state invalidated |
+| Move 3 / 21 / 22 / 24 / 25 | Raw move (Modes, jog): invalid token / motors not calibrated / jam or align timeout / encoder unreadable / aborted |
+| Move 1X | Virtual move failed — rescan |
 | Cal 8 | Color calibration failed to save — machine is **not** calibrated |
 | Cal 9 | Color calibration aborted; EEPROM left untouched |
+
+The raw-move codes appear on the panel when a scramble, idle turn, pattern
+fold or jogged move fails, and in the Fault Log under the Mode and Jog
+sources.
 
 Code 14 and 60 both mean "the cube I think I have cannot exist" — the fix is a
 rescan, not a retry.

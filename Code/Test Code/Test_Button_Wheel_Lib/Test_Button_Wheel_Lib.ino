@@ -2,7 +2,11 @@
 #include "CubeSystem.h"
 #include "CubeHardwareConfig.h"   // contains extern menuEncoder
 
-CubeSystem cube;
+// Named Cube, capital C: the library's CubeTuneTable.cpp declares
+// `extern CubeSystem Cube;`, and the Arduino 1.0 library format links every
+// library .cpp into every sketch — so any sketch using CubeSystem must define
+// the global under exactly this name.
+CubeSystem Cube;
 
 int32_t lastPos = 0;
 String lastButton = "";
@@ -14,7 +18,7 @@ void setup() {
     Serial.println("=== CubeSystem + Rotary Encoder Test ===");
     Serial.println("Initializing CubeSystem...");
 
-    cube.begin();   // This calls menuEncoder.begin() internally
+    Cube.begin();   // This calls menuEncoder.begin() internally
 
     lastPos = menuEncoder.getPosition();
     Serial.print("Initial encoder pos: ");

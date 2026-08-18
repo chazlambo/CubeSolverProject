@@ -21,6 +21,8 @@
 #include "VirtualCube.h"
 #include "CubeDisplay.h"
 #include "CubeTuning.h"
+#include "CubeFaultLog.h"
+#include "CubeStats.h"
 
 //================ EEPROM Setup ================
 void initializeEEPROMLayout(int startAddress = 0);
@@ -87,9 +89,20 @@ extern int topServoEEPROMAddress, botServoEEPROMAddress;
 // Servo Objects
 extern CubeServo topServo, botServo;
 
-// Tuning block: defaults live in the source, overrides in EEPROM. Appended at
-// the end of the layout so it cannot shift anyone's existing calibration.
+// Tuning block: defaults live in the source, overrides in EEPROM. Appended
+// after every calibration block so it cannot shift anyone's existing
+// calibration.
 extern int tuningEEPROMAddress;
+
+// Fault log ring: the last 24 faults, appended after tuning for the same
+// cannot-shift-anyone reason.
+extern int faultLogEEPROMAddress;
+
+// Stats counters: the lifetime solve records. Their own block, not a corner
+// of tuning — solve counts change every run and tuning almost never, so
+// sharing would rewrite the tuning bytes on every solve for nothing.
+extern int statsEEPROMAddress;
+
 extern int eepromBytesUsed;      // total footprint, for the boot report
 
 // ================ Color Sensor Setup ================
