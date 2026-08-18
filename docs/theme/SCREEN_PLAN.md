@@ -124,7 +124,7 @@ change for the operator to know which half they are watching.
 Reuses everything. Needs nothing new. Build this first — it is the cheapest of
 the Modes and it proves the phase-color idea.
 
-### Idle Mode — Modes
+### Idle Mode — Modes — **BUILT**
 
 The machine turning slowly to look alive. The screen's job is to be worth
 glancing at from across the room and to say the machine is awake and idle, not
@@ -447,11 +447,14 @@ One behaviour change worth knowing: the bottom servo's partial and eject
 positions are now **pinned** rather than derived from the extend position, since
 boot applies every value whether it came from EEPROM or from the defaults.
 
-### Stats — top level
+### Stats — top level — **BUILT**
 
-Already drawn; it just needs real data behind it. The EEPROM block is the work,
-not the screen. When it exists: solves, best, average, last, plus total run
-time. Six rows is exactly enough, so resist adding a seventh.
+Six rows — solves, best, average, last, run time, faults — which is exactly
+enough, so resist a seventh. The numbers are canned. The work behind this screen
+is an EEPROM block of counters, and it wants a block of ITS OWN rather than a
+corner of the tuning one: solve counts change every run and tuning changes
+almost never, so sharing would rewrite the tuning bytes on every solve for
+nothing.
 
 ---
 
@@ -476,13 +479,18 @@ Screens done, machine side outstanding:
   values, with defaults in the source and overrides in EEPROM. Done, including
   persistence and reset.
 
-Still to build:
+**Every screen is now drawn.** `Test_Menu` covers the whole tree, and its
+`Screens > Modes` submenu is deliberately the same five items in the same order
+as the firmware's `Modes` menu — a rehearsal that groups things differently from
+the machine stops being a rehearsal.
 
-1. **Stats**, then **Idle Mode** — the screens are drawn; the work is real
-   numbers behind them. `CubeTuning` is the pattern to copy for the counters,
-   but NOT the block to put them in: solve counts change every run and tuning
-   changes almost never, so sharing one block would rewrite the tuning bytes on
-   every solve for nothing.
+What is left is entirely machine side, in two kinds:
+
+1. **Two EEPROM stores**, both the shape `CubeTuning` already is — a fault ring
+   buffer (`CubeSystem::lastFault` is one int today) and the Stats counters.
+2. **Behaviour behind the five Modes**, plus porting the finished Diagnostics
+   screens into the firmware sketch, where ten menu items still say "Not
+   implemented yet".
 
 Low-confidence marking on the Cube State net can slot in whenever; it needs no
 new primitive, only `scanConf` plumbed through.

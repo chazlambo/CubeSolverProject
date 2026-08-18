@@ -993,6 +993,10 @@ void CubeDisplay::setOpKind(OpKind kind) {
     if (opActive) applyTheme(themeForKind(kind));
 }
 
+void CubeDisplay::setOpTheme(MenuTheme theme) {
+    if (opActive && theme != MenuTheme::Inherit) applyTheme(theme);
+}
+
 void CubeDisplay::setOpLines(const char* const* lines, int count,
                              const RowMark* marks) {
     if (!lbl_line[0]) return;

@@ -40,6 +40,15 @@ public:
     // and flicker. The frame is the state, so the state has to be able to move.
     void setOpKind(OpKind kind);
 
+    // Recolor the frame directly, bypassing the OpKind mapping.
+    //
+    // OpKind exists so a frame color MEANS something — blue is scanning, red is
+    // stopped — and going through it is right for every screen that is doing a
+    // job. Idle Mode is the one that is not: it cycles all six colors slowly to
+    // look alive, and mapping that through OpKind would both misreport what the
+    // machine is doing and be unable to reach Purple, which no kind maps to.
+    void setOpTheme(MenuTheme theme);
+
     // Body rows under the headline, for the screens that are mostly text.
     // A row containing a '\t' is split: the part before it is left-aligned and
     // the part after is right-aligned, which is what makes a status list read

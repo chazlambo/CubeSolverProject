@@ -23,6 +23,22 @@
 //  Defaults live in the kTune table; Diagnostics > Tuning > Reset Defaults puts
 //  every one of them back.
 //
+//  THE TREE
+//  --------
+//    Load Cube / Eject Cube      real servos
+//    Actuators                   real everything, one part at a time
+//    Screens > Operations        scan, color capture
+//            > Modes             the firmware's five Modes, same order
+//            > Cube Views        the unfolded net
+//            > Messages          info, error, stats
+//            > Navigation        menu rendering at every item count
+//    Diagnostics > Tuning        six sections, saved to EEPROM
+//                > Input Report, Color Sensors, Motor Sensors, Fault Log
+//
+//  Screens > Modes deliberately mirrors the firmware's Modes menu item for item
+//  and order for order. A rehearsal that groups the screens differently from
+//  the machine stops being a rehearsal of the machine.
+//
 //  WHY THE SCREEN DEMOS ARE HERE
 //  -----------------------------
 //  The operation screens — scan step rows, calibration color chips, the solve
@@ -79,7 +95,7 @@ static TState state = TState::Menu;
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
 enum class Live : uint8_t { None, Input, Steps, Chips, Scramble, Fold, Step, Demo,
-                            Sensors, SensorRaw, Motors, Faults };
+                            Sensors, SensorRaw, Motors, Faults, Idle };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -103,6 +119,7 @@ extern const MenuScreen kScreenOps;
 extern const MenuScreen kScreenCube;
 extern const MenuScreen kScreenMsg;
 extern const MenuScreen kScreenPatterns;
+extern const MenuScreen kScreenModes;
 
 extern const MenuScreen kScreenDiag;
 extern const MenuScreen kScreenTuning;
@@ -126,6 +143,8 @@ static void actDemoChips();
 static void actDemoError();
 static void actDemoScramble();
 static void actStepSolve();
+static void actStats();
+static void actIdleMode();
 static void actDemoMode();
 static void actDemoNetSolved();
 static void actDemoNetScrambled();
@@ -149,8 +168,8 @@ static void actResetTune();
 //  ellipsise, and a stack deep enough to hit CubeMenu's depth limit.
 
 static const char* const kPrevNav[]     = { "3 items", "4 items", "5 items", "Long" };
-static const char* const kPrevScreens[] = { "Operations", "Cube views", "Messages",
-                                            "Patterns", "Navigation" };
+static const char* const kPrevScreens[] = { "Operations", "Modes", "Cube views",
+                                            "Messages", "Navigation" };
 
 // Cube states for the pattern previews, in net order (U R F D L B).
 //
@@ -165,8 +184,10 @@ static const char kPatSixSpot[55] =
     "GGGGWGGGG" "WWWWRWWWW" "RRRRGRRRR" "BBBBYBBBB" "YYYYOYYYY" "OOOOBOOOO";
 static const char kPatSuperflip[55] =
     "WBWOWRWGW" "RWRGRBRYR" "GWGOGRGYG" "YGYOYRYBY" "OWOBOGOYO" "BWBRBOBYB";
-static const char* const kPrevOps[]  = { "Faces", "Chips", "Scramble", "Step",
-                                         "Demo" };
+static const char* const kPrevOps[]   = { "Faces", "Chips" };
+static const char* const kPrevModes[] = { "Scramble", "Idle", "Demo", "Step",
+                                          "Patterns" };
+static const char* const kPrevMsg[]   = { "Info", "Error", "Stats" };
 
 // A canned solution for the Step Solve screen. Real notation, real length —
 // twenty-one moves is what the solver typically returns — so the ribbon is
@@ -356,17 +377,30 @@ const MenuScreen kScreenDeep = { "Depth Test", kDeepItems, 2, MenuTheme::Green }
 // splitting, which is the same rule the real menu follows.
 static const MenuItem kScreensItems[] = {
     { "Operations",  &kScreenOps,  nullptr, "Progress while working.",
-      kPrevOps,  4, MenuTheme::Blue },
+      kPrevOps,  2, MenuTheme::Blue },
+    { "Modes",       &kScreenModes, nullptr, "The five ways to run it.",
+      kPrevModes, 5, MenuTheme::Red },
     { "Cube Views",  &kScreenCube, nullptr, "The unfolded cube net.",
       kPrevCube, 3, MenuTheme::Green },
-    { "Messages",    &kScreenMsg,  nullptr, "Status and faults.",
-      nullptr,   0, MenuTheme::Red },
-    { "Patterns",    &kScreenPatterns, nullptr, "Previews in the side pane.",
-      nullptr,   0, MenuTheme::Violet },
+    { "Messages",    &kScreenMsg,  nullptr, "Status, faults and records.",
+      kPrevMsg,  3, MenuTheme::Violet },
     { "Navigation",  &kScreenNav,  nullptr, "Screens of every size.",
       kPrevNav,  4, MenuTheme::Red },
 };
 const MenuScreen kScreenScreens = { "Screens", kScreensItems, 5, MenuTheme::Yellow };
+
+// Deliberately the SAME five items, in the same order, as the firmware's Modes
+// menu. This sketch is the rehearsal for that tree, and a demo that groups the
+// screens differently from the machine stops being a rehearsal of anything.
+static const MenuItem kModesItems[] = {
+    { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colors." },
+    { "Idle Mode",      nullptr, actIdleMode,     "Awake, waiting, worth a glance." },
+    { "Demo Mode",      nullptr, actDemoMode,     "Scramble and solve, looping." },
+    { "Step Solve",     nullptr, actStepSolve,    "One move per press." },
+    { "Patterns",       &kScreenPatterns, nullptr, "Previews in the side pane.",
+      nullptr, 0, MenuTheme::Violet },
+};
+const MenuScreen kScreenModes = { "Modes", kModesItems, 5, MenuTheme::Red };
 
 // The point of this screen: the preview pane shows what each pattern PRODUCES.
 // A list of names would say nothing about what you are choosing between.
@@ -382,14 +416,13 @@ static const MenuItem kPatternItems[] = {
 };
 const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 4, MenuTheme::Violet };
 
+// The two that are not modes: what the machine draws while it is scanning, and
+// while it is learning colors. The rest moved to Modes.
 static const MenuItem kOpsItems[] = {
-    { "Scan Faces",     nullptr, actDemoSteps,    "Faces fill as they are read." },
-    { "Color Chips",   nullptr, actDemoChips,    "Two boards, six colors." },
-    { "Scramble Solve", nullptr, actDemoScramble, "Two phases, two colors." },
-    { "Step Solve",     nullptr, actStepSolve,    "One move per press." },
-    { "Demo Mode",      nullptr, actDemoMode,     "Scramble and solve, looping." },
+    { "Scan Faces",  nullptr, actDemoSteps, "Faces fill as they are read." },
+    { "Color Chips", nullptr, actDemoChips, "Two boards, six colors." },
 };
-const MenuScreen kScreenOps = { "Operations", kOpsItems, 5, MenuTheme::Blue };
+const MenuScreen kScreenOps = { "Operations", kOpsItems, 2, MenuTheme::Blue };
 
 static const MenuItem kCubeItems[] = {
     { "Solved Cube",     nullptr, actDemoNetSolved,    "Every face one color." },
@@ -401,8 +434,10 @@ const MenuScreen kScreenCube = { "Cube Views", kCubeItems, 3, MenuTheme::Green }
 static const MenuItem kMsgItems[] = {
     { "Info Panel",   nullptr, actDemoInfo,  "Aligned label/value rows." },
     { "Error Screen", nullptr, actDemoError, "The red stopped look." },
+    { "Stats",        nullptr, actStats,     "Solve records.",
+      nullptr, 0, MenuTheme::Purple },
 };
-const MenuScreen kScreenMsg = { "Messages", kMsgItems, 2, MenuTheme::Red };
+const MenuScreen kScreenMsg = { "Messages", kMsgItems, 3, MenuTheme::Red };
 
 // ---------------------------------------------------------------------------
 //  Display helpers
@@ -990,6 +1025,19 @@ static void tuneLoad() {
     }
     Serial.print(F("Tuning: "));
     Serial.println(stored ? F("loaded from EEPROM") : F("defaults"));
+
+    // Worth printing rather than assuming. The tuning block is appended to a
+    // layout that already holds two full color-sensor calibrations, and running
+    // off the end of EEPROM would not announce itself — writes past the end are
+    // simply dropped, so the symptom would be tuning that never saves.
+    Serial.print(F("EEPROM: "));
+    Serial.print(eepromBytesUsed);
+    Serial.print(F(" of "));
+    Serial.print((unsigned)EEPROM.length());
+    Serial.println(F(" bytes used"));
+    if ((unsigned)eepromBytesUsed > EEPROM.length()) {
+        Serial.println(F("ERROR: EEPROM layout overflows. Tuning will not save."));
+    }
 }
 
 static void tuneResetAll() {
@@ -1432,6 +1480,80 @@ static void updateDemoMode(uint32_t t) {
     cubeDisplay.setStatus(sub);
 }
 
+// ---------------------------------------------------------------------------
+//  Stats
+// ---------------------------------------------------------------------------
+//  Six rows, which is exactly enough — resist a seventh. The numbers here are
+//  canned; the work behind this screen is an EEPROM block of counters, not the
+//  drawing, and it wants a block of its own rather than a corner of the tuning
+//  one. Solve counts change every run and tuning changes almost never, so
+//  sharing would rewrite the tuning bytes on every solve for nothing.
+//
+//  Times are pre-formatted strings rather than numbers waiting on a formatter,
+//  because the only interesting question this screen answers on the bench is
+//  whether the label/value columns line up at realistic widths.
+static void actStats() {
+    static const char* const rows[6] = {
+        "Solves\t128",
+        "Best\t12.4 s",
+        "Average\t18.9 s",
+        "Last\t15.2 s",
+        "Run time\t9h 41m",
+        "Faults\t3",
+    };
+    showScreen(Op::Info, "Stats", nullptr);
+    cubeDisplay.setStatus("Since the last reset");
+    cubeDisplay.setOpLines(rows, 6, nullptr);
+    Cube.displayUpdate();
+}
+
+// ---------------------------------------------------------------------------
+//  Idle Mode
+// ---------------------------------------------------------------------------
+//  The machine turning slowly to look alive. The screen has to be worth
+//  glancing at from across the room and to say "awake and waiting", not
+//  "broken" and not "busy".
+//
+//  It carries the two numbers worth seeing from that distance, which is what
+//  keeps it from being a screensaver.
+//
+//  The frame cycles all six theme colors. This is the ONE place a frame color
+//  is decorative rather than semantic, and it is only defensible because
+//  nothing is happening — there is no operation for the color to misreport.
+//  That is also why it goes through setOpTheme() rather than setOpKind(): the
+//  kinds mean things, and one of the six colors is not reachable through them.
+static const MenuTheme kIdleCycle[6] = {
+    MenuTheme::Green,  MenuTheme::Blue,   MenuTheme::Violet,
+    MenuTheme::Purple, MenuTheme::Yellow, MenuTheme::Red,
+};
+static const uint32_t kIdleHoldMs = 8000;   // the real dwell, not a demo speed
+static uint8_t  idleStep = 0;
+static uint32_t idleLast = 0;
+
+static void drawIdle() {
+    static const char* const rows[2] = {
+        "Best\t12.4 s",
+        "Solves\t128",
+    };
+    // Op::Solve only sets the STARTING color; the cycle below overrides it
+    // immediately. Passing a kind at all is a formality of showOperation().
+    cubeDisplay.showOperation(Op::Solve, "Idle", "Ready", "SELECT to wake");
+    cubeDisplay.setOpLines(rows, 2, nullptr);
+    cubeDisplay.setOpTheme(kIdleCycle[idleStep]);
+    Cube.displayUpdate();
+}
+
+static void actIdleMode() {
+    idleStep = 0;
+    idleLast = millis();
+    // Not showScreen(): that stamps its own "SELECT or LEFT to go back" hint,
+    // and this screen says "SELECT to wake" instead.
+    live      = Live::Idle;
+    liveStart = millis();
+    state     = TState::Screen;
+    drawIdle();
+}
+
 static void actDemoError() {
     showScreen(Op::Error, "Stopped", "Move failed - cube released");
     const char* lines[] = { "Canned - nothing actually failed." };
@@ -1828,6 +1950,13 @@ void loop() {
             if (top > span) top = span;
             faultTop = (int8_t)top;
             drawFaultLog();
+        } else if (live == Live::Idle && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
+            // Eight seconds a color is right on the machine and unbearable on
+            // the bench, so the wheel steps it by hand. The timer below is
+            // untouched, so what is being checked is still the real dwell.
+            idleStep = (uint8_t)((idleStep + (ev == MenuEvent::Down ? 1 : 5)) % 6);
+            idleLast = millis();
+            drawIdle();
         } else if (live == Live::Sensors && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
             senSel = (int8_t)((senSel + (ev == MenuEvent::Down ? 1 : 17)) % 18);
             updateColorSensors(millis() - liveStart);
@@ -1842,6 +1971,15 @@ void loop() {
             else             { toMenu(); }
         } else if (ev == MenuEvent::Select || ev == MenuEvent::Back) {
             toMenu();
+        } else if (live == Live::Idle) {
+            if (millis() - idleLast >= kIdleHoldMs) {
+                idleLast = millis();
+                idleStep = (uint8_t)((idleStep + 1) % 6);
+                // Only the frame changes, so only the frame is redrawn. A full
+                // drawIdle() here would rebuild two labels and a table twenty
+                // times a second's worth of nothing.
+                cubeDisplay.setOpTheme(kIdleCycle[idleStep]);
+            }
         } else if (live != Live::None && millis() - lastLive >= 50) {
             // Throttled to ~20 Hz. The input report reads the seesaw over I2C
             // every call, and an unthrottled loop() would hammer the same bus
