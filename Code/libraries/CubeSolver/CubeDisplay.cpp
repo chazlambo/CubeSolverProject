@@ -41,6 +41,9 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
     for (int i = 0; i < kRibbonSlots; ++i) lbl_ribbon[i] = nullptr;
     bar_track = nullptr;
     bar_fill  = nullptr;
+    dial_arc    = nullptr;
+    lbl_dial    = nullptr;
+    lbl_dialCap = nullptr;
     img_net     = nullptr;
     img_prevNet = nullptr;
     for (int i = 0; i < 6; ++i) lbl_netFace[i] = nullptr;
@@ -127,6 +130,17 @@ namespace {
     // ---- operation-screen layout -----------------------------------------
     // Inside the same frame the menu uses, so the two never disagree about
     // where the content area is.
+    // The dial. Centred on the content area and sized to the space between the
+    // sub-line and the hint bar — big enough to read the arc from across the
+    // room, which is the only reason to have it rather than a number.
+    // Sized to what is actually free rather than to what looks generous: the
+    // sub-line ends at ~94 and the hint box starts at 199, so 78 across at
+    // y=96 leaves room for a caption UNDER the arc and nothing to spare.
+    const int DIAL_D  = 78;
+    const int DIAL_X  = (320 - DIAL_D) / 2;
+    const int DIAL_Y  = 96;
+    const int DIAL_W  = 8;    // arc thickness
+
     const int OP_HEAD_Y  = 58;
     const int OP_SUB_Y   = 82;
     const int OP_LINE_Y  = 84;    // body rows start here when there is no sub
@@ -688,6 +702,47 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
     lv_obj_set_style_border_width(bar_track, 1, 0);
     hide(bar_track);
 
+    // The dial. Built once like everything else here; a widget created and
+    // destroyed per screen is how this pool gets fragmented.
+    dial_arc = lv_arc_create(scr);
+    lv_obj_remove_style(dial_arc, nullptr, LV_PART_KNOB);   // no drag handle:
+    lv_obj_clear_flag(dial_arc, LV_OBJ_FLAG_CLICKABLE);     // the wheel drives it
+    lv_obj_set_size(dial_arc, DIAL_D, DIAL_D);
+    lv_obj_set_pos(dial_arc, DIAL_X, DIAL_Y);
+
+    // Open at the bottom, like a rotary control rather than a pie chart. 135
+    // to 45 through the top leaves the gap where the eye expects the pointer
+    // to start from.
+    lv_arc_set_bg_angles(dial_arc, 135, 45);
+    lv_arc_set_rotation(dial_arc, 0);
+    lv_obj_set_style_arc_width(dial_arc, DIAL_W, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(dial_arc, DIAL_W, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(dial_arc, lv_color_hex(0x1B1A3A), LV_PART_MAIN);
+    lv_obj_set_style_arc_opa(dial_arc, 200, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(dial_arc, 0, LV_PART_KNOB);
+    hide(dial_arc);
+
+    lbl_dial = lv_label_create(scr);
+    lv_obj_set_style_text_font(lbl_dial, &lv_font_head_16, 0);
+    lv_obj_set_style_text_color(lbl_dial, lv_color_hex(COL_OP_HEAD), 0);
+    lv_obj_set_style_text_align(lbl_dial, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_width(lbl_dial, DIAL_D);
+    lv_obj_set_pos(lbl_dial, DIAL_X, DIAL_Y + DIAL_D / 2 - 9);
+    lv_label_set_text(lbl_dial, "");
+    hide(lbl_dial);
+
+    lbl_dialCap = lv_label_create(scr);
+    lv_obj_set_style_text_font(lbl_dialCap, &lv_font_bar_12, 0);
+    lv_obj_set_style_text_color(lbl_dialCap, lv_color_hex(COL_OP_KEY), 0);
+    lv_obj_set_style_text_align(lbl_dialCap, LV_TEXT_ALIGN_CENTER, 0);
+    // BELOW the arc, not inside it. The ring's inner diameter is about 60 px
+    // and any caption worth writing is wider than that, so a caption placed in
+    // the middle draws straight across the stroke on both sides.
+    lv_obj_set_width(lbl_dialCap, 200);
+    lv_obj_set_pos(lbl_dialCap, (320 - 200) / 2, DIAL_Y + DIAL_D + 2);
+    lv_label_set_text(lbl_dialCap, "");
+    hide(lbl_dialCap);
+
     // The net image points at the static buffer above and is never reallocated.
     lv_memset(s_netBuf, 0, sizeof(s_netBuf));
     s_netDsc.header.magic  = LV_IMAGE_HEADER_MAGIC;
@@ -784,6 +839,33 @@ void CubeDisplay::setOpRibbon(const char* const* moves, int count, int current) 
     }
 }
 
+void CubeDisplay::setOpDial(int value, int lo, int hi,
+                            const char* centre, const char* caption) {
+    if (!dial_arc) return;
+    if (hi <= lo) {
+        hide(dial_arc);
+        hide(lbl_dial);
+        hide(lbl_dialCap);
+        return;
+    }
+
+    if (value < lo) value = lo;
+    if (value > hi) value = hi;
+
+    // lv_arc's own range, set every call rather than once: the same dial serves
+    // whatever screen borrows it, and a stale range would draw a correct number
+    // at the wrong angle - which is worse than no dial, because it looks right.
+    lv_arc_set_range(dial_arc, (int16_t)lo, (int16_t)hi);
+    lv_arc_set_value(dial_arc, (int16_t)value);
+    show(dial_arc);
+
+    lv_label_set_text(lbl_dial, centre ? centre : "");
+    if (centre && *centre) show(lbl_dial); else hide(lbl_dial);
+
+    lv_label_set_text(lbl_dialCap, caption ? caption : "");
+    if (caption && *caption) show(lbl_dialCap); else hide(lbl_dialCap);
+}
+
 void CubeDisplay::setOpProgress(int done, int total) {
     if (!bar_track) return;
     if (total <= 0) { hide(bar_track); hide(bar_fill); return; }
@@ -827,6 +909,9 @@ void CubeDisplay::clearOpExtras() {
     for (int i = 0; i < kRibbonSlots; ++i) hide(lbl_ribbon[i]);
     hide(bar_track);
     hide(bar_fill);
+    hide(dial_arc);
+    hide(lbl_dial);
+    hide(lbl_dialCap);
     hide(img_net);
     for (int f = 0; f < 6; ++f) hide(lbl_netFace[f]);
 }
@@ -1205,6 +1290,14 @@ void CubeDisplay::applyTheme(MenuTheme t) {
     if (idx < 0 || idx > 5) idx = 0;
     tint(img_bandFill, kPalette[idx].fill);
     tint(img_bandEdge, kPalette[idx].edge);
+
+    // The dial's indicator too, so it reads as part of the frame rather than
+    // something sitting on top of it. Safe before the dial exists: applyTheme()
+    // runs during buildUi().
+    if (dial_arc) {
+        lv_obj_set_style_arc_color(dial_arc, lv_color_hex(kPalette[idx].edge),
+                                   LV_PART_INDICATOR);
+    }
 }
 
 void CubeDisplay::setPreview(const MenuItem* item) {

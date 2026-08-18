@@ -40,6 +40,7 @@ stopped. A new screen picks the one that already means what it means.
 | Face row | `setOpFaces()` | the six faces, filled with the color actually read |
 | Chip rows | `setOpChips()` | a set being collected, two rows |
 | Progress bar | `setOpProgress()` | how far through a countable job |
+| Dial | `setOpDial()` | a setting you are steering, and where it sits in its range |
 | Hint box | `showOperation(…, hint)` | what button to press |
 | Preview pane | menu only | what is behind this item |
 

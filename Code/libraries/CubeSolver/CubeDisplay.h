@@ -121,6 +121,20 @@ public:
     // that is at a glance.
     void setOpProgress(int done, int total);
 
+    // A round dial for a value you are steering, with the value in the middle
+    // and a caption under it.
+    //
+    // NOT for progress — that is the bar, and a screen showing both would be
+    // claiming two different kinds of "how far along". This is for a setting
+    // whose whole point is that it has a range and you are somewhere in it:
+    // the arc says at a glance whether you are near the fast end or the slow
+    // one, which a line of text cannot do from across the room.
+    //
+    // Follows the frame color, so it stays part of the screen rather than
+    // sitting on it. Pass total <= 0 (lo >= hi) to hide it.
+    void setOpDial(int value, int lo, int hi,
+                   const char* centre, const char* caption);
+
     // Drop any of the decorations above.
     void clearOpExtras();
 
@@ -246,6 +260,9 @@ private:
     lv_obj_t* lbl_ribbon[kRibbonSlots];
     lv_obj_t* bar_track;
     lv_obj_t* bar_fill;
+    lv_obj_t* dial_arc;
+    lv_obj_t* lbl_dial;
+    lv_obj_t* lbl_dialCap;
     lv_obj_t* img_net;
     lv_obj_t* lbl_netFace[6];
     lv_obj_t* img_prevNet;      // the same net, pane-sized, for menu previews

@@ -1607,13 +1607,18 @@ static const char* idleLastMove = nullptr;
 // and the only part that changes on its own. Before the first move there is
 // nothing to report, so it says what it is doing instead.
 static void drawIdle() {
-    static char rows[2][32];
-    snprintf(rows[0], sizeof(rows[0]), "Moves\t%u", (unsigned)idleMoves);
-    snprintf(rows[1], sizeof(rows[1]), "Every\t%d s", idleGapS);
-    const char* lines[2] = { rows[0], rows[1] };
+    char gap[12], moves[24];
+    snprintf(gap,   sizeof(gap),   "%d s", idleGapS);
+    snprintf(moves, sizeof(moves), "%u moves", (unsigned)idleMoves);
 
     cubeDisplay.setMessage(idleLastMove ? idleLastMove : "Ready");
-    cubeDisplay.setOpLines(lines, 2, nullptr);
+
+    // The move count goes in the sub-line rather than a row of its own. One
+    // number is not a table, and putting it there leaves the middle of the
+    // screen for the dial - which is the only thing here worth looking at
+    // from any distance.
+    cubeDisplay.setStatus(moves);
+    cubeDisplay.setOpDial(idleGapS, kIdleGapMin, kIdleGapMax, gap, "between moves");
     cubeDisplay.setOpTheme(kIdleCycle[idleStep]);
     Cube.displayUpdate();
 }
@@ -1660,6 +1665,10 @@ static void actIdleMode() {
 // the cube ends up solved, so Step Solve will scramble before its next run.
 static void actIdleSolve() {
     showScreen(Op::Solve, "Idle", "Solving", Live::IdleSolve);
+    // showScreen() rebuilds, which already clears the extras - but say so,
+    // because a dial left up beside a progress bar would be two different
+    // claims about how far along the same operation is.
+    cubeDisplay.setOpDial(0, 0, 0, nullptr, nullptr);
 }
 
 static const uint32_t kIdleSolveMs = 3500;

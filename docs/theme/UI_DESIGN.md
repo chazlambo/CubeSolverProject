@@ -93,6 +93,25 @@ want may already be sketched.
 
 ---
 
+### The dial vs the progress bar
+
+Both are round-ish things that fill up, and they say opposite things.
+
+| | Progress bar | Dial |
+|---|---|---|
+| Means | how far through a job | where a SETTING sits in its range |
+| Driven by | the machine | the wheel |
+| While it moves | you wait | you are turning it |
+
+A screen showing both is claiming two different kinds of "how far along", so
+`setOpDial()` and `setOpProgress()` should not appear together — the one place
+that could have happened, Idle Mode's solve, hides the dial explicitly.
+
+The dial follows the frame color, so it belongs to the screen rather than
+sitting on it. Its caption goes UNDER the arc: the inner diameter is about 60 px
+and any caption worth writing is wider, so one placed in the middle draws across
+the stroke on both sides.
+
 ## 3. Hard limits to design within
 
 These are not style preferences; exceeding them clips, ellipsises or collides.
