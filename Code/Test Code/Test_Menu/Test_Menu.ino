@@ -95,7 +95,8 @@ static TState state = TState::Menu;
 // A screen that redraws itself every pass (the live input report), or animates
 // from canned data (the operation-screen demos).
 enum class Live : uint8_t { None, Input, Steps, Chips, Scramble, Fold, Step, Demo,
-                            Sensors, SensorRaw, Motors, Faults, Idle };
+                            Sensors, SensorRaw, Motors, Faults, Idle, IdleSolve,
+                            StepScram };
 static Live     live      = Live::None;
 static uint32_t liveStart = 0;
 static uint32_t lastLive  = 0;
@@ -1412,10 +1413,63 @@ static void drawStepSolve() {
     Cube.displayUpdate();
 }
 
+// Whether the cube in the machine is scrambled.
+//
+// Tracked rather than assumed because Step Solve has to know whether it needs
+// to scramble first, and because Idle Mode scrambles it as a side effect of
+// turning to look alive. Set by anything that disorders the cube, cleared by
+// anything that solves it.
+static bool cubeScrambled = false;
+
+// Thirty moves at ~140 ms is what the machine takes, and the pause after them
+// is not padding: a solution has to be computed before it can be run, and
+// jumping from the last scramble move straight to the first solve move would
+// show something the machine never does.
+static const uint32_t kStepScramMs    = 4200;
+static const uint32_t kStepComputeMs  = 1400;
+
+// Ticks at 20 Hz, so it updates PIECES rather than calling showOperation()
+// again. That call rebuilds the screen and prints the title and headline to
+// Serial every time — the same flood that made the demo screens unreadable over
+// the serial monitor. setMessage() prints only when the text actually changes.
+static void drawStepScramble(uint32_t t) {
+    const bool computing = (t >= kStepScramMs);
+    const int  m = computing ? kScrambleLen
+                             : (int)((t * kScrambleLen) / kStepScramMs);
+
+    if (computing) {
+        cubeDisplay.setOpKind(Op::Info);              // yellow: thinking
+        cubeDisplay.setMessage("Solving");
+        cubeDisplay.setStatus("Working out the moves");
+        // Clear the scramble's furniture. Without this the finished ribbon and
+        // a full progress bar sit under the word "Solving", which reads as a
+        // solve that is already complete before it has started. Both hide on a
+        // null/zero argument.
+        cubeDisplay.setOpRibbon(nullptr, 0, -1);
+        cubeDisplay.setOpProgress(0, 0);
+    } else {
+        char head[32];
+        snprintf(head, sizeof(head), "Scrambling %d of %d", m + 1, kScrambleLen);
+        cubeDisplay.setOpKind(Op::Error);             // red: disordering it
+        cubeDisplay.setMessage(head);
+        cubeDisplay.setOpRibbon(kScrambleMoves, kScrambleLen, m);
+        cubeDisplay.setOpProgress(m, kScrambleLen);
+    }
+    Cube.displayUpdate();
+}
+
 static void actStepSolve() {
     stepAt = 0;
-    showScreen(Op::Solve, "Step Solve", nullptr, Live::Step);
-    drawStepSolve();
+    if (cubeScrambled) {
+        // Already disordered - by Idle Mode, or by the last time through here.
+        // Scrambling an already scrambled cube would be a lie about what the
+        // machine does, and thirty moves of one.
+        showScreen(Op::Solve, "Step Solve", nullptr, Live::Step);
+        drawStepSolve();
+        return;
+    }
+    showScreen(Op::Error, "Step Solve", "Scrambling", Live::StepScram);
+    drawStepScramble(0);
 }
 
 // Scramble, solve, repeat, unattended. Both halves already existed — the phase
@@ -1510,48 +1564,120 @@ static void actStats() {
 // ---------------------------------------------------------------------------
 //  Idle Mode
 // ---------------------------------------------------------------------------
-//  The machine turning slowly to look alive. The screen has to be worth
-//  glancing at from across the room and to say "awake and waiting", not
-//  "broken" and not "busy".
+//  The machine turning to look alive: a random quarter turn every so often,
+//  waiting for someone to walk past and press SELECT.
 //
-//  It carries the two numbers worth seeing from that distance, which is what
-//  keeps it from being a screensaver.
+//  Three things share one screen and none of them needs a mode of its own,
+//  because the wheel and SELECT are free here — there is no cursor to move and
+//  nothing to enter:
 //
-//  The frame cycles all six theme colors. This is the ONE place a frame color
-//  is decorative rather than semantic, and it is only defensible because
-//  nothing is happening — there is no operation for the color to misreport.
-//  That is also why it goes through setOpTheme() rather than setOpKind(): the
-//  kinds mean things, and one of the six colors is not reachable through them.
+//      wheel      how long between moves
+//      SELECT     stop idling and solve it
+//      LEFT       back, as everywhere
+//
+//  It carries the move count and the gap because those are the two things worth
+//  reading from across the room, and because a screen that only said "Idle"
+//  would not tell you whether the machine was working or hung.
+//
+//  The frame color advances with each MOVE rather than on a timer of its own.
+//  That is the one place in this UI where a frame color is decorative, and
+//  tying it to the moves at least makes it honest: a color change means
+//  something happened, so the machine is visibly alive from further away than
+//  the move counter can be read.
 static const MenuTheme kIdleCycle[6] = {
     MenuTheme::Green,  MenuTheme::Blue,   MenuTheme::Violet,
     MenuTheme::Purple, MenuTheme::Yellow, MenuTheme::Red,
 };
-static const uint32_t kIdleHoldMs = 8000;   // the real dwell, not a demo speed
-static uint8_t  idleStep = 0;
-static uint32_t idleLast = 0;
 
+// Seconds, not milliseconds, because that is the unit the wheel steps in and
+// storing what is displayed avoids a rounding disagreement between the two.
+static const int kIdleGapMin =  1;
+static const int kIdleGapMax = 60;
+static int      idleGapS   = 10;
+static uint8_t  idleStep   = 0;      // where in the color cycle
+static uint16_t idleMoves  = 0;
+static uint32_t idleNextAt = 0;
+static const char* idleLastMove = nullptr;
+
+// Updates pieces, not the whole screen. Called on every move and on every
+// wheel detent, and showOperation() would rebuild the frame and reprint the
+// title each time.
+//
+// The last move is the headline because it is the biggest thing on the screen
+// and the only part that changes on its own. Before the first move there is
+// nothing to report, so it says what it is doing instead.
 static void drawIdle() {
-    static const char* const rows[2] = {
-        "Best\t12.4 s",
-        "Solves\t128",
-    };
-    // Op::Solve only sets the STARTING color; the cycle below overrides it
-    // immediately. Passing a kind at all is a formality of showOperation().
-    cubeDisplay.showOperation(Op::Solve, "Idle", "Ready", "SELECT to wake");
-    cubeDisplay.setOpLines(rows, 2, nullptr);
+    static char rows[2][32];
+    snprintf(rows[0], sizeof(rows[0]), "Moves\t%u", (unsigned)idleMoves);
+    snprintf(rows[1], sizeof(rows[1]), "Every\t%d s", idleGapS);
+    const char* lines[2] = { rows[0], rows[1] };
+
+    cubeDisplay.setMessage(idleLastMove ? idleLastMove : "Ready");
+    cubeDisplay.setOpLines(lines, 2, nullptr);
     cubeDisplay.setOpTheme(kIdleCycle[idleStep]);
     Cube.displayUpdate();
 }
 
+// One random quarter turn. Reuses the jog page's move table rather than
+// carrying a second copy — a demo that drifted from the moves the Actuators
+// page sends would be showing notation the machine does not use.
+static void idleTurn() {
+    idleLastMove = kFaceMove[random(6)][random(2)];
+    idleMoves++;
+    idleStep = (uint8_t)((idleStep + 1) % 6);
+
+    // Idling disorders the cube, so Step Solve must not scramble it again.
+    cubeScrambled = true;
+
+    idleNextAt = millis() + (uint32_t)idleGapS * 1000UL;
+    drawIdle();
+}
+
 static void actIdleMode() {
-    idleStep = 0;
-    idleLast = millis();
+    idleStep     = 0;
+    idleMoves    = 0;
+    idleLastMove = nullptr;
+    idleNextAt   = millis() + (uint32_t)idleGapS * 1000UL;
+
+    // Seeded from the clock so two runs do not turn the same way. Entry time
+    // depends on how long someone spent in the menu, which is enough.
+    randomSeed(millis());
+
     // Not showScreen(): that stamps its own "SELECT or LEFT to go back" hint,
-    // and this screen says "SELECT to wake" instead.
+    // and here SELECT does something quite different from going back.
     live      = Live::Idle;
     liveStart = millis();
     state     = TState::Screen;
+
+    // The one full build. Everything after this updates pieces.
+    cubeDisplay.showOperation(Op::Solve, "Idle", "Ready",
+                              "wheel sets the gap - SELECT solves");
     drawIdle();
+}
+
+// SELECT means "stop idling and solve it". The solve itself is canned, like
+// every other operation in this sketch, but the state it leaves behind is not:
+// the cube ends up solved, so Step Solve will scramble before its next run.
+static void actIdleSolve() {
+    showScreen(Op::Solve, "Idle", "Solving", Live::IdleSolve);
+}
+
+static const uint32_t kIdleSolveMs = 3500;
+
+static void updateIdleSolve(uint32_t t) {
+    const int total = 21;
+    if (t >= kIdleSolveMs) {
+        cubeScrambled = false;
+        // No sub-line: showScreen() already puts "SELECT or LEFT to go back" in
+        // the hint bar, and saying it twice on one screen reads as two
+        // different instructions that happen to match.
+        showScreen(Op::Done, "Idle", "Solved");
+        Cube.displayUpdate();
+        return;
+    }
+    const int m = (int)((t * total) / kIdleSolveMs);
+    cubeDisplay.setOpRibbon(kStepMoves, total, m);
+    cubeDisplay.setOpProgress(m, total);
 }
 
 static void actDemoError() {
@@ -1620,6 +1746,25 @@ static void updateDemo() {
 
     case Live::Demo:
         updateDemoMode(t);
+        break;
+
+    case Live::IdleSolve:
+        updateIdleSolve(t);
+        break;
+
+    case Live::StepScram:
+        // Scramble, then compute, then hand over to the ribbon. The handover
+        // is what makes this a phase of Step Solve rather than a screen of its
+        // own: nothing is dismissed and nothing is picked, it just becomes the
+        // next thing.
+        if (t >= kStepScramMs + kStepComputeMs) {
+            cubeScrambled = true;
+            stepAt = 0;
+            live   = Live::Step;
+            drawStepSolve();
+        } else {
+            drawStepScramble(t);
+        }
         break;
 
     case Live::Sensors:
@@ -1951,12 +2096,23 @@ void loop() {
             faultTop = (int8_t)top;
             drawFaultLog();
         } else if (live == Live::Idle && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
-            // Eight seconds a color is right on the machine and unbearable on
-            // the bench, so the wheel steps it by hand. The timer below is
-            // untouched, so what is being checked is still the real dwell.
-            idleStep = (uint8_t)((idleStep + (ev == MenuEvent::Down ? 1 : 5)) % 6);
-            idleLast = millis();
+            // Clamped, not wrapped. Rolling from a one second gap round to a
+            // minute because the wheel went one detent too far is the kind of
+            // surprise a wrapping cursor is fine with and a duration is not.
+            int g = idleGapS + (ev == MenuEvent::Down ? 1 : -1);
+            if (g < kIdleGapMin) g = kIdleGapMin;
+            if (g > kIdleGapMax) g = kIdleGapMax;
+            if (g != idleGapS) {
+                idleGapS = g;
+                // Re-time the pending move from NOW, so shortening the gap
+                // takes effect immediately instead of after the old one runs
+                // out. Turning the wheel down to 1 s and then waiting 30 s for
+                // the next move would read as the setting not working.
+                idleNextAt = millis() + (uint32_t)idleGapS * 1000UL;
+            }
             drawIdle();
+        } else if (live == Live::Idle && ev == MenuEvent::Select) {
+            actIdleSolve();
         } else if (live == Live::Sensors && (ev == MenuEvent::Up || ev == MenuEvent::Down)) {
             senSel = (int8_t)((senSel + (ev == MenuEvent::Down ? 1 : 17)) % 18);
             updateColorSensors(millis() - liveStart);
@@ -1968,18 +2124,14 @@ void loop() {
             // SELECT means "next move" here, not "done looking". Only LEFT
             // leaves, which is the one meaning it has everywhere.
             if (stepAt < 20) { stepAt++; drawStepSolve(); }
-            else             { toMenu(); }
+            else             { cubeScrambled = false; toMenu(); }
         } else if (ev == MenuEvent::Select || ev == MenuEvent::Back) {
             toMenu();
         } else if (live == Live::Idle) {
-            if (millis() - idleLast >= kIdleHoldMs) {
-                idleLast = millis();
-                idleStep = (uint8_t)((idleStep + 1) % 6);
-                // Only the frame changes, so only the frame is redrawn. A full
-                // drawIdle() here would rebuild two labels and a table twenty
-                // times a second's worth of nothing.
-                cubeDisplay.setOpTheme(kIdleCycle[idleStep]);
-            }
+            // Compared as a difference rather than millis() >= idleNextAt, so
+            // the 49-day rollover is a non-event instead of a machine that
+            // stops turning until someone reboots it.
+            if ((int32_t)(millis() - idleNextAt) >= 0) idleTurn();
         } else if (live != Live::None && millis() - lastLive >= 50) {
             // Throttled to ~20 Hz. The input report reads the seesaw over I2C
             // every call, and an unthrottled loop() would hammer the same bus

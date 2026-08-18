@@ -126,22 +126,39 @@ the Modes and it proves the phase-color idea.
 
 ### Idle Mode — Modes — **BUILT**
 
-The machine turning slowly to look alive. The screen's job is to be worth
-glancing at from across the room and to say the machine is awake and idle, not
-broken.
+The machine turning to look alive between visitors: a random quarter turn every
+so often, waiting for someone to walk past.
 
 ```
-             Ready                          <- large, calm
-        Best      12.4 s                    <- status table, last/best
-        Solves    128
-                                            <- frame slowly cycles the six
-                                               theme colors, ~8 s each
+              R'                     <- the last move, large
+        Moves      12
+        Every      10 s
+              wheel sets the gap - SELECT solves
 ```
 
-Giving it the stats table means it earns its place instead of being a
-screensaver. The slow frame cycle reuses `applyTheme()` on a timer — the one
-place a color change is decorative rather than semantic, which is fine because
-nothing else is happening. Hint: "SELECT to wake".
+Three controls share one screen and none needs a mode of its own, because
+there is no cursor here to move and nothing to enter:
+
+| | |
+|---|---|
+| wheel | how long between moves, 1-60 s |
+| SELECT | stop idling and solve it |
+| LEFT | back, as everywhere |
+
+The gap **clamps** rather than wrapping. A cursor may wrap because every item is
+equivalent; rolling a one-second gap round to a minute because the wheel went
+one detent too far is a different kind of surprise. Changing it also re-times
+the pending move from now — shortening the gap and then waiting out the old one
+reads as the setting not working.
+
+The frame color advances with each MOVE rather than on a timer of its own. This
+is the one place in this UI where frame color is decorative rather than
+semantic, and tying it to the moves at least makes it honest: a color change
+means something happened, so the machine reads as alive from further away than
+the move counter can be read.
+
+Idling **disorders the cube**, so it sets the scrambled flag — Step Solve must
+not then scramble a cube that is already scrambled.
 
 ### Demo Mode — Modes — **BUILT**
 
@@ -171,7 +188,20 @@ should be worth watching. The scramble is its own list — thirty moves, no two 
 a row on the same face, which is what a real scramble looks like and the reason
 it reads differently from a solution.
 
-### Step Solve — Modes
+### Step Solve — Modes — **BUILT**
+
+Scrambles thirty moves first, then steps — but only if the cube is not already
+scrambled. Idle Mode and a previous run both leave it disordered, and thirty
+moves spent re-scrambling a scrambled cube would be a lie about what the machine
+does.
+
+Three phases: red while scrambling with the scramble ribbon running, yellow
+while computing, green for the step-through. The compute phase must CLEAR the
+ribbon and the progress bar — left up, a finished ribbon and a full bar sit
+under the word "Solving" and read as a solve that finished before it started.
+Both hide on a null/zero argument.
+
+
 
 One move per press. This is what the **move ribbon** is for.
 
