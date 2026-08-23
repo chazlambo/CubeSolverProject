@@ -3,12 +3,17 @@
 
 #define SEESAW_ADDR 0x49
 
-// Button pin definitions for ANO wheel
+// Button pin definitions for ANO wheel.
+//
+// NOT the datasheet's ascending order: the board is mounted rotated 180
+// degrees in-plane, so UP/DOWN and LEFT/RIGHT trade pins. This matches
+// RotaryEncoder.h's PIN_* map, which is the authority — the two must agree or
+// this sketch and the firmware report opposite buttons for the same press.
 #define SS_SWITCH_SELECT 1
-#define SS_SWITCH_UP     2
-#define SS_SWITCH_LEFT   3
-#define SS_SWITCH_DOWN   4
-#define SS_SWITCH_RIGHT  5
+#define SS_SWITCH_UP     4
+#define SS_SWITCH_LEFT   5
+#define SS_SWITCH_DOWN   2
+#define SS_SWITCH_RIGHT  3
 
 Adafruit_seesaw ss(&Wire1);
 int32_t last_enc = 0;

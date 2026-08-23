@@ -75,7 +75,7 @@ static const uint8_t TP_ENUM  = 0x10;   // index into names[]
 // contract (CubeTuning stores it and rejects a block whose count disagrees),
 // and a table edit that changes it should fail the static_assert in
 // CubeTuneTable.cpp loudly rather than shift the layout quietly.
-constexpr uint8_t kTuneCount = 28;
+constexpr uint8_t kTuneCount = 29;
 
 extern const TuneParam kTune[];
 

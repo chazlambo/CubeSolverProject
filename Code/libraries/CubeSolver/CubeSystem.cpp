@@ -11,9 +11,17 @@ bool CubeSystem::pumpTrampoline() {
 }
 
 bool CubeSystem::pumpTick() {
-    // Keep LVGL ticking. This is the whole point — without it the display is
-    // frozen for the entire scan and the entire solve.
-    displayUpdate();
+    // Keep LVGL ticking, EXCEPT while a stepper is mid-move.
+    //
+    // Face-motor moves are no longer pumped at all (see the note at the top of
+    // CubeMotors.cpp — even the throttled input read below was audible in the
+    // step train), so pumpMotionOnly now only guards the RING's pumped loop.
+    // A render plus an SPI flush there would steal tens of milliseconds of
+    // step time mid-travel, which is what used to jam a face when face moves
+    // were pumped.
+    //
+    // The panel is not starved: executeSolve() pumps once between moves.
+    if (!pumpMotionOnly) displayUpdate();
 
     // While safeStop() is releasing the cube, keep refreshing the display but
     // do not detect aborts — the button that triggered this abort is still down.
@@ -27,12 +35,18 @@ bool CubeSystem::pumpTick() {
     // saturate the bus for no benefit. 25 ms is far faster than a human.
     unsigned long now = millis();
     if (now - lastInputPoll >= 25) {
-        // If the last poll was long ago we were inside an unpumped region (a
-        // stepper move, a homing pass) and the button state in between is
-        // unknown. Restart the hold measurement rather than treating two brief
-        // taps that bracket a move as one continuous hold — that produced
-        // spurious aborts.
-        if (now - lastInputPoll > 200) {
+        // If the last poll was long ago we were inside an unpumped region and
+        // the button state in between is unknown. Restart the hold measurement
+        // rather than treating two brief taps that bracket a move as one
+        // continuous hold — that produced spurious aborts.
+        //
+        // The threshold must sit ABOVE the longest routinely-unpumped stretch,
+        // or the chord can never accumulate its hold during a solve. Face
+        // moves are deliberately unpumped now (see CubeMotors.cpp): a half
+        // turn is ~200 ms of stepping plus settle plus the post-move encoder
+        // reads, ~260 ms end to end. 400 ms clears that with margin while
+        // still catching genuinely blind regions like a homing pass.
+        if (now - lastInputPoll > 400) {
             chordHeldSince = 0;
         }
         lastInputPoll = now;
@@ -72,9 +86,25 @@ bool CubeSystem::pumpTick() {
     return !abortRequested;
 }
 
-void CubeSystem::begin() {    
+void CubeSystem::begin(bool withDisplay) {    
     // Serial Communication Setup
     Serial.begin(baudRate);
+
+    // Print the last hard fault, if there was one.
+    //
+    // Teensy 4.x keeps a crash record across a reset, and this is the only
+    // thing that distinguishes "the firmware hung" from "the firmware
+    // crashed and rebooted" — which look identical on the panel, because a
+    // reboot loop redraws the same boot screen every time and never gets
+    // further. We spent several bench flashes unable to tell those apart.
+    //
+    // Costs nothing on a clean boot: CrashReport is falsy when there is no
+    // record. Firmware only — CubeSystemSim.cpp replaces this file, and the
+    // desktop has no such thing.
+    if (CrashReport) {
+        Serial.println(F("=== crash report from the previous run ==="));
+        Serial.print(CrashReport);
+    }
 
     // Power Setup
     // pinMode(POWPIN, INPUT);
@@ -98,8 +128,9 @@ void CubeSystem::begin() {
     // floating during ~5 s of traffic on the very bus it shares.
     initEncoderMuxReset();
 
-    // Display Setup
-    displayInitialized = cubeDisplay.begin(10000000);
+    // Display Setup — skipped when the sketch owns the panel itself
+    // (begin(kNoDisplay)); every display call below no-ops in that case.
+    displayInitialized = withDisplay && cubeDisplay.begin(10000000);
 
     // Register the cooperative pump IMMEDIATELY after the display comes up.
     // topServo.begin()/botServo.begin() below are full servo sweeps and
@@ -165,10 +196,10 @@ void CubeSystem::begin() {
         Serial.println(F("         SELECT prompts will fall back to Serial input."));
     }
 
-    // alignMotorsInternal(), executeMove() and calibrateMotorRotations() all use
-    // fixed size-6 stack arrays indexed by numMotors, which is public and
-    // mutable. MotorEncoders[] has 7 entries, so setting numMotors = 7 to
-    // "include the ring" would smash the stack. Clamp it once, here.
+    // alignMotorsInternal() and calibrateMotorRotations() both use fixed size-6
+    // stack arrays indexed by numMotors, which is public and mutable.
+    // MotorEncoders[] has 7 entries, so setting numMotors = 7 to "include the
+    // ring" would smash the stack. Clamp it once, here.
     if (numMotors > 6) numMotors = 6;
     if (numMotors < 1) numMotors = 1;
 
@@ -178,7 +209,13 @@ void CubeSystem::begin() {
     // Motor Initialization
     motorHomeState = -1;
     if(getMotorCalibration()){
-        homeMotors();
+        // Report a failed boot homing: motors standing too far off the marks
+        // otherwise time out here in silence and every later solve inherits it.
+        motorHomeState = homeMotors();
+        if (motorHomeState != 0) {
+            Serial.print(F("WARNING: boot homing failed, code "));
+            Serial.println(motorHomeState);
+        }
     }
 
 }
@@ -198,24 +235,26 @@ int CubeSystem::scanCube(){
     //  60 - Cube is physically impossible and could not be repaired.
     //       Color counts were fine (nine of each) but the corner/edge pieces
     //       don't correspond to real cubies — a compensating misread. Rescan.
-    //  70 - Aborted by the user (SELECT held during the scan)
+    //  70 - Aborted by the user (SELECT+LEFT chord held during the scan)
     //  80 - Reorientation move ROTX failed (jam / align timeout / encoder fault)
     //  81 - Reorientation move ROTZ failed
     //  90 - A color sensor board failed to initialise at boot
+    //  91 - Motors failed to home before the first clamp (jam / encoder fault)
 
-    // Reset the virtual cube before scanning.
-    // scanFacesRecorded must be cleared too: rebuildFromScan() and repairScan()
-    // are public and gate on it being 6, so a scan that aborts early would
-    // otherwise leave a stale "complete" record built from a mix of this scan
-    // and the previous one.
     // A color board that failed begin() cannot produce trustworthy readings.
-    // This flag was previously set and never consulted, so a missing mux was
-    // reported at boot and then scanned from anyway.
     if (!colorSensorsOk) {
         Serial.println(F("Cannot scan: a color sensor board failed to initialise"));
+        // Release on the way out, like every other exit: this returns BEFORE
+        // the unloadCube() at the head of the scan proper, and a cube clamped
+        // from the jog page would otherwise be stranded on the error screen.
+        unloadCube();
         return 90;
     }
 
+    // Reset the virtual cube before scanning. scanFacesRecorded must be cleared
+    // too: rebuildFromScan() and repairScan() are public and gate on it being 6,
+    // so a scan that aborts early would otherwise leave a stale "complete" record
+    // built from a mix of this scan and the previous one.
     virtualCube.resetCube();
     scanFacesRecorded = 0;
     lastFault = 0;          // stale faults must not decorate a new scan's error
@@ -251,7 +290,69 @@ int CubeSystem::scanCube(){
     int8_t* faceChips = scanFaceChips;
     for (int f = 0; f < 6; ++f) faceChips[f] = -1;
 
+    // Release the cube into the scan chamber BEFORE the first face is read.
+    //
+    // The pass loop only lowers the bottom servo on its way OUT of a
+    // reorientation, so passes 2 and 3 arrive at their reading already down.
+    // Pass 1 inherits whatever pose the machine was left in — the jog page,
+    // the tuning editor's previews and an aborted sweep can all leave a
+    // gripper part-way — and a cube held above the color sensors has them
+    // integrate for ~5.4 s on an empty chamber: the scan does not fail
+    // loudly, it reads nothing.
+    //
+    // ALL THREE grippers, via unloadCube(), which owns the release order: a
+    // lone botServoRetract() leaves a cube held in the extended ring exactly
+    // where it was. Unconditional, so it also recovers the state -1 case (a
+    // sweep aborted mid-travel); a horn already at its stop costs no travel.
+    //
+    // An entry condition, not a step in the per-pass choreography below: that
+    // sequence (extend, ring, partial, ROTX, ...) is mechanically load-bearing
+    // and already right for the passes it runs on. Keep this above it.
+    displaySetStatus("Lowering the cube");
+    displayUpdate();
+    unloadCube();
+
+    // Square the face fingers BEFORE anything closes on the cube.
+    //
+    // The first pass reads with everything released, so the first thing to
+    // grip the cube is the reorientation after it: botServoExtend() lifts the
+    // cube up into the six fingers, and a finger that is standing off its mark is a
+    // finger the cube cannot seat into. The motors were homed at boot, but by
+    // now the operator has ejected a cube and placed another, and the jog
+    // page, the dial and an aborted solve can all leave a finger anywhere. Doing
+    // it here, released, means the fingers turn against nothing — a homing pass
+    // from the clamped state is six real face turns the model never hears
+    // about, which is why motorsHome() on the diagnostic page invalidates it.
+    //
+    // Skipped, not failed, when the motors are uncalibrated: the scan
+    // reorientations are open loop and always were, so an uncalibrated
+    // machine can still scan — it just cannot be squared first. begin() makes
+    // the same call for boot homing.
+    if (getMotorCalibration()) {
+        displaySetStatus("Homing motors");
+        displayUpdate();
+        const int h = homeMotors();
+        if (h == ERR_ABORTED) {
+            // safeStop() de-energises the steppers before the unload, which
+            // matters here: the abort return is the one path out of
+            // alignMotorsInternal() that leaves them holding current.
+            Serial.println(F("Scan aborted by user"));
+            safeStop(ERR_ABORTED);
+            return 70;
+        }
+        if (h != 0) {
+            // Released already — the unloadCube() above ran — so unlike the
+            // color-board guard there is nothing to let go of on the way out.
+            Serial.print(F("Scan aborted: motors failed to home, code "));
+            Serial.println(h);
+            return 91;
+        }
+    } else {
+        Serial.println(F("WARNING: motors not calibrated, scanning without homing"));
+    }
+
     for (int i = 0; i < 3; i++) {
+
         // Between scan orientations: nothing is mid-travel, so this is a safe
         // point to honour an abort.
         if (abortRequested) {
@@ -280,6 +381,13 @@ int CubeSystem::scanCube(){
         // and letting piece-level validation reject an impossible cube is
         // strictly better: it makes repairScan() reachable, and an impossible
         // cube is caught either way.
+        //
+        // That argument covers the EIGHT OUTER stickers only. The centre is
+        // gated hard below: it decides the face identity and the orientation
+        // frame, repairScan() never touches centres by design, and a wrong
+        // centre poisons all nine stickers of the face at once. November's
+        // firmware refused a scan on an unconvincing centre and that gate is
+        // kept.
         ColorReading r1[9], r2[9];
         colorSensor1.getFaceReadings(r1);
         colorSensor2.getFaceReadings(r2);
@@ -297,8 +405,18 @@ int CubeSystem::scanCube(){
         displayFaces(faceChips);
         displayUpdate();
 
-        if (!r1[4].ok || !r2[4].ok) {
-            Serial.println(F("WARNING: low confidence identifying a face centre"));
+        // A centre that failed the classifier's gate (`ok` is getColor()'s
+        // absolute + relative test — the same test November's scan applied)
+        // fails the scan here, exactly as it did then. Codes 1/2 match the
+        // 'U'-centre returns just below, which are the same condition seen
+        // through classify()'s "unusable" path.
+        if (!r1[4].ok) {
+            Serial.println(F("Scan rejected: sensor 1 face centre unconvincing"));
+            return 1;
+        }
+        if (!r2[4].ok) {
+            Serial.println(F("Scan rejected: sensor 2 face centre unconvincing"));
+            return 2;
         }
 
         // TODO: DEBUG (REMOVE LATER)
@@ -389,24 +507,26 @@ int CubeSystem::scanCube(){
             displaySetStatus("Rotating cube");
             displayUpdate();
 
+            // No explicit waits here: every servo wrapper below already ends
+            // in its own pumpDelay(servoDelay). November's loop carried these
+            // delays because the wrappers were bare then; keeping both meant
+            // 400 ms per point instead of the 200 ms the machine was tuned on.
             botServoExtend();
-            pumpDelay(servoDelay);
             ringMiddle();
             botServoPartial();
-            pumpDelay(servoDelay);
-            // Check these returns — they used to be discarded entirely.
+            // SCOPE, precisely: executeMove() defaults to align = false (see
+            // the declaration in CubeSystem.h), and with November's
+            // move-then-check structure restored an align = false move always
+            // returns 0 — so these guards are currently INERT. They are kept
+            // because they are the right shape for the day executeMove()
+            // reports faults on blind moves again, and because removing them
+            // would silently change the scan's error contract (codes 80/81).
             //
-            // SCOPE, precisely: executeMove() defaults to align = false (see the
-            // declaration in CubeSystem.h), so no alignment pass runs here and
-            // the jam-recovery ladder is never entered. The only faults these
-            // guards can catch are an encoder read failure (24) and a user abort
-            // (25). They CANNOT detect a jam or a face that failed to turn — the
-            // scan reorientations remain open-loop, exactly as they were.
-            //
-            // Closing that would mean passing align = true, which adds an
-            // alignment pass per reorientation and changes the mechanical
-            // behaviour of a machine that currently works. Left as-is
-            // deliberately; do it as a measured change, not a drive-by.
+            // The scan reorientations remain open-loop, exactly as they were
+            // in November. Closing that would mean passing align = true, which
+            // adds an alignment pass per reorientation and changes the
+            // mechanical behaviour of a machine that works. Left deliberately;
+            // do it as a measured change, not a drive-by.
             int mvx = executeMove("ROTX");
             if (mvx) {
                 // A user abort must surface AS an abort. Collapsing it into 80
@@ -419,7 +539,6 @@ int CubeSystem::scanCube(){
             }
 
             botServoExtend();
-            pumpDelay(servoDelay);
             ringRetract();  // Used to be partial?
 
             int mvz = executeMove("ROTZ");
@@ -431,7 +550,6 @@ int CubeSystem::scanCube(){
             }
 
             botServoRetract();
-            pumpDelay(servoDelay);
         }
     }
 
@@ -479,12 +597,20 @@ int CubeSystem::scanCube(){
     // Color counts are already verified by buildUnorientedCubeArray(), but a
     // compensating misread keeps every count at 9. Check the actual pieces, and
     // if they don't hold up try to repair the scan in software before giving up
-    // — a repair costs microseconds, a rescan costs ~20 seconds of mechanics.
+    // — a repair costs milliseconds, a rescan costs 25-40 s of mechanics.
     if (virtualCube.validatePieces() != 0 || virtualCube.validateCentres() != 0) {
         Serial.println(F("Scan produced an impossible cube - attempting repair..."));
 
         if (repairScan() == 0) {
             Serial.println(F("Repair succeeded: low-confidence sticker(s) reassigned."));
+            // Put it on the panel too — a repaired scan is trustworthy but the
+            // operator should know it happened. The sketch can read
+            // lastRepairCount afterwards to say it more durably.
+            char repairMsg[40];
+            snprintf(repairMsg, sizeof(repairMsg), "Repaired %d sticker%s",
+                     lastRepairCount, lastRepairCount == 1 ? "" : "s");
+            displaySetStatus(repairMsg);
+            displayUpdate();
         } else {
             Serial.println(F("Repair failed - rescan required."));
             return 60;      // impossible cube, not repairable
@@ -528,13 +654,15 @@ int CubeSystem::rebuildFromScan() {
     return 0;
 }
 
-int CubeSystem::repairScan(int maxSingles, int maxPairs) {
+int CubeSystem::repairScan() {
     // Try substituting each low-confidence sticker's runner-up color until the
     // cube validates. Singles first, then pairs (a compensating Y/W swap needs
     // exactly two substitutions).
     //
     // Centres are never candidates: they define the face and setColorArray
     // requires them to match.
+
+    lastRepairCount = 0;
 
     if (scanFacesRecorded != 6) return 1;
 
@@ -567,9 +695,6 @@ int CubeSystem::repairScan(int maxSingles, int maxPairs) {
     char original[6][9];
     for (int f = 0; f < 6; f++)
         for (int k = 0; k < 9; k++) original[f][k] = scanColor[f][k];
-
-    const int limSingle = (n < maxSingles) ? n : maxSingles;
-    const int limPair   = (n < maxPairs)   ? n : maxPairs;
 
     // Enumerate EVERY candidate repair and pick the LEAST CONFIDENT one.
     //
@@ -615,7 +740,7 @@ int CubeSystem::repairScan(int maxSingles, int maxPairs) {
     // NOT already passed the 9-of-each color count — any single substitution
     // moves two counts off 9. On the scanCube() path the count check has already
     // run, so this loop is a no-op there; it exists for direct callers.
-    for (int a = 0; a < limSingle; a++) {
+    for (int a = 0; a < n; a++) {
         int f = cand[a].f, k = cand[a].k;
         scanColor[f][k] = scanAlt[f][k];
 
@@ -636,8 +761,8 @@ int CubeSystem::repairScan(int maxSingles, int maxPairs) {
     }
 
     // --- pair substitutions (the compensating-misread case) ---
-    for (int a = 0; a < limPair; a++) {
-        for (int b = a + 1; b < limPair; b++) {
+    for (int a = 0; a < n; a++) {
+        for (int b = a + 1; b < n; b++) {
             int fa = cand[a].f, ka = cand[a].k;
             int fb = cand[b].f, kb = cand[b].k;
 
@@ -674,6 +799,7 @@ int CubeSystem::repairScan(int maxSingles, int maxPairs) {
         } else {
             int fa = cand[bestA].f, ka = cand[bestA].k;
             scanColor[fa][ka] = scanAlt[fa][ka];
+            lastRepairCount = (bestB >= 0) ? 2 : 1;
             if (bestB >= 0) {
                 int fb = cand[bestB].f, kb = cand[bestB].k;
                 scanColor[fb][kb] = scanAlt[fb][kb];
@@ -720,6 +846,19 @@ bool CubeSystem::getMotorCalibration() {
 int CubeSystem::calibrateMotorRotations(){
     int rawVals[6][4];
 
+    // Settle between each quarter turn and the encoder scan that follows it.
+    // executeMove() returns as soon as the steppers are de-energised, while
+    // the face is still ringing from the stop. The first cut (200 ms) was
+    // short enough that the four marks could be read off a face that had not
+    // finished settling, and an out-of-square mark here is permanent: it
+    // goes to EEPROM and every later alignment homes to it. Only three of
+    // these run per sweep, so the extra wait costs well under a second.
+    //
+    // A blocking delay, not pumpDelay(): an aborted pumpDelay returns in ~0 ms,
+    // which would scan a still-moving encoder and hand the bad reading to the
+    // spacing check below — the opposite of what the settle is for.
+    static const unsigned long kCalSettleMs = 300;
+
     cubeMotors.resetMotorPos();
 
     // Scan current position.
@@ -750,7 +889,7 @@ int CubeSystem::calibrateMotorRotations(){
             Serial.println(mv);
             return mv;
         }
-        delay(200);
+        delay(kCalSettleMs);
 
         for (int i = 0; i < numMotors; i++) {
             rawVals[i][step] = MotorEncoders[i]->scanChecked();
@@ -803,11 +942,13 @@ int CubeSystem::calibrateMotorRotations(){
     return 0;
 }
 
-int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
-    // Internal alignment function used by both homeMotors() and alignMotors()
-    // 
-    // selectiveAlign = false: Align all motors (full homing)
-    // selectiveAlign = true:  Only align motors marked in motorMoved[]
+int CubeSystem::alignMotorsInternal() {
+    // Internal alignment used by homeMotors(). This is November's homing loop:
+    // one step per motor per pass toward the nearest calibration mark, until a
+    // full pass finds every motor within tolerance. The convergence dynamics
+    // are deliberately UNCHANGED from the firmware that solved reliably —
+    // a proportional (walk-most-of-the-error) version existed briefly and was
+    // reverted with the rest of the alignment experiments, untested.
     //
     // Outputs:
     //      0 - Success
@@ -815,13 +956,21 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
 
     bool aligned = false;
     unsigned long t_start = millis();
-    unsigned long timeout = selectiveAlign ? alignTimeout : homeTimeout;
+    unsigned long timeout = homeTimeout;
     long pos[6];
 
     // Initialize motor positions
     for (int i = 0; i < numMotors; i++) {
         pos[i] = cubeMotors.getPos(i);
     }
+
+    // Keep the DISPLAY out of the correction loop, exactly as the motor move
+    // loops do: a render per pass costs 10-30 ms against passes that are
+    // otherwise ~10 ms of encoder reads, which is the difference between
+    // November's correction rate and a third of it. The abort watch is
+    // unaffected — pumpOnce() still polls the buttons under pumpMotionOnly.
+    const bool wasMotionOnly = pumpMotionOnly;
+    pumpMotionOnly = true;
 
     // Enable motors
     cubeMotors.enableMotors();
@@ -834,13 +983,12 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
 
     // Alignment loop
     while (!aligned) {
-        // Service the display and poll input once per pass, and HONOUR the
-        // result. Alignment can run for up to alignTimeout (500 ms) per move and
-        // is the longest pumped leg of the jam-recovery ladder, so ignoring an
-        // abort here means the user's request is deferred by up to 500 ms per
-        // retry, three retries deep.
+        // Poll input once per pass and HONOUR the result (display excluded,
+        // see pumpMotionOnly above). Homing can run for up to a second, and
+        // it is the one motion loop that may run with the cube clamped.
         if (!pumpOnce()) {
             cubeMotors.disableMotors();
+            pumpMotionOnly = wasMotionOnly;
             Serial.println(F("Alignment aborted by user"));
             return ERR_ABORTED;
         }
@@ -850,11 +998,6 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
         // Check each motor
         for (int i = 0; i < numMotors; i++) {
 
-            // Skip if selective alignment and motor didn't move
-            if (selectiveAlign && !motorMoved[i]) {
-                continue;
-            }
-
             // Update encoder values.
             //
             // A negative return is an I2C fault, NOT a position. This used to
@@ -862,8 +1005,7 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
             // straight into the target search and the direction test below —
             // stepping the motor blind, once per iteration, with no feedback,
             // until the timeout expired. That is 45-90 degrees of unintended
-            // rotation at full torque with the cube clamped, repeated by the
-            // retry ladder in executeMove().
+            // rotation at full torque with the cube clamped.
             int currentVal = MotorEncoders[i]->scanChecked();
 
             if (currentVal < 0 && ++encFail[i] >= 2) {
@@ -872,9 +1014,8 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
                 // of the post-reset read — an earlier version discarded it and
                 // `continue`d, so a marginal bus that recovered after a reset
                 // never stepped, never cleared encFail[i], and burned the whole
-                // alignment timeout before reporting ERR_ALIGN_TIMEOUT. That
-                // made executeMove diagnose a jam and run backout + re-home x3
-                // for what was actually a flaky I2C line.
+                // alignment timeout before reporting ERR_ALIGN_TIMEOUT — a
+                // dead solve for what was actually a flaky I2C line.
                 resetEncoderMux();
                 currentVal = MotorEncoders[i]->scanChecked();
             }
@@ -882,6 +1023,7 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
             if (currentVal < 0) {
                 if (encFail[i] >= 2) {
                     cubeMotors.disableMotors();
+                    pumpMotionOnly = wasMotionOnly;
                     Serial.print(F("FAULT: encoder "));
                     Serial.print(i);
                     Serial.println(F(" unreadable - aborting alignment"));
@@ -900,11 +1042,6 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
 
             // Loop through each of the 4 aligned positions
             for (int j = 0; j < 4; j++) {
-
-                // Skip the starting position if in selective mode
-                if (selectiveAlign && motorMoved[i] && j == startCalIndex[i]) {
-                    continue;
-                }
 
                 int calVal = MotorEncoders[i]->getCalibration(j);
                 int diff = abs(encError(currentVal, calVal));
@@ -927,8 +1064,9 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
             if (abs(err) > motorAlignmentTol) {
                 aligned = false;
 
-                // Move toward target. One sign convention, decided once — see
-                // kAlignStepSign in CubeSystem.h.
+                // Move toward target, one step per pass — November's rate.
+                // One sign convention, decided once — see kAlignStepSign in
+                // CubeSystem.h.
                 pos[i] += (err > 0 ? kAlignStepSign : -kAlignStepSign) * stepSize;
             }
         }
@@ -939,6 +1077,7 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
         // Check for timeout
         if (millis() - t_start > timeout) {
             cubeMotors.disableMotors();
+            pumpMotionOnly = wasMotionOnly;
             return ERR_ALIGN_TIMEOUT;
         }
     }
@@ -965,6 +1104,7 @@ int CubeSystem::alignMotorsInternal(bool selectiveAlign) {
     // Reset stepper position tracking
     cubeMotors.resetMotorPos();
 
+    pumpMotionOnly = wasMotionOnly;   // hand the display back
     return 0;   // Success
 }
 
@@ -980,65 +1120,18 @@ int CubeSystem::homeMotors() {
         return 1;
     }
 
-    // Clear all tracking variables for fresh start
-    for (int i = 0; i < 6; i++) {
-        startCalIndex[i] = -9999;
-        motorMoved[i] = false;
-    }
-
-    // Call internal alignment with full homing mode
-    return alignMotorsInternal(false);
+    return alignMotorsInternal();
 }
 
-int CubeSystem::alignMotors() {
-    // Re-aligns motors after a move (only aligns motors that moved)
-    // Outputs:
-    //      0 - Success
-    //      1 - Motors not calibrated
-    //      2 - Did not reach threshold in time
 
-    // Check if motors are calibrated
-    if (!getMotorCalibration()) {
-        return 1;
-    }
-
-    // Determine starting calibration index for each motor
-    for (int i = 0; i < numMotors; i++) {
-        int cur = MotorEncoders[i]->scanChecked();
-        if (cur < 0) {
-            Serial.print(F("FAULT: encoder "));
-            Serial.print(i);
-            Serial.println(F(" unreadable - cannot determine start index"));
-            return ERR_ENCODER_FAULT;
-        }
-
-        int bestIdx = 0;
-        int bestDiff = 9999;
-
-        for (int j = 0; j < 4; j++) {
-            int cal = MotorEncoders[i]->getCalibration(j);
-            int diff = abs(encError(cur, cal));
-            if (diff < bestDiff) {
-                bestDiff = diff;
-                bestIdx = j;
-            }
-        }
-
-        startCalIndex[i] = bestIdx;
-    }
-
-    // Call internal alignment with selective mode
-    return alignMotorsInternal(true);
-}
 
 bool CubeSystem::getColorCalibration(){
     // Returns if color sensors are calibrated.
     //
     // NOTE: ColorSensor::loadCalibration() returns BOOL (true == calibrated),
     // unlike MotorEncoder::loadCalibration() which returns INT (0 == success).
-    // This function was written with the int convention and applied to the bool
-    // one, so `loadCalibration() != 0` was true for a CALIBRATED sensor and it
-    // returned the exact inverse of the truth in both directions.
+    // Do not test it with `!= 0` the way getMotorCalibration() does — that
+    // inverts the answer.
     //
     // Both sensors are loaded unconditionally — do not short-circuit with &&,
     // or sensor 2 never gets its calibration read into RAM when sensor 1 fails.
@@ -1068,9 +1161,43 @@ int CubeSystem::calibrateColorSensors(){
         return 90;
     }
 
-    // Outputs:
-    //  0 - Success
-    //  1 - Cube not loaded (NOT IMPLEMENTED)
+    // ESTABLISH the machine's physical state; do not inherit it.
+    //
+    // Settings > Calibration > Color Sensors is ONE menu level from the clamped
+    // rest state — the sketch closes all three grippers after a successful scan
+    // and after a solve — and nothing on the path here releases the cube. A
+    // cube still held by the ring sits at exactly this function's own
+    // empty-chamber pose (STEP 2 lifts the cube there to take the 'E'
+    // reference), so the four side reads below would file an empty chamber as
+    // the R/G/B/O references, and nothing downstream can tell: the result is a
+    // wrong calibration, persisted, that every later scan classifies against.
+    //
+    // unloadCube() also puts the TOP gripper somewhere known, which matters at
+    // the ROTX in STEP 2 — see the note there.
+    //
+    // The model reset is not optional. Every reorientation below takes
+    // executeMove()'s default moveVirtual = false, so the physical cube ends up
+    // somewhere virtualCube does not know about. Without the reset isReady()
+    // stays true, the root menu still reads "Cube Ready", and the next Solve
+    // runs ~20 moves against a model the cube no longer matches.
+    //
+    // After the sensor-board guard on purpose: that return moves nothing, and
+    // resetting the model for it would throw away a good scan over a call that
+    // never touched the machine.
+    unloadCube();
+    virtualCube.resetCube();
+    clearSolution();
+
+    // Outputs (calibErrorText() in the sketch decodes these):
+    //  0  - Success
+    //  8  - Calibration computed but would not persist — machine NOT calibrated
+    //  9  - Aborted by the user; EEPROM left untouched, cube released
+    //  82 - A reorientation move failed (jam / align timeout / encoder fault);
+    //       cube released, EEPROM left untouched
+    //  90 - A color sensor board failed to initialise at boot (nothing moved)
+    //
+    // No 'cube not loaded' code: nothing on this machine can tell a loaded
+    // chamber from an empty one before the calibration that would let it.
 
     // ------------ STEP 1 ------------
     // Scan first 4 sides
@@ -1095,7 +1222,9 @@ int CubeSystem::calibrateColorSensors(){
         {'G', 'O'}  // Green Back, Orange Right
     };
 
-    // Center cube in chamber
+    // Centre the cube in the chamber: the unloadCube() above got it DOWN here;
+    // this pair only sweeps the bottom horn up to partial and back, squaring
+    // the cube in the bay.
     botServoPartial();
     botServoRetract();
 
@@ -1131,7 +1260,26 @@ int CubeSystem::calibrateColorSensors(){
             //topServoExtend();
             delay(500);
             int cmv1 = executeMove("ROTZ");
-            if (cmv1) { calibrationBail(cmv1); return 82; }
+            if (cmv1) {
+                // calibrationBail() restores the colour tables and kills torque
+                // but it NEVER releases — it knows nothing about what the
+                // machine is holding. The cube is up on the bottom gripper
+                // here, so bailing without safeStop() parks a red screen on a
+                // machine that is still holding it. Same idiom scanCube() uses
+                // for its reorientation failures, including the reason the
+                // abort is split out: a user asking the machine to stop must
+                // surface AS an abort (9, "EEPROM left untouched"), not as a
+                // jam the operator goes looking for.
+                if (cmv1 == 20 + ERR_ABORTED) {
+                    calibrationBail(ERR_ABORTED);
+                    safeStop(ERR_ABORTED);
+                    return 9;
+                }
+                Serial.print(F("Color calibration: side ROTZ failed, code ")); Serial.println(cmv1);
+                calibrationBail(cmv1);
+                safeStop(cmv1);
+                return 82;
+            }
             //topServoRetract();
             botServoRetract();
             delay(500);
@@ -1160,9 +1308,29 @@ int CubeSystem::calibrateColorSensors(){
         colorSensor2.setColorCal(i, 'E', colorSensor2.getScanValRow(i));
     }
 
-    // Rotate cube about x-axis and retract
+    // Rotate cube about x-axis and retract.
+    //
+    // The ring is at middle and the bottom horn is down, so the ring alone is
+    // holding the cube through this move — which is also why a failure here is
+    // the worst one in the function to return from without releasing.
+    //
+    // The top gripper is clear: nothing in this function extends it and the
+    // unloadCube() at the top retracts it, so the ring turns the cube with the
+    // up face free — the same condition scanCube() gives its own ROTX. From
+    // the clamped rest state the top servo would still be socketed on the up
+    // face and this move would fight it.
     int cmv2 = executeMove("ROTX");
-            if (cmv2) { calibrationBail(cmv2); return 82; }
+    if (cmv2) {
+        if (cmv2 == 20 + ERR_ABORTED) {
+            calibrationBail(ERR_ABORTED);
+            safeStop(ERR_ABORTED);
+            return 9;
+        }
+        Serial.print(F("Color calibration: ROTX failed, code ")); Serial.println(cmv2);
+        calibrationBail(cmv2);
+        safeStop(cmv2);
+        return 82;
+    }
     botServoExtend();
     pumpDelay(servoDelay);
     ringRetract();
@@ -1207,7 +1375,19 @@ int CubeSystem::calibrateColorSensors(){
             //topServoExtend();
             pumpDelay(servoDelay);
             int cmv3 = executeMove("ROTZ");
-            if (cmv3) { calibrationBail(cmv3); return 82; }
+            if (cmv3) {
+                // As the STEP 1 ROTZ — see the reasoning there. The cube is up
+                // on the bottom gripper again at this point.
+                if (cmv3 == 20 + ERR_ABORTED) {
+                    calibrationBail(ERR_ABORTED);
+                    safeStop(ERR_ABORTED);
+                    return 9;
+                }
+                Serial.print(F("Color calibration: top/bottom ROTZ failed, code ")); Serial.println(cmv3);
+                calibrationBail(cmv3);
+                safeStop(cmv3);
+                return 82;
+            }
             //topServoRetract();
             botServoRetract();
             pumpDelay(servoDelay);
@@ -1278,6 +1458,15 @@ void CubeSystem::topServoPartial()
     pumpDelay(servoDelay);
 }
 
+void CubeSystem::topServoEject()
+{
+    // Same shape as the others, and today the same movement as
+    // topServoPartial() — the top servo has no pinned Eject position for
+    // ejectTarget() to use. See the declaration for why it exists anyway.
+    topServo.eject();
+    pumpDelay(servoDelay);
+}
+
 void CubeSystem::botServoExtend() {
     botServo.extend();
     pumpDelay(servoDelay);
@@ -1333,240 +1522,46 @@ void CubeSystem::ringRetract() {
 
 int CubeSystem::executeMove(const String &move, bool moveVirtual, bool align) {
     // Outputs:
-    //  0 - Ran successfully
+    //  0 - Ran succesfully
     //  1X - Virtual move failed (X is error thrown by virtual move)
-    //  2X - Alignment failed after retries
-    //  3 - Move string is invalid
+    //  2X - Home motors failed
+    //
+    // THIS IS NOVEMBER'S STRUCTURE, ON PURPOSE — restored after two rounds of
+    // "smarter" move verification each broke solves that November completed:
+    //
+    //   - A retry ladder (arrival check -> selective align -> backout ->
+    //     re-home, x3) whose selective alignment ran after EVERY move and
+    //     whose corrections were the jerky micro-stepping the motor rework
+    //     removed.
+    //   - A pre-move drift gate that hard-failed the solve when readings from
+    //     de-energised motors wandered around the tolerance edge — it aborted
+    //     solves on a machine that was visibly square, with homeMotors() and
+    //     the gate disagreeing about the same six motors seconds apart.
+    //
+    // November's contract is simpler and proven across full solves: turn the
+    // face open loop, update the model, then CHECK — and if the check fails,
+    // home everything to the nearest marks once. Only a homing that itself
+    // fails stops the solve. Sporadic encoder noise costs one homing pass, not
+    // a dead solve. Do not add gates or ladders here again without bench time.
 
-    // Pre-check alignment if alignment is requested
-    if (align) {
-        if (!checkAlignment()) {
-            Serial.println("Motors misaligned before move - homing now");
-            int homeResult = homeMotors();
-            if (homeResult != 0) {
-                Serial.println("ERROR: Pre-move homing failed");
-                return 20 + homeResult;
-            }
-        }
-    }
+    // Turn real cube side
+    cubeMotors.executeMove(move);
 
-    const int MAX_RETRIES = 3;
-    int retryCount = 0;
-
-    while (retryCount < MAX_RETRIES) {
-        // Honour an abort before starting another retry. Without this the
-        // ladder runs its full course — up to 3 x (move + align + backout +
-        // rehome) is ~11 s of driving a jammed, clamped cube after the user has
-        // already asked the machine to stop.
-        if (abortRequested) {
-            cubeMotors.disableMotors();
-            Serial.println(F("Move aborted by user"));
-            return 20 + ERR_ABORTED;
-        }
-
-        // Store starting encoder positions.
-        // These become the backout reference and the startCalIndex basis, so a
-        // bad reading here corrupts both the alignment target and the jam
-        // recovery. Fail the move rather than proceed on a guess.
-        int startPositions[6];
-        for (int i = 0; i < numMotors; i++) {
-            startPositions[i] = MotorEncoders[i]->scanChecked();
-            if (startPositions[i] < 0) {
-                cubeMotors.disableMotors();
-                Serial.print(F("FAULT: encoder "));
-                Serial.print(i);
-                Serial.println(F(" unreadable before move - aborting"));
-                return 20 + ERR_ENCODER_FAULT;
-            }
-        }
-
-        // Reset motorMoved flags
-        for (int i = 0; i < 6; i++) {
-            motorMoved[i] = false;
-        }
-
-        // Mark motors that this move affects
-        if (move == "U" || move == "U'" || move == "U2")
-            motorMoved[0] = true;
-        else if (move == "R" || move == "R'" || move == "R2")
-            motorMoved[1] = true;
-        else if (move == "F" || move == "F'" || move == "F2")
-            motorMoved[2] = true;
-        else if (move == "D" || move == "D'" || move == "D2")
-            motorMoved[3] = true;
-        else if (move == "L" || move == "L'" || move == "L2")
-            motorMoved[4] = true;
-        else if (move == "B" || move == "B'" || move == "B2")
-            motorMoved[5] = true;
-        else if (move == "ROTX") {
-            motorMoved[4] = true;   // L
-            motorMoved[1] = true;   // R (inverse)
-        }
-        else if (move == "ROTZ") {
-            motorMoved[0] = true;   // U
-            motorMoved[3] = true;   // D (inverse)
-        }
-        else if (move == "ALL") {
-            for (int i = 0; i < 6; i++)
-                motorMoved[i] = true;
-        }
-        else {
-            return 3; // Invalid move
-        }
-
-        // Execute the physical move
-        cubeMotors.executeMove(move);
-
-        // Check if alignment is needed
-        if (align) {
-            // Determine starting calibration indices
-            for (int i = 0; i < numMotors; i++) {
-                if (!motorMoved[i]) continue;
-
-                int bestIdx = 0;
-                int bestDiff = 9999;
-
-                for (int j = 0; j < 4; j++) {
-                    int cal = MotorEncoders[i]->getCalibration(j);
-                    int diff = abs(encError(startPositions[i], cal));
-                    if (diff < bestDiff) {
-                        bestDiff = diff;
-                        bestIdx = j;
-                    }
-                }
-                startCalIndex[i] = bestIdx;
-            }
-
-            // Try to align
-            int alignResult = alignMotorsInternal(true);
-            
-            if (alignResult == 0) {
-                // Alignment successful!
-                break;
-            }
-            
-            // Alignment failed - likely jammed
-            Serial.print("Alignment failed, attempt ");
-            Serial.print(retryCount + 1);
-            Serial.println(" - backing out and re-homing");
-
-            // Step 1: Back out only the moved motor(s) to relieve jam
-            bool backoutSuccess = backoutMove(startPositions);
-            
-            if (!backoutSuccess) {
-                Serial.println("ERROR: Failed to back out of jammed position");
-                return 20 + alignResult;
-            }
-
-            Serial.println("Backout complete - now homing all motors");
-
-            // Step 2: Clear motorMoved flags so homeMotors aligns ALL motors
-            for (int i = 0; i < 6; i++) {
-                motorMoved[i] = false;
-            }
-
-            // Step 3: Re-home all motors from their current positions
-            int homeResult = homeMotors();
-            if (homeResult != 0) {
-                Serial.println("ERROR: Re-homing failed");
-                return 20 + homeResult;
-            }
-
-            retryCount++;
-            
-            if (retryCount >= MAX_RETRIES) {
-                Serial.println("ERROR: Max retries exceeded");
-                return 20 + alignResult;
-            }
-            
-            // Loop will retry the move
-            pumpDelay(100);
-        }
-        else {
-            // No alignment requested, just do the move once
-            break;
-        }
-    }
-
-    // Execute virtual move if requested
+    // Turn Virtual Cube
+    int result = 0;
     if (moveVirtual) {
-        int result = virtualCube.executeMove(move);
+        result = virtualCube.executeMove(move);
         if (result) return 10 + result;
     }
 
+    // If alignment is active and motor is misaligned
+    result = 0;
+    if (align && !checkAlignment()) {
+        result = homeMotors();
+        if (result) return 20 + result;
+    }
+
     return 0;   // Success
-}
-
-bool CubeSystem::backoutMove(int targetPositions[6]) {
-    // Try to return motors to their starting positions
-    // Returns true if successful, false if failed
-    
-    const unsigned long BACKOUT_TIMEOUT = 2000;
-    unsigned long startTime = millis();
-    
-    long pos[6];
-    for (int i = 0; i < 6; i++) {
-        pos[i] = cubeMotors.getPos(i);
-    }
-    
-    cubeMotors.enableMotors();
-    
-    bool aligned = false;
-    while (!aligned && (millis() - startTime < BACKOUT_TIMEOUT)) {
-        // This loop had no pump at all: up to 2 s of completely frozen display
-        // while the machine works a jammed, clamped cube — and no way for the
-        // user's abort to be seen during the longest leg of the recovery ladder.
-        if (!pumpOnce()) {
-            cubeMotors.disableMotors();
-            Serial.println(F("Backout aborted by user"));
-            return false;
-        }
-
-        aligned = true;
-        
-        for (int i = 0; i < numMotors; i++) {
-            if (!motorMoved[i]) continue;
-
-            // Encoder faults abort the backout rather than being stepped on.
-            // This path is only reached when a face is ALREADY stuck, so
-            // driving blind here is the worst possible time to do it.
-            int currentPos = MotorEncoders[i]->scanChecked();
-            if (currentPos < 0) {
-                cubeMotors.disableMotors();
-                Serial.print(F("FAULT: encoder "));
-                Serial.print(i);
-                Serial.println(F(" unreadable during backout - aborting"));
-                return false;
-            }
-
-            int err = encError(currentPos, targetPositions[i]);
-
-            if (abs(err) > motorAlignmentTol) {
-                aligned = false;
-
-                // Same sign convention as alignMotorsInternal().
-                //
-                // This block previously handled the 0/4095 seam correctly but
-                // used the OPPOSITE sign, so backout drove away from the start
-                // position on every iteration — burning the full 2 s timeout
-                // pushing a jammed face further into its jam before giving up.
-                pos[i] += (err > 0 ? kAlignStepSign : -kAlignStepSign) * stepSize;
-            }
-        }
-
-        cubeMotors.moveTo(pos);
-    }
-
-    cubeMotors.disableMotors();
-
-    if (!aligned) {
-        Serial.println("Backout timeout - could not return to start");
-        return false;
-    }
-    
-    // Reset position tracking
-    cubeMotors.resetMotorPos();
-    return true;
 }
 
 bool CubeSystem::checkAlignment() {
@@ -1647,19 +1642,16 @@ void CubeSystem::displayUpdate() {
 }
 
 void CubeSystem::displayWaitForSelect(const char* msg) {
-    // A user gate must never become a no-op.
+    // A user gate must never become a no-op. Every "press SELECT to continue"
+    // prompt routes through here — including the ones immediately before the
+    // servos clamp the cube and before executeSolve() — so a display that
+    // failed to initialise (a loose ribbon next to six vibrating steppers)
+    // must fall through to another input, not return instantly and let the
+    // machine clamp and solve unattended.
     //
-    // This function used to be nothing but `if (displayInitialized) { ... }`
-    // with no else. Every "press SELECT to continue" prompt in the solve
-    // sketches routes through here — including the one immediately before the
-    // servos clamp the cube and the one immediately before executeSolve(). If
-    // the display failed to initialise (a loose ribbon on a machine with six
-    // steppers vibrating next to it) every gate returned instantly and the
-    // machine scanned, clamped and ran a full solve unattended.
-    // Gate on the encoder as well as the display. cubeDisplay.waitForSelect()
+    // Gate on the encoder as well as the display: cubeDisplay.waitForSelect()
     // spins on menuEncoder.selectPressed() with no Serial escape, so with a
-    // working display and a DEAD seesaw — the exact case begin() warns about —
-    // it would wedge forever on a device that never answers.
+    // working display and a DEAD seesaw it would wedge forever.
     if (displayInitialized && encoderInitialized) {
         cubeDisplay.waitForSelect(msg);
         return;
@@ -1705,9 +1697,7 @@ void CubeSystem::displayWaitForSelect(const char* msg) {
         return;
     }
 
-    // No display AND no encoder: Serial is the only way through. Blocking here
-    // is correct — it is a gate, and silently continuing is what this whole
-    // function exists to prevent.
+    // No display AND no encoder: Serial is the only way through.
     Serial.println(F("WARNING: no display and no menu encoder. Serial input required."));
 
     // With neither a display nor an encoder there is no way to obtain user
@@ -1752,20 +1742,29 @@ void CubeSystem::unloadCube() {
     const bool wasSuppressed = pumpAbortSuppressed;
     pumpAbortSuppressed = true;
 
-    // Release the cube.
-    //
-    // The order is mechanically load-bearing and is NOT the mirror of the load
-    // sequence (load extends bottom -> ring -> top; unload retracts ring first,
-    // while the top servo is still extended). Because the safe orderings are
-    // not a simple stack they cannot be inferred at a call site, so they live
-    // here once.
-    //
-    // Previously this sequence existed only on the success path of the solve
-    // sketches, so any error parked the machine indefinitely with both servos
-    // extended and the ring engaged, gripping the cube.
+    // Ring -> top -> bottom. NOT the mirror of the load sequence (load extends
+    // bottom -> ring -> top; unload retracts the ring first, while the top
+    // servo is still extended), so the safe order cannot be inferred at a
+    // call site — it lives here once. The first two steps are the shared
+    // partial release, so there is ONE copy of that order; its own abort
+    // suppression nests harmlessly inside this one.
+    unloadCubeKeepBottom();
+    botServoRetract();      // the step the partial release deliberately omits
+
+    pumpAbortSuppressed = wasSuppressed;
+    chordHeldSince = 0;     // a still-held chord must be released to re-abort
+}
+
+void CubeSystem::unloadCubeKeepBottom() {
+    // Suppressed for the same reason unloadCube() suppresses: this runs on
+    // success paths (the post-solve display spin) with the cube still held.
+    const bool wasSuppressed = pumpAbortSuppressed;
+    pumpAbortSuppressed = true;
+
+    // The front of unloadCube()'s order, minus botServoRetract() — the cube
+    // stays up on the bottom gripper, which is the entire point.
     ringRetract();
     topServoRetract();
-    botServoRetract();
 
     pumpAbortSuppressed = wasSuppressed;
     chordHeldSince = 0;     // a still-held chord must be released to re-abort
@@ -1775,19 +1774,13 @@ void CubeSystem::safeStop(int faultCode) {
     // Put the machine into a state that is safe to leave unattended.
     lastFault = faultCode;
 
-    // CRITICAL: the unload must not be pumped-out.
-    //
-    // abortRequested is a LATCH — nothing clears it until the UI does. While it
-    // is set, pumpDelay() returns false immediately without waiting, so every
-    // servo sweep inside unloadCube() would issue a single servo.write() and
-    // bail. The cube would stay clamped while this function printed "halted
-    // safely" — the exact failure safeStop() exists to prevent.
-    //
-    // Suspend the latch AND the detector for the duration of the unload, then
-    // restore the latch so the caller and the UI still see that an abort
-    // happened. Suppressing the detector is essential: the gesture is a 1 s
-    // hold, so the buttons are still down here, and a stale chordHeldSince would
-    // re-latch on the first pump inside unloadCube().
+    // The unload must not be pumped-out: abortRequested is a LATCH, and while
+    // it is set pumpDelay() returns immediately, so every servo sweep in
+    // unloadCube() would issue one servo.write() and bail — cube still
+    // clamped while this prints "halted safely". Suspend the latch AND the
+    // detector (see pumpAbortSuppressed in CubeSystem.h: the buttons are still
+    // down from the 1.5 s hold) for the unload, then restore the latch so the
+    // caller and the UI still see that an abort happened.
     const bool wasAborted = abortRequested;
     pumpAbortSuppressed = true;
     abortRequested = false;
@@ -1865,7 +1858,9 @@ int CubeSystem::executeSolve(){
     //  0 - Success
     //  1 - Cube is not ready
     //  2 - No solution
-    //  1XX - 
+    //  1XX - executeMove() failed at a move (XX is its code); cube released,
+    //        model invalidated. 105 = aborted between moves, 125 = aborted
+    //        inside a move's re-homing.
 
     // Both of these run AFTER the caller has clamped the cube (the sketch's
     // Loading state extends bottom servo, ring and top servo before entering
@@ -1911,13 +1906,14 @@ int CubeSystem::executeSolve(){
         e = executeMove(solveMoves[i], 1, 1);
 
         if (e) {
-            // A failed move leaves the PHYSICAL cube turned (executeMove applies
-            // the virtual move last, and three of its error returns fire after
-            // at least one physical move) while the model still reflects the
-            // pre-move state. Leaving solveMoves[] and cubeReady intact meant a
-            // caller could invoke executeSolve() again, restart at index 0, and
-            // replay the entire solution onto a cube that was already partway
-            // through it — scrambling it and risking a hard jam.
+            // A failed move still turned the PHYSICAL cube (every executeMove
+            // error return fires after the physical move has run), and a 2X
+            // means the machine could not even home afterwards — so real cube
+            // and model can no longer be trusted to agree. Leaving
+            // solveMoves[] and cubeReady intact meant a caller could invoke
+            // executeSolve() again, restart at index 0, and replay the entire
+            // solution onto a cube that was already partway through it —
+            // scrambling it and risking a hard jam.
             //
             // After a failed move the true cube state is unknown, so the only
             // correct next step is a rescan. safeStop() enforces that by

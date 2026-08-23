@@ -33,11 +33,9 @@
 //
 // WHERE IT SITS IN EEPROM
 // -----------------------
-// Appended after the tuning block. initializeEEPROMLayout() hands out
-// addresses sequentially, so nothing may ever be inserted above this block —
-// that would quietly reinterpret an existing machine's calibration. Blocks
-// added since (the stats counters) are APPENDED after it, for the same
-// reason.
+// Appended after the tuning block by initializeEEPROMLayout(), which hands
+// out addresses sequentially — so nothing may ever be inserted above an
+// existing block (that would silently shift a calibrated machine's data).
 
 #ifndef CubeFaultLog_h
 #define CubeFaultLog_h

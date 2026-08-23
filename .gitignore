@@ -46,6 +46,10 @@ build/
 .vscode/ipch/
 .vscode/browse.vc.db*
 
+# --- Python (Code/tools/bake_theme.py) -----------------------------------
+__pycache__/
+*.pyc
+
 # --- OS ------------------------------------------------------------------
 .DS_Store
 Thumbs.db

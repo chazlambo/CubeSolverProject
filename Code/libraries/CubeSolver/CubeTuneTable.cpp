@@ -1,8 +1,8 @@
 // CubeTuneTable.cpp — the tuning table and its EEPROM load/save/reset.
 //
-// Moved verbatim from Test_Menu so the firmware and the bench sketch share
-// ONE table (see the header for why). The rows reach their owners through
-// the globals CubeHardwareConfig.h declares, plus the Cube object below.
+// One table shared by the firmware and the bench sketch (the header says
+// why). The rows reach their owners through the globals CubeHardwareConfig.h
+// declares, plus the Cube object below.
 
 #include "CubeTuneTable.h"
 #include "CubeSystem.h"   // Cube's own tunables; also pulls in
@@ -14,8 +14,7 @@
 // no opting out: the CubeSolver library is Arduino 1.0 format (no
 // library.properties), so the IDE compiles and links EVERY library .cpp into
 // EVERY sketch that includes any of its headers, and an unresolved `Cube`
-// fails the link. The bring-up sketches that predated this file named their
-// object lowercase `cube` and were renamed when it landed.
+// fails the link.
 extern CubeSystem Cube;
 
 static const char* const kITNames[6] = { "40 ms", "80 ms", "160 ms",
@@ -64,7 +63,7 @@ const TuneParam kTune[] = {
       []() -> int32_t { return (int32_t)botServo.partialTarget(); },
       [](int32_t v){ botServo.setPartial((unsigned)v); }, nullptr,
       [](int32_t v){ botServo.previewRaw((unsigned)v); } },
-    { "Eject", "Lifts the cube out to be taken", "deg", 195, 0, 270, 1,
+    { "Eject", "Lifts the cube out to be taken", "deg", 120, 0, 270, 1,
       TP_LIVE | TP_GATE,
       []() -> int32_t { return (int32_t)botServo.ejectTarget(); },
       [](int32_t v){ botServo.setEject((unsigned)v); }, nullptr,
@@ -100,12 +99,20 @@ const TuneParam kTune[] = {
       []() -> int32_t { return cubeMotors.getRingAccel(); },
       [](int32_t v){ cubeMotors.setRingAccel((int)v); }, nullptr },
 
-    // --- Face motors, indices 14-17 ---
+    // --- Face motors, indices 14-18 ---
     { "Step speed", "Faster solves, more missed steps", "sps", 1000, 50, 5000, 25,
       TP_PLAIN,
       []() -> int32_t { return cubeMotors.getStepSpeed(); },
       [](int32_t v){ cubeMotors.setStepSpeed((int)v); }, nullptr },
-    { "Step delay", "Settle time after a face turn", "ms", 50, 0, 500, 5,
+    // 0 keeps the constant-speed move the machine has always made. The
+    // useful values are LARGE (see CubeMotors::setStepAccel): 20000 ramps
+    // over ~20 steps each end of a quarter turn, 100000 over ~5. The wheel
+    // step is sized so the whole range is ~80 detents.
+    { "Step accel", "0 = no ramp; 20000 = 20-step ramp", "sps2", 0, 0, 200000, 2500,
+      TP_PLAIN,
+      []() -> int32_t { return cubeMotors.getStepAccel(); },
+      [](int32_t v){ cubeMotors.setStepAccel((int)v); }, nullptr },
+    { "Step delay", "Settle time after a face turn", "ms", 20, 0, 500, 5,
       TP_PLAIN,
       []() -> int32_t { return cubeMotors.getStepDelay(); },
       [](int32_t v){ cubeMotors.setStepDelay((int)v); }, nullptr },
@@ -118,11 +125,17 @@ const TuneParam kTune[] = {
       []() -> int32_t { return Cube.servoDelay; },
       [](int32_t v){ Cube.servoDelay = (int)v; }, nullptr },
 
-    // --- Alignment, indices 18-21 ---
-    { "Tolerance", "Counts a motor may sit off centre", "cts", 20, 1, 200, 1,
+    // --- Alignment, indices 19-22 ---
+    // 8..60, clamped in the setter as well as the table: tuneLoadAll() applies
+    // a stored value without consulting the range, so the table alone would
+    // not protect a machine that saved 200 under the old bounds. Below 8 the
+    // 10.24-count step lattice may hold no point inside the band and the
+    // aligner hunts to its timeout; above 60 (~5 degrees) a face that is
+    // visibly out of square passes as aligned.
+    { "Tolerance", "Counts a motor may sit off centre", "cts", 20, 8, 60, 1,
       TP_PLAIN,
       []() -> int32_t { return Cube.motorAlignmentTol; },
-      [](int32_t v){ Cube.motorAlignmentTol = (int)v; }, nullptr },
+      [](int32_t v){ Cube.motorAlignmentTol = (int)(v < 8 ? 8 : (v > 60 ? 60 : v)); }, nullptr },
     { "Align timeout", "Give up realigning after this", "ms", 500, 50, 5000, 50,
       TP_PLAIN,
       []() -> int32_t { return (int32_t)Cube.alignTimeout; },
@@ -136,7 +149,7 @@ const TuneParam kTune[] = {
       []() -> int32_t { return Cube.debugAlignLog ? 1 : 0; },
       [](int32_t v){ Cube.debugAlignLog = (v != 0); }, nullptr },
 
-    // --- Color, indices 22-27 ---
+    // --- Color, indices 23-28 ---
     // Every one of these writes BOTH boards. They are properties of how a
     // sticker is judged, not of one piece of hardware, and letting the two
     // boards drift apart would make a scan depend on which half of the cube a
@@ -181,9 +194,9 @@ static_assert(sizeof(kTune) / sizeof(kTune[0]) == kTuneCount,
 const TuneSection kSecTopServo = { "Top Servo",    0,  3 };
 const TuneSection kSecBotServo = { "Bottom Servo", 3,  5 };
 const TuneSection kSecRing     = { "Ring",         8,  6 };
-const TuneSection kSecFaces    = { "Face Motors", 14,  4 };
-const TuneSection kSecAlign    = { "Alignment",   18,  4 };
-const TuneSection kSecColor    = { "Color",       22,  6 };
+const TuneSection kSecFaces    = { "Face Motors", 14,  5 };
+const TuneSection kSecAlign    = { "Alignment",   19,  4 };
+const TuneSection kSecColor    = { "Color",       23,  6 };
 
 // Write every value to EEPROM. One block, so a single changed parameter costs
 // the same as all of them — and EEPROM.update() means the unchanged ones cost

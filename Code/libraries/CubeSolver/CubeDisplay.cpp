@@ -21,10 +21,10 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
       box_desc(nullptr), lbl_desc(nullptr), menuGroup(nullptr),
       img_orb(nullptr), img_comma(nullptr),
       curTheme(MenuTheme::Inherit),
-      mode(Mode::None), opActive(false),
+      mode(Mode::None), opActive(false), opKind(OpKind::Info),
       pendScreen(nullptr), pendDetail(nullptr),
       pendRows(0), pendSel(0), pendDir(1),
-      curRows(0), curSel(0), transitioning(false)
+      curRows(0), transitioning(false)
 {
     for (int i = 0; i < kRows; ++i) {
         barBox[i] = nullptr; img_bar[i] = nullptr; lbl_bar[i] = nullptr;
@@ -32,10 +32,12 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
     for (int i = 0; i < kPreviewLines; ++i) lbl_prev[i] = nullptr;
     for (int i = 0; i < 2; ++i) { ghost[i] = nullptr; img_sonar[i] = nullptr; }
     for (int i = 0; i < kRows; ++i) pendItems[i] = nullptr;
-    for (int i = 0; i < kOpLines; ++i) { lbl_line[i] = nullptr; lbl_lineVal[i] = nullptr; }
+    for (int i = 0; i < kOpLines; ++i) {
+        lbl_line[i] = nullptr; lbl_lineVal[i] = nullptr; row_dot[i] = nullptr;
+    }
     for (int b = 0; b < 2; ++b) {
         lbl_chipRow[b] = nullptr;
-        for (int i = 0; i < kChipCount; ++i) chip[b][i] = nullptr;
+        for (int i = 0; i < kChipMax; ++i) chip[b][i] = nullptr;
     }
     for (int i = 0; i < kChipMax; ++i) lbl_faceCap[i] = nullptr;
     for (int i = 0; i < kRibbonSlots; ++i) lbl_ribbon[i] = nullptr;
@@ -46,6 +48,7 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
     lbl_dialCap = nullptr;
     img_net     = nullptr;
     img_prevNet = nullptr;
+    badge_armed = nullptr;
     for (int i = 0; i < 6; ++i) lbl_netFace[i] = nullptr;
     instance = this;  // Set static instance for callbacks
 }
@@ -84,6 +87,30 @@ namespace {
     const int LABEL_Y = 20;
 
     const int TITLE_X = 52,  TITLE_Y = 21;
+
+    // Hard ceiling on the title, for the same reason PREV_W exists below:
+    // measure the border, not the text.
+    //
+    // The title sits in a NOTCH in the frame band — a step down in the band's
+    // top edge, and the one piece of the design it is meant to sit inside. From
+    // the band path in docs/theme/melee-menu-lvgl-preview.html, in its 1200x900
+    // viewBox scaled by 320/1200:
+    //     L 168 139 -> L 515 139 -> L 570 86
+    // the shelf runs x=45..137 and then rises diagonally to x=152. Text drawn
+    // at y=21 spans about 13 px down, and the diagonal has only reached x=140
+    // by the bottom of that, so 140 is the first thing a long title touches.
+    //
+    // Without a width an LVGL label auto-sizes to its content and LV_LABEL_
+    // LONG_DOT never fires — it has nothing to clip against. That is what let
+    // "Motor Calibration" and "Color Calibration" run out of the notch and
+    // across the band. Same bug the message-mode labels had further down, and
+    // it was fixed there the same way.
+    //
+    // A title too wide for this does NOT ellipsize and does NOT wrap — it
+    // drops to the smaller Anton instead. See setTitleText(). The width stays
+    // as a hard backstop for a title too long even for that, where clipping is
+    // the least bad outcome, but the ladder is what is meant to handle it.
+    const int TITLE_W = 86;
     const int DESC_X  = 69,  DESC_Y  = 199, DESC_W = 182, DESC_H = 21;
     const int PANE_X  = 220, PANE_Y  = 69;
     const int PREV_X  = 226, PREV_Y  = 78,  PREV_STEP = 17;
@@ -154,6 +181,34 @@ namespace {
     const int CHIP_W = 20, CHIP_H = 14, CHIP_GAP = 5;
     const int CHIP_X = 96, CHIP_Y = 108, CHIP_ROW_STEP = 22;
 
+    // The boolean block that stands in for a status row's value. Sized to the
+    // row rather than to the text it replaces: a mark you have to look twice
+    // at is worse than the word it was meant to improve on, and this one is
+    // read from bench distance. Parked hard right, where the value would be,
+    // so a table of them lines up down one edge.
+    const int DOT_W = 16, DOT_H = 12;
+
+    // The two-group sensor grid: a caption and a 3x3 per board, stacked, the
+    // way the operator describes the boards. The vertical budget is what fixes
+    // the cell size — the usable area runs from about y=54 to the hint box at
+    // 199, and two captions plus six rows of cells is already 138 of those 145
+    // px, which is why the cells are wider than they are tall.
+    const int GRID_W = 24, GRID_H = 16, GRID_GAP = 3;
+    const int GRID_SPAN   = 3 * GRID_W + 2 * GRID_GAP;   // 78
+    const int GRID_X      = (320 - GRID_SPAN) / 2;       // centred, like the chip row
+    const int GRID_CAP_H  = 12;                          // caption line, above its cells
+    const int GRID_TOP[2] = { 54, 126 };
+
+    // The ARMED badge, right-aligned to the same x=268 the status rows end at,
+    // on the title's line. That strip is the one place on an operation screen
+    // that is always free — the preview pane and the NEXT SCREEN outline are
+    // both hidden by showOperation() — and the title already proves text is
+    // legible over the band there.
+    const int ARMED_W = 56, ARMED_H = 17;
+    const int ARMED_X = 268 - ARMED_W, ARMED_Y = 18;
+    const int ARMED_MS = 900;              // one half of a breath
+    const int ARMED_DIM = 130;             // how far down it breathes
+
     // The scan's face row reuses the same chip objects at a different size and
     // position, so both layouts are set on every call rather than assumed.
     // Bigger than the calibration chips because there is only one row of them
@@ -180,9 +235,16 @@ namespace {
     // caching it (`use_directly` in lv_bin_decoder), so rewriting these bytes
     // and invalidating the object is all it takes to show a new state.
     //
-    // The buffer MUST NOT come from LV_MEM: at 32 KB it is two thirds of the
-    // whole pool. It is a plain static array, which on a Teensy 4.1 with 1 MB
-    // of RAM is not a constraint.
+    // The buffer MUST NOT come from LV_MEM: at 38 KB it is more than half the
+    // whole pool. So it is a static array — but DMAMEM, not plain static.
+    // The Teensy 4.1's 1 MB is not one pool: RAM1 is 512 KB shared between
+    // variables and the code the linker puts in ITCM, and an undecorated
+    // static lands there. This buffer was 38 KB of a RAM1 overflow that
+    // stopped the firmware linking at all. DMAMEM puts it in RAM2, where the
+    // framebuffer and the diff buffers already are and where there is room to
+    // spare. LVGL reads it in place, once per invalidate, so the slower bus
+    // does not matter. DMAMEM is not zero-initialised — the lv_memset in
+    // begin() below is doing real work, not being tidy.
     const int NET_CELL = 11;              // sticker 10 px plus a 1 px gap
     const int NET_STICKER = 10;
     const int NET_COLS = 12, NET_ROWS = 9;
@@ -194,7 +256,7 @@ namespace {
     // net plus its gap and sub-line is 119, which centres the block at y=60.
     const int NET_X = (320 - NET_W) / 2, NET_Y = 60;
 
-    uint8_t  s_netBuf[NET_W * NET_H * 3];    // RGB565 plane, then the A8 plane
+    DMAMEM uint8_t s_netBuf[NET_W * NET_H * 3];    // RGB565 plane, then the A8 plane
     lv_image_dsc_t s_netDsc;
 
     // The same net at pane size, for a menu preview. 3 px stickers are small,
@@ -205,7 +267,7 @@ namespace {
     const int PNET_H = NET_ROWS * PNET_CELL;   // 36
     const int PNET_X = 228, PNET_Y = 100;
 
-    uint8_t  s_pnetBuf[PNET_W * PNET_H * 3];
+    DMAMEM uint8_t s_pnetBuf[PNET_W * PNET_H * 3];
     lv_image_dsc_t s_pnetDsc;
 
     // Where each face sits in the net, in cells, and where it starts in the
@@ -246,13 +308,20 @@ namespace {
     // wide enough for the longest keeps the row still.
     const int RIB_SLOT = 32, RIB_Y = 112;
 
-    // Progress bar, and where the sub-line goes when step rows own the middle
-    // of the screen instead of a headline.
+    // Progress bar.
     const int PBAR_X = 60, PBAR_Y = 150, PBAR_W = 200, PBAR_H = 8;
-    const int OP_SUB_BELOW_STEPS_Y = 166;
 
     // The six cube colors, in the order setOpChips() expects its bits.
-    const uint32_t kChipColors[6] = {
+    //
+    // SIX, while CubeDisplay::kChipMax is NINE. The chip objects are shared:
+    // setOpChips() uses six of them as a per-color checklist, while
+    // setOpChipRow() and setOpGrid() use up to all nine and color each from
+    // the caller's fill. So this array is NOT indexable by a chip index, and
+    // every loop that walks chips must decide which of the two counts it
+    // means. Getting that wrong is an out-of-bounds read of a const array,
+    // which does not crash — it draws whatever follows in memory.
+    const int kChipColorCount = 6;
+    const uint32_t kChipColors[kChipColorCount] = {
         0xF0F0F0,   // White
         0xF5C518,   // Yellow
         0xD03020,   // Red
@@ -286,9 +355,26 @@ namespace {
     const uint32_t COL_OP_HEAD = 0xF2F5FF;
     const uint32_t COL_MARK_GOOD = 0x4ADE70;   // the palette's green edge
     const uint32_t COL_MARK_BAD  = 0xF0603A;   // its red edge
-    const uint32_t COL_MARK_BUSY = 0xFBFF47;   // the cursor yellow
+    const uint32_t COL_CURSOR    = 0xFBFF47;   // the theme's cursor yellow
+    const uint32_t COL_MARK_BUSY = COL_CURSOR;
+    const uint32_t COL_MARK_TUNED = 0xF5A623;  // amber: not the compiled
+                                               // default. Warm like Busy so it
+                                               // reads as "attention", but far
+                                               // enough from it and from Bad
+                                               // to be told apart at 11 px.
     const uint32_t COL_OP_KEY   = 0xA8B0C4;   // the label half of a status row
     const uint32_t COL_OP_VALUE = 0xEFF3FF;   // the value half
+
+    // A grid cell whose sensor answered nonsense. Dark enough that it cannot
+    // be read as one of the six sticker colors, filled so it cannot be read as
+    // a cell nobody has asked yet; the red edge says which of the two it is.
+    const uint32_t COL_CELL_FAULT = 0x2B1A22;
+
+    // The badge is reverse video — near-black on near-white — because that is
+    // the highest contrast available that belongs to no theme, and the point
+    // of the badge is to say something the frame color no longer can.
+    const uint32_t COL_ARMED_BG  = 0xEEF0F8;
+    const uint32_t COL_ARMED_INK = 0x0A0A12;
 
     inline void hide(lv_obj_t* o) { if (o) lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN); }
     inline void show(lv_obj_t* o) { if (o) lv_obj_remove_flag(o, LV_OBJ_FLAG_HIDDEN); }
@@ -304,8 +390,8 @@ namespace {
     // Recolor a white mask, which is what makes one asset serve all six
     // themes. The masks are RGB565A8 rather than A8 deliberately: LVGL reads an
     // uncompressed RGB565A8 straight out of flash, but copies every alpha-only
-    // image into a RAM buffer first, and a 49 KB band does not fit the 32 KB
-    // LV_MEM pool. It fails silently there — LV_USE_LOG is 0 — and the band
+    // image into a RAM buffer first, and a 49 KB band does not fit beside the
+    // widget set in the 64 KB LV_MEM pool. It fails silently there — LV_USE_LOG is 0 — and the band
     // simply never appears. See Code/tools/bake_theme.py.
     inline void tint(lv_obj_t* img, uint32_t rgb, lv_opa_t opa = LV_OPA_COVER) {
         lv_obj_set_style_image_recolor(img, lv_color_hex(rgb), 0);
@@ -314,17 +400,111 @@ namespace {
     }
 }
 
+// Put a title in the notch, at the largest size that fits on ONE line.
+//
+// The notch is TITLE_W wide (see there) and one line tall, so the three ways a
+// label normally copes with not fitting are all wrong here: an ellipsis turns a
+// name into a worse name, wrapping has nowhere to go, and clipping loses the
+// end of the word. Shrinking the type keeps the whole title, which is what a
+// title is for.
+//
+// Both rungs are Anton — the same face the design specifies, only smaller — so
+// nothing about the screen's character changes when it steps down. Measured
+// against the baked fonts, only "Motor Calibration" (90.4 px) and "Color
+// Calibration" (86.2 px) need the small rung today; everything else fits the
+// large one, and the widest title at 11 px is 76.4, so there is real headroom.
+//
+// The y shift is not a nudge by eye. LVGL positions a label by its TOP, and
+// these two fonts put the baseline at different depths — line_height minus
+// base_line is 14 for the 13 px face and 11 for the 11 px one. Without the
+// difference the smaller title floats 3 px high in the notch. Deriving it from
+// the font structs rather than hardcoding 3 means a re-bake cannot silently
+// break the alignment.
+void CubeDisplay::setTitleText(const char* title) {
+    if (!lbl_title) return;
+    if (!title) title = "";
+
+    lv_point_t sz;
+    lv_text_get_size(&sz, title, &lv_font_title_13, 0, 0,
+                     LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    const lv_font_t* f = (sz.x <= TITLE_W) ? &lv_font_title_13 : &lv_font_desc_11;
+
+    const int32_t baseBig = (int32_t)lv_font_title_13.line_height - lv_font_title_13.base_line;
+    const int32_t baseNow = (int32_t)f->line_height - f->base_line;
+
+    lv_obj_set_style_text_font(lbl_title, f, 0);
+    lv_obj_set_pos(lbl_title, TITLE_X, TITLE_Y + (baseBig - baseNow));
+    lv_label_set_text(lbl_title, title);
+}
+
 bool CubeDisplay::begin(uint32_t spiSpeed) {
-    // Allocate buffers
+    // The driver's mirror framebuffer and diff buffers exist only in the async
+    // DMA mode (see CUBE_DISPLAY_ASYNC_DMA in the header). In synchronous mode
+    // there is nothing to mirror — every flush goes straight to the glass — and
+    // the 166 KB they would take in RAM2 stays free.
+#if CUBE_DISPLAY_ASYNC_DMA
     diff1 = new ILI9341_T4::DiffBuffStatic<8000>();
     diff2 = new ILI9341_T4::DiffBuffStatic<8000>();
     internal_fb = new uint16_t[LX * LY];
+#else
+    diff1 = nullptr;
+    diff2 = nullptr;
+    internal_fb = nullptr;
+#endif
+
+    // Not a pixel count: sizeof(lv_color_t) is 3 (LVGL 9 stores it as three
+    // uint8_t), while the display format at LV_COLOR_DEPTH 16 is 2 bytes per
+    // pixel. So this is 38400 bytes, which LVGL will use as 60 lines, not the
+    // 40 the name suggests. It is nonetheless correct, because the byte count
+    // handed to lv_display_set_buffers() below is the same expression — the two
+    // can only agree while they stay written the same way. Change one and you
+    // must change the other, or LVGL renders past the end of the allocation.
     lv_buf = new lv_color_t[LX * BUF_LINES];
 
-    if (!diff1 || !diff2 || !internal_fb || !lv_buf) {
+    // These null checks look like dead code and are not. Standard C++ says a
+    // failing `new` throws rather than returning null, but Teensyduino defines
+    // operator new/new[] as a bare malloc() (cores/teensy4/new.cpp), so on this
+    // part they really do hand back null. Do not "correct" this to std::nothrow
+    // and do not delete the branch.
+#if CUBE_DISPLAY_ASYNC_DMA
+    const bool driverBufsOk = (diff1 && diff2 && internal_fb);
+#else
+    const bool driverBufsOk = true;
+#endif
+    if (!driverBufsOk || !lv_buf) {
         Serial.println("ERROR: Failed to allocate display buffers!");
         return false;
     }
+
+    // lv_buf is zeroed because its uninitialised contents can reach the glass.
+    // LVGL renders one partial rectangle into it and flushDisplay() hands that
+    // rectangle straight to the driver, so any pixel inside the flushed area
+    // that the renderer did not write is transmitted verbatim — heap garbage,
+    // as a stray block of noise, in a different place on every power-up.
+    //
+    // LVGL pre-clears the partial buffer itself only when the display's colour
+    // format carries alpha (lv_refr.c). At LV_COLOR_DEPTH 16 it does not, and
+    // instead relies on finding an object that opaquely covers the whole
+    // refreshed area — today the screen's own black background, with the
+    // full-frame theme_bg over it. That invariant holds, but it is a property
+    // of how the screens happen to be styled rather than anything the driver
+    // enforces, and the symptom when a future screen breaks it is uninitialised
+    // RAM painted on the panel. One memset at boot is far cheaper than ever
+    // having to recognise that again. (memset, not lv_memset: lv_init() has not
+    // run yet.)
+    memset(lv_buf, 0, (size_t)LX * BUF_LINES * sizeof(lv_color_t));
+
+    // (Async DMA mode only.) internal_fb is deliberately NOT cleared here,
+    // which looks wrong: it is not scratch space but the differential driver's
+    // record of what is already on the glass, and ILI9341_T4 transmits only the
+    // pixels that differ from it. Uninitialised, the driver would believe
+    // random bytes were already displayed and never paint them. The reason no
+    // memset belongs here is that the driver already does it twice, below:
+    // setFramebuffer() memsets the whole buffer and drops _mirrorfb to force a
+    // full redraw, and clear() then fills the glass and the buffer with the
+    // same colour before declaring them in sync. Adding a third would be dead
+    // code. If this library is ever upgraded, re-check those two functions
+    // before trusting this paragraph.
 
     // Create TFT driver
     tft = new ILI9341_T4::ILI9341Driver(
@@ -345,8 +525,18 @@ bool CubeDisplay::begin(uint32_t spiSpeed) {
         return false;
     }
 
+#if CUBE_DISPLAY_ASYNC_DMA
+    // Double-buffered differential mode: uploads are asynchronous and only the
+    // pixels that differ from internal_fb are sent.
     tft->setFramebuffer(internal_fb);
     tft->setDiffBuffers(diff1, diff2);
+#endif
+    // With no internal framebuffer the driver is in its NO_BUFFERING mode:
+    // updateRegion() writes the flushed rectangle to the panel immediately
+    // (_updateRectNow — one CASET/PASET window, the pixels, a NOP) and
+    // returns when it is on the wire. redrawNow is ignored in that mode, so
+    // the "buffer the bands, draw on the last one" protocol in flushDisplay()
+    // degrades to "draw every band now", which is exactly what we want.
     tft->setRotation(1);  // Landscape
     tft->clear(0x0000);   // Black
 
@@ -374,6 +564,42 @@ bool CubeDisplay::begin(uint32_t spiSpeed) {
     // Initial update
     lv_task_handler();
 
+    // Make sure the boot frame is actually ON THE GLASS before returning:
+    // picture first, motors second.
+    //
+    // In the async DMA mode updateRegion(redrawNow=true) only STARTS the
+    // upload (~125 ms for a full frame at 10 MHz). begin() used to return with
+    // that transfer in flight and CubeSystem::begin() attached the servos,
+    // enabled and homed the steppers and lit the sensor LEDs on top of it —
+    // the window in which the panel came up part picture, part coloured snow,
+    // and a differential driver never re-sends damaged pixels (see
+    // repaintAll()). This is the same _waitUpdateAsyncComplete() every flush
+    // performs when a transfer is still running, so it adds no new code path.
+    // In synchronous mode every flush already returned with its pixels on the
+    // wire, so the wait finds nothing in flight; it is kept unconditional so
+    // the two modes print the same boot log.
+    //
+    // Both Serial lines are deliberate: the driver's own "Hanging in
+    // _waitUpdateAsyncComplete()" message reaches Serial through
+    // tft->output(&Serial) above, and these bracket it so a stall here is
+    // attributable at a glance.
+    //
+    // DO NOT swap this for tft->update(internal_fb) as a "push everything"
+    // insurance. That was tried: the panel went white and the firmware hung.
+    // update() handed the driver's OWN internal buffer forces a full redraw by
+    // copying fb onto _fb1 through the rotation (DiffBuffBase::copyfb →
+    // _copy_rotate_90), and with fb == _fb1 that is an in-place transpose of
+    // 150 KB. The "every pixel" primitive for this driver is setFramebuffer()
+    // followed by a whole-screen invalidate, which is repaintAll().
+    //
+    // The simulator stubs update(), setFramebuffer() and
+    // waitUpdateAsyncComplete() (Code/sim/shim/ILI9341_T4.h), so nothing the
+    // shim fakes is tested until it has run on the bench; the pool line below
+    // is what proves this function got past the wait, so keep it after it.
+    Serial.println(F("Display: waiting for the boot frame to reach the glass"));
+    tft->waitUpdateAsyncComplete();
+    Serial.println(F("Display: boot frame on glass"));
+
     // Report the pool. Every widget this class will ever use has been created
     // by now, so this figure is the floor — only draw buffers and animations
     // are added later. It matters because exhausting LV_MEM does not fail
@@ -395,6 +621,14 @@ bool CubeDisplay::begin(uint32_t spiSpeed) {
         }
     }
 
+    // Say which transport this build uses. The two modes print an otherwise
+    // identical boot log, and "which firmware is on the bench" has already
+    // cost a round of diagnosis.
+#if CUBE_DISPLAY_ASYNC_DMA
+    Serial.println(F("Display mode: async DMA, differential (CUBE_DISPLAY_ASYNC_DMA=1)"));
+#else
+    Serial.println(F("Display mode: synchronous writes (CUBE_DISPLAY_ASYNC_DMA=0)"));
+#endif
     Serial.println("Display initialized successfully!");
     return true;
 }
@@ -416,16 +650,20 @@ void CubeDisplay::buildUi() {
     buildTheme(scr);
 
     // ---- title bar ----
-    // Shared by both modes. The old opaque slate bar is gone: the themed
-    // background already separates the title from the content, and a filled bar
-    // across the top would cut through the frame band's notch, which is the one
-    // piece of the design the title is supposed to sit inside.
+    // Shared by both modes. Deliberately no opaque bar behind it: the themed
+    // background already separates the title from the content, and a filled
+    // bar across the top would cut through the frame band's notch, which is
+    // the one piece of the design the title is supposed to sit inside.
     lbl_title = lv_label_create(scr);
     lv_obj_set_pos(lbl_title, TITLE_X, TITLE_Y);
+    lv_obj_set_width(lbl_title, TITLE_W);   // backstop; setTitleText() does the work
     lv_obj_set_style_text_color(lbl_title, lv_color_hex(COL_TITLE), 0);
     lv_obj_set_style_text_opa(lbl_title, OPA_TITLE, 0);
     lv_obj_set_style_text_font(lbl_title, &lv_font_title_13, 0);
-    lv_label_set_long_mode(lbl_title, LV_LABEL_LONG_DOT);
+    // CLIP, not DOT and not WRAP. A screen title is a name: an ellipsis makes
+    // it a worse name and a second line does not exist here — the notch is one
+    // line tall. setTitleText() sizes the font so this never has to fire.
+    lv_label_set_long_mode(lbl_title, LV_LABEL_LONG_CLIP);
     lv_label_set_text(lbl_title, "");
     hide(lbl_title);
 
@@ -534,7 +772,9 @@ void CubeDisplay::buildTheme(lv_obj_t* scr) {
     tint(img_nextLabel, COL_NEXT, OPA_NEXT_LABEL);
 
     // ---- bars ----
-    // One parent for all five, so a screen change can move the whole group.
+    // One parent for all five and the cursor furniture, so a mode change can
+    // show or hide them at once. Transitions move each bar on its own — see
+    // placeBarsAt().
     menuGroup = lv_obj_create(scr);
     makeBare(menuGroup);
     lv_obj_set_pos(menuGroup, 0, 0);
@@ -565,7 +805,7 @@ void CubeDisplay::buildTheme(lv_obj_t* scr) {
     }
 
     // Cursor furniture: created after the bars so it draws over them, and
-    // parented to the group so a screen transition carries it along.
+    // parented to the group so a mode change shows and hides it with them.
     img_sonar[0] = lv_image_create(menuGroup);
     lv_image_set_src(img_sonar[0], &theme_sonar);
     hide(img_sonar[0]);
@@ -613,9 +853,9 @@ void CubeDisplay::buildTheme(lv_obj_t* scr) {
 //  Operation-screen widgets.
 //
 //  Only the pieces the menu has no equivalent for. The headline, sub-line and
-//  hint bar are lbl_msg, lbl_status and box_desc respectively, and the step
-//  rows are the menu's own bars — all idle whenever an operation is on screen,
-//  so reusing them costs nothing from a pool that is already two thirds gone.
+//  hint bar are lbl_msg, lbl_status and box_desc respectively — all idle
+//  whenever an operation is on screen, so reusing them costs nothing from a
+//  pool that is already two thirds gone.
 // ---------------------------------------------------------------------------
 void CubeDisplay::buildOpUi(lv_obj_t* scr) {
     for (int i = 0; i < kOpLines; ++i) {
@@ -640,6 +880,20 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
         lv_label_set_long_mode(lbl_lineVal[i], LV_LABEL_LONG_DOT);
         lv_label_set_text(lbl_lineVal[i], "");
         hide(lbl_lineVal[i]);
+
+        // The boolean block, in the value column. A bare object rather than a
+        // glyph because the baked fonts carry 0x20-0x7F and nothing else — a
+        // filled circle or a ballot box would draw as an empty rectangle, in
+        // silence, which is trap 4.5. Seven of these cost about as much pool
+        // as one bar box; they are the cheapest thing on the screen.
+        row_dot[i] = lv_obj_create(scr);
+        makeBare(row_dot[i]);
+        lv_obj_set_size(row_dot[i], DOT_W, DOT_H);
+        lv_obj_set_pos(row_dot[i], OP_LINE_X + OP_LINE_W - DOT_W,
+                       OP_LINE_Y + i * OP_LINE_STEP + 2);
+        lv_obj_set_style_radius(row_dot[i], 2, 0);
+        lv_obj_set_style_border_width(row_dot[i], 1, 0);
+        hide(row_dot[i]);
     }
 
     // Color chips. Two rows because the two sensor boards see DIFFERENT
@@ -653,7 +907,7 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
         lv_label_set_text(lbl_chipRow[b], b == 0 ? "BOARD 1" : "BOARD 2");
         hide(lbl_chipRow[b]);
 
-        for (int i = 0; i < kChipCount; ++i) {
+        for (int i = 0; i < kChipMax; ++i) {
             chip[b][i] = lv_obj_create(scr);
             makeBare(chip[b][i]);
             lv_obj_set_size(chip[b][i], CHIP_W, CHIP_H);
@@ -661,8 +915,14 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
                            CHIP_X + i * (CHIP_W + CHIP_GAP),
                            CHIP_Y + b * CHIP_ROW_STEP);
             lv_obj_set_style_radius(chip[b][i], 2, 0);
-            lv_obj_set_style_bg_color(chip[b][i], lv_color_hex(kChipColors[i]), 0);
-            lv_obj_set_style_border_color(chip[b][i], lv_color_hex(kChipColors[i]), 0);
+            // Only the first six get a cube color here — see kChipColors. The
+            // last three exist for setOpChipRow() and setOpGrid(), which color
+            // every chip themselves from what they are showing, so there is
+            // nothing to seed them with.
+            if (i < kChipColorCount) {
+                lv_obj_set_style_bg_color(chip[b][i], lv_color_hex(kChipColors[i]), 0);
+                lv_obj_set_style_border_color(chip[b][i], lv_color_hex(kChipColors[i]), 0);
+            }
             lv_obj_set_style_border_width(chip[b][i], 1, 0);
             hide(chip[b][i]);
         }
@@ -695,7 +955,7 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
     lv_obj_set_size(bar_track, PBAR_W, PBAR_H);
     lv_obj_set_pos(bar_track, PBAR_X, PBAR_Y);
     lv_obj_set_style_radius(bar_track, 2, 0);
-    lv_obj_set_style_bg_color(bar_track, lv_color_hex(0x050412), 0);
+    lv_obj_set_style_bg_color(bar_track, lv_color_hex(COL_DESC_BG), 0);
     lv_obj_set_style_bg_opa(bar_track, 190, 0);
     lv_obj_set_style_border_color(bar_track, lv_color_hex(COL_DESC_EDGE), 0);
     lv_obj_set_style_border_opa(bar_track, 150, 0);
@@ -794,12 +1054,34 @@ void CubeDisplay::buildOpUi(lv_obj_t* scr) {
         hide(lbl_netFace[f]);
     }
 
+    // The ARMED badge. Its label is its CHILD, so the breath can fade the
+    // block and the word as one thing by touching two styles — and only two
+    // styles. Fading the object's own `opa` instead would look identical and
+    // would force LVGL to render it through a layer, which is the allocation
+    // trap in 4.4 at small scale: cheap here, but a habit that is not.
+    badge_armed = lv_obj_create(scr);
+    makeBare(badge_armed);
+    lv_obj_set_size(badge_armed, ARMED_W, ARMED_H);
+    lv_obj_set_pos(badge_armed, ARMED_X, ARMED_Y);
+    lv_obj_set_style_radius(badge_armed, 3, 0);
+    lv_obj_set_style_bg_color(badge_armed, lv_color_hex(COL_ARMED_BG), 0);
+    lv_obj_set_style_bg_opa(badge_armed, LV_OPA_COVER, 0);
+    hide(badge_armed);
+
+    lv_obj_t* lbl_armed = lv_label_create(badge_armed);
+    lv_obj_set_width(lbl_armed, ARMED_W);
+    lv_obj_set_pos(lbl_armed, 0, 1);
+    lv_obj_set_style_text_font(lbl_armed, &lv_font_bar_12, 0);
+    lv_obj_set_style_text_color(lbl_armed, lv_color_hex(COL_ARMED_INK), 0);
+    lv_obj_set_style_text_align(lbl_armed, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text(lbl_armed, "");
+
     bar_fill = lv_obj_create(bar_track);
     makeBare(bar_fill);
     lv_obj_set_size(bar_fill, 0, PBAR_H - 4);
     lv_obj_set_pos(bar_fill, 1, 1);
     lv_obj_set_style_radius(bar_fill, 1, 0);
-    lv_obj_set_style_bg_color(bar_fill, lv_color_hex(0xFBFF47), 0);   // the theme's cursor yellow
+    lv_obj_set_style_bg_color(bar_fill, lv_color_hex(COL_CURSOR), 0);
     lv_obj_set_style_bg_opa(bar_fill, LV_OPA_COVER, 0);
     hide(bar_fill);
 }
@@ -829,7 +1111,7 @@ void CubeDisplay::setOpRibbon(const char* const* moves, int count, int current) 
         // Done, doing, still to do — three states, told by color alone.
         uint32_t ink = COL_OP_VALUE;
         lv_opa_t opa = LV_OPA_COVER;
-        if (m == current)     { ink = 0xFBFF47; }
+        if (m == current)     { ink = COL_CURSOR; }
         else if (m < current) { ink = COL_OP_KEY; opa = 120; }
 
         lv_obj_set_style_text_color(lbl_ribbon[i], lv_color_hex(ink), 0);
@@ -881,7 +1163,12 @@ void CubeDisplay::setOpProgress(int done, int total) {
     show(bar_track);
 }
 
-// (built in buildOpUi; declared here next to its only user)
+// The fallback color for a screen whose caller did not name a branch.
+//
+// Since the frame became wayfinding (see OpKind in the header) the sketch
+// almost always follows showOperation() with setOpTheme(), so this mapping is
+// what a bare showOperation() lands on rather than what the panel ends up
+// showing. Error is the exception that still means what it says.
 MenuTheme CubeDisplay::themeForKind(OpKind kind) {
     switch (kind) {
     case OpKind::Scan:      return MenuTheme::Blue;
@@ -895,10 +1182,16 @@ MenuTheme CubeDisplay::themeForKind(OpKind kind) {
 }
 
 void CubeDisplay::clearOpExtras() {
-    for (int i = 0; i < kOpLines; ++i) { hide(lbl_line[i]); hide(lbl_lineVal[i]); }
+    for (int i = 0; i < kOpLines; ++i) {
+        hide(lbl_line[i]); hide(lbl_lineVal[i]); hide(row_dot[i]);
+    }
+    // Through setOpArmed() rather than hide(), because the badge owns a
+    // repeating animation and a hidden object with a live animation still
+    // costs a callback every frame, forever.
+    setOpArmed(nullptr);
     for (int b = 0; b < 2; ++b) {
         hide(lbl_chipRow[b]);
-        for (int i = 0; i < kChipCount; ++i) hide(chip[b][i]);
+        for (int i = 0; i < kChipMax; ++i) hide(chip[b][i]);
     }
     for (int i = 0; i < kChipMax; ++i) hide(lbl_faceCap[i]);
     for (int i = 0; i < kRows; ++i) hide(barBox[i]);
@@ -1022,6 +1315,7 @@ void CubeDisplay::showOperation(OpKind kind, const char* title,
 
     setMode(Mode::Message);
     opActive = true;
+    opKind   = kind;
     clearOpExtras();
 
     // The frame comes back, the navigation furniture does not. The preview
@@ -1031,7 +1325,6 @@ void CubeDisplay::showOperation(OpKind kind, const char* title,
     // straight across a pane advertising a menu that is not on screen.
     show(img_bandFill);
     show(img_bandEdge);
-    show(menuGroup);
     hide(img_pane);
     hide(img_nextFrame);
     hide(img_nextLabel);
@@ -1041,7 +1334,7 @@ void CubeDisplay::showOperation(OpKind kind, const char* title,
 
     applyTheme(themeForKind(kind));
 
-    if (title) { lv_label_set_text(lbl_title, title); show(lbl_title); }
+    if (title) { setTitleText(title); show(lbl_title); }
     else       { hide(lbl_title); }
 
     lv_obj_set_style_text_font(lbl_msg, &lv_font_head_16, 0);
@@ -1074,16 +1367,16 @@ void CubeDisplay::showOperation(OpKind kind, const char* title,
     }
 }
 
-void CubeDisplay::setOpKind(OpKind kind) {
-    if (opActive) applyTheme(themeForKind(kind));
-}
-
 void CubeDisplay::setOpTheme(MenuTheme theme) {
-    if (opActive && theme != MenuTheme::Inherit) applyTheme(theme);
+    if (!opActive || theme == MenuTheme::Inherit) return;
+    // Red outranks the branch color. The rule lives here, not in the sketch,
+    // so no future caller can paint over a fault by accident.
+    if (opKind == OpKind::Error) return;
+    applyTheme(theme);
 }
 
 void CubeDisplay::setOpLines(const char* const* lines, int count,
-                             const RowMark* marks) {
+                             const RowMark* marks, const RowValue* values) {
     if (!lbl_line[0]) return;
     if (count > kOpLines) count = kOpLines;
     if (count < 0)        count = 0;
@@ -1107,12 +1400,30 @@ void CubeDisplay::setOpLines(const char* const* lines, int count,
         if (i >= count || lines[i] == nullptr) {
             hide(lbl_line[i]);
             hide(lbl_lineVal[i]);
+            hide(row_dot[i]);
             continue;
         }
 
         const int y = top + i * OP_LINE_STEP;
         lv_obj_set_pos(lbl_line[i], OP_LINE_X, y);
         lv_obj_set_pos(lbl_lineVal[i], OP_LINE_X, y);
+
+        // Hoisted out of the tab branch below: a row whose value is a lit
+        // block takes the block's color from the same mark, so the ink has to
+        // be known before we decide whether there is a value label at all.
+        uint32_t ink = 0;
+        if (marks) {
+            switch (marks[i]) {
+            case RowMark::Good: ink = COL_MARK_GOOD; break;
+            case RowMark::Bad:  ink = COL_MARK_BAD;  break;
+            case RowMark::Busy: ink = COL_MARK_BUSY; break;
+            case RowMark::Tuned: ink = COL_MARK_TUNED; break;
+            case RowMark::Plain:
+            default: break;
+            }
+        }
+
+        const RowValue rv = values ? values[i] : RowValue::Text;
 
         const char* tab = nullptr;
         for (const char* c = lines[i]; *c; ++c) { if (*c == '\t') { tab = c; break; } }
@@ -1129,34 +1440,58 @@ void CubeDisplay::setOpLines(const char* const* lines, int count,
             lv_label_set_text(lbl_line[i], key);
             lv_label_set_text(lbl_lineVal[i], tab + 1);
 
-            uint32_t ink = 0;
-            if (marks) {
-                switch (marks[i]) {
-                case RowMark::Good: ink = COL_MARK_GOOD; break;
-                case RowMark::Bad:  ink = COL_MARK_BAD;  break;
-                case RowMark::Busy: ink = COL_MARK_BUSY; break;
-                case RowMark::Plain:
-                default: break;
-                }
-            }
-
             // Mark the value if there IS one, otherwise the label. A row like
             // "Load cube" with nothing in its value column would otherwise show
             // no mark at all — which is exactly what happened when it was used
             // as a cursor and those rows stayed grey while everything else lit.
-            const bool haveVal = (tab[1] != '\0');
+            // A row whose value is a block counts as having none: the block is
+            // drawn over that column and the label is all the text there is.
+            const bool haveVal = (tab[1] != '\0' && rv == RowValue::Text);
             lv_obj_set_style_text_color(lbl_lineVal[i],
                                         lv_color_hex(ink ? ink : COL_OP_VALUE), 0);
             lv_obj_set_style_text_color(lbl_line[i],
                                         lv_color_hex((ink && !haveVal) ? ink : COL_OP_KEY), 0);
 
             show(lbl_line[i]);
-            show(lbl_lineVal[i]);
+            if (rv == RowValue::Text) show(lbl_lineVal[i]);
+            else                      hide(lbl_lineVal[i]);
         } else {
             lv_label_set_text(lbl_line[i], lines[i]);
-            lv_obj_set_style_text_color(lbl_line[i], lv_color_hex(COL_OP_VALUE), 0);
+            // A tabless row is a full-width line with no value column to tint,
+            // so it keeps its plain ink — unless a block is standing in that
+            // column, in which case the row does have two halves after all.
+            lv_obj_set_style_text_color(lbl_line[i],
+                lv_color_hex((rv != RowValue::Text && ink) ? ink : COL_OP_VALUE), 0);
             show(lbl_line[i]);
             hide(lbl_lineVal[i]);
+        }
+
+        if (rv == RowValue::Text) {
+            hide(row_dot[i]);
+        } else {
+            // Lit is a filled block, unlit is its own outline — the same two
+            // recipes setOpChipRow() paints a captured and an empty chip with,
+            // so a block in a row and a chip in a strip say the same thing.
+            // Unlit is still DRAWN: a value column that went empty reads as a
+            // row that broke, not as a button that is up.
+            lv_obj_set_pos(row_dot[i], OP_LINE_X + OP_LINE_W - DOT_W, y + 2);
+
+            if (rv == RowValue::On) {
+                // Lit takes the row's mark color when it has one, so a row can
+                // say "on" and "wrong" at once — an enable that is live when it
+                // should not be is a Bad row that is also lit. With no mark it
+                // is the cursor yellow, which is this theme's "live".
+                const uint32_t litInk = ink ? ink : COL_MARK_BUSY;
+                lv_obj_set_style_bg_color(row_dot[i], lv_color_hex(litInk), 0);
+                lv_obj_set_style_bg_opa(row_dot[i], LV_OPA_COVER, 0);
+                lv_obj_set_style_border_color(row_dot[i], lv_color_hex(litInk), 0);
+                lv_obj_set_style_border_opa(row_dot[i], LV_OPA_COVER, 0);
+            } else {
+                lv_obj_set_style_bg_opa(row_dot[i], LV_OPA_TRANSP, 0);
+                lv_obj_set_style_border_color(row_dot[i], lv_color_hex(COL_OP_KEY), 0);
+                lv_obj_set_style_border_opa(row_dot[i], 110, 0);
+            }
+            show(row_dot[i]);
         }
     }
 }
@@ -1212,7 +1547,7 @@ void CubeDisplay::setOpChipRow(int row, const int8_t* fill, const char* const* c
         }
 
         if (busy) {
-            lv_obj_set_style_border_color(c, lv_color_hex(0xFBFF47), 0);
+            lv_obj_set_style_border_color(c, lv_color_hex(COL_CURSOR), 0);
             lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
             lv_obj_set_style_border_width(c, 2, 0);
         }
@@ -1221,7 +1556,7 @@ void CubeDisplay::setOpChipRow(int row, const int8_t* fill, const char* const* c
             lv_obj_set_size(lbl_faceCap[i], w, 12);
             lv_obj_set_pos(lbl_faceCap[i], cx, y + FACE_H + 3);
             lv_obj_set_style_text_color(lbl_faceCap[i],
-                                        lv_color_hex(busy ? 0xFBFF47 : COL_OP_KEY), 0);
+                                        lv_color_hex(busy ? COL_CURSOR : COL_OP_KEY), 0);
             lv_label_set_text(lbl_faceCap[i], caps && caps[i] ? caps[i] : "");
             show(lbl_faceCap[i]);
         }
@@ -1235,10 +1570,10 @@ void CubeDisplay::setOpFaces(const int8_t* faces, int activeA, int activeB) {
     // The scan lights BOTH faces under the sensors; the general row lights one.
     if (activeB >= 0 && activeB < kFaceCount) {
         lv_obj_t* c = chip[0][activeB];
-        lv_obj_set_style_border_color(c, lv_color_hex(0xFBFF47), 0);
+        lv_obj_set_style_border_color(c, lv_color_hex(COL_CURSOR), 0);
         lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
         lv_obj_set_style_border_width(c, 2, 0);
-        lv_obj_set_style_text_color(lbl_faceCap[activeB], lv_color_hex(0xFBFF47), 0);
+        lv_obj_set_style_text_color(lbl_faceCap[activeB], lv_color_hex(COL_CURSOR), 0);
     }
 }
 
@@ -1249,11 +1584,31 @@ void CubeDisplay::setOpChips(const uint8_t* bits, int boards) {
     for (int b = 0; b < 2; ++b) {
         if (b >= boards) {
             hide(lbl_chipRow[b]);
-            for (int i = 0; i < kChipCount; ++i) hide(chip[b][i]);
+            for (int i = 0; i < kChipMax; ++i) hide(chip[b][i]);
             continue;
         }
+        // Restore the caption too, not only the chips. setOpGrid() borrows
+        // these same labels for its group headings — centred, full width and
+        // captioned by the caller — so leaving any of that set would put this
+        // row's "BOARD 1" in the middle of the screen with somebody else's
+        // text in it.
+        lv_obj_set_pos(lbl_chipRow[b], OP_LINE_X, CHIP_Y + b * CHIP_ROW_STEP + 3);
+        lv_obj_set_width(lbl_chipRow[b], LV_SIZE_CONTENT);
+        lv_obj_set_style_text_align(lbl_chipRow[b], LV_TEXT_ALIGN_LEFT, 0);
+        lv_obj_set_style_text_color(lbl_chipRow[b], lv_color_hex(COL_OP_KEY), 0);
+        lv_label_set_text(lbl_chipRow[b], b == 0 ? "BOARD 1" : "BOARD 2");
         show(lbl_chipRow[b]);
-        for (int i = 0; i < kChipCount; ++i) {
+
+        // The checklist is SIX chips, one per cube color — kChipColorCount, not
+        // kChipMax. This loop used to run to nine and show() every one of
+        // them, so the three the wider layouts (setOpChipRow, setOpGrid) own
+        // were drawn here too: placed to the RIGHT of the six real chips, and
+        // outlined in whatever kChipColors[6..8] read back as, which is memory
+        // past the end of the array. That is the stray colored block beside
+        // the chip row.
+        for (int i = kChipColorCount; i < kChipMax; ++i) hide(chip[b][i]);
+
+        for (int i = 0; i < kChipColorCount; ++i) {
             // Restore this row's own geometry: setOpFaces() borrows these same
             // objects at a different size and position.
             lv_obj_set_size(chip[b][i], CHIP_W, CHIP_H);
@@ -1271,6 +1626,137 @@ void CubeDisplay::setOpChips(const uint8_t* bits, int boards) {
             show(chip[b][i]);
         }
     }
+}
+
+// The same eighteen chips again, as two 3x3s. Third and last layout they are
+// asked for; every one of the three sets size, position and caption on entry
+// precisely because they share the objects.
+void CubeDisplay::setOpGrid(const char* capA, const int8_t* cellsA,
+                            const char* capB, const int8_t* cellsB,
+                            int cursor) {
+    if (!chip[0][0]) return;
+
+    // The caption strip belongs to the chip ROW layout — there is one of it
+    // and it sits under nine chips in a line, which is not this shape. A cell
+    // here is identified by where it is, and the hint bar names the one under
+    // the cursor, so nothing in the grid needs a label of its own.
+    for (int i = 0; i < kChipMax; ++i) hide(lbl_faceCap[i]);
+
+    const char*   caps[2]  = { capA,   capB   };
+    const int8_t* cells[2] = { cellsA, cellsB };
+
+    for (int b = 0; b < 2; ++b) {
+        if (!cells[b]) {
+            hide(lbl_chipRow[b]);
+            for (int i = 0; i < kChipMax; ++i) hide(chip[b][i]);
+            continue;
+        }
+
+        // The cursor is 0..17 across both groups, which is the numbering a
+        // caller with eighteen sensors already has — not a pair of 0..8s it
+        // would have to take apart here and put back together there.
+        const int  sel  = cursor - b * kGridCells;
+        const bool here = (sel >= 0 && sel < kGridCells);
+
+        // The caption brightens for the group holding the cursor, so which
+        // board is being pointed at can be read without finding the cell.
+        lv_obj_set_pos(lbl_chipRow[b], OP_LINE_X, GRID_TOP[b]);
+        lv_obj_set_width(lbl_chipRow[b], OP_LINE_W);
+        lv_obj_set_style_text_align(lbl_chipRow[b], LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_set_style_text_color(lbl_chipRow[b],
+                                    lv_color_hex(here ? COL_OP_VALUE : COL_OP_KEY), 0);
+        lv_label_set_text(lbl_chipRow[b], caps[b] ? caps[b] : "");
+        show(lbl_chipRow[b]);
+
+        for (int i = 0; i < kGridCells; ++i) {
+            lv_obj_t* c = chip[b][i];
+            lv_obj_set_size(c, GRID_W, GRID_H);
+            lv_obj_set_pos(c, GRID_X + (i % 3) * (GRID_W + GRID_GAP),
+                           GRID_TOP[b] + GRID_CAP_H + (i / 3) * (GRID_H + GRID_GAP));
+
+            const int8_t v = cells[b][i];
+            if (v >= 0 && v < kChipColorCount) {
+                lv_obj_set_style_bg_color(c, lv_color_hex(kChipColors[v]), 0);
+                lv_obj_set_style_bg_opa(c, LV_OPA_COVER, 0);
+                lv_obj_set_style_border_color(c, lv_color_hex(kChipColors[v]), 0);
+                lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
+            } else if (v == kCellFault) {
+                // Asked, and the answer was unusable. FILLED, so it cannot be
+                // read as a cell nobody has got to yet, and dark, so it cannot
+                // be read as one of the six sticker colors either — the two
+                // mistakes it would be worst to invite on a diagnostic.
+                lv_obj_set_style_bg_color(c, lv_color_hex(COL_CELL_FAULT), 0);
+                lv_obj_set_style_bg_opa(c, LV_OPA_COVER, 0);
+                lv_obj_set_style_border_color(c, lv_color_hex(COL_MARK_BAD), 0);
+                lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
+            } else {
+                // Not read yet: its own outline and nothing inside, the same
+                // hollow chip setOpChipRow() draws for a slot still waiting.
+                lv_obj_set_style_bg_opa(c, LV_OPA_TRANSP, 0);
+                lv_obj_set_style_border_color(c, lv_color_hex(COL_OP_KEY), 0);
+                lv_obj_set_style_border_opa(c, 110, 0);
+            }
+            lv_obj_set_style_border_width(c, 1, 0);
+
+            if (here && i == sel) {
+                // The cursor overrides the edge, a fault's red one included.
+                // The fill underneath still says faulty, which is the reason
+                // fault is a fill and not only an outline.
+                lv_obj_set_style_border_color(c, lv_color_hex(COL_MARK_BUSY), 0);
+                lv_obj_set_style_border_opa(c, LV_OPA_COVER, 0);
+                lv_obj_set_style_border_width(c, 2, 0);
+            }
+            show(c);
+        }
+    }
+}
+
+// The badge's breath. Two style opacities rather than the object's own `opa`:
+// `opa` on an object with a child makes LVGL render it through a layer, which
+// it allocates whole (trap 4.4). This one is small enough that it would fit,
+// but a per-frame allocation out of a pool whose exhaustion is a silent hang
+// is not a habit worth starting for an effect two lines get for free.
+void CubeDisplay::armedExec(void* var, int32_t v) {
+    lv_obj_t* badge = (lv_obj_t*)var;
+    lv_obj_set_style_bg_opa(badge, (lv_opa_t)v, 0);
+    // The word fades WITH the block. Holding the ink solid while the block
+    // faded would leave dark text over a dark backdrop at the bottom of the
+    // breath — the badge reads as one object, so it has to fade as one.
+    lv_obj_set_style_text_opa(lv_obj_get_child(badge, 0), (lv_opa_t)v, 0);
+}
+
+void CubeDisplay::setOpArmed(const char* label) {
+    if (!badge_armed) return;
+
+    if (!label || !*label) {
+        // Delete by (var, exec) rather than by var alone: setMode() clears
+        // every animation whose var is `this`, and the badge deliberately
+        // animates on its own object so a mode change cannot leave it frozen
+        // half-faded with no animation left to finish it.
+        lv_anim_delete(badge_armed, armedExec);
+        lv_obj_set_style_bg_opa(badge_armed, LV_OPA_COVER, 0);
+        lv_obj_set_style_text_opa(lv_obj_get_child(badge_armed, 0), LV_OPA_COVER, 0);
+        hide(badge_armed);
+        return;
+    }
+
+    lv_label_set_text(lv_obj_get_child(badge_armed, 0), label);
+
+    // Only a badge that was NOT already up starts a breath. The pages that arm
+    // things repaint on a tick, and restarting the animation every time would
+    // pin it at full brightness and look like nothing was moving at all.
+    if (!lv_obj_has_flag(badge_armed, LV_OBJ_FLAG_HIDDEN)) return;
+    show(badge_armed);
+
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, badge_armed);
+    lv_anim_set_exec_cb(&a, armedExec);
+    lv_anim_set_values(&a, LV_OPA_COVER, ARMED_DIM);
+    lv_anim_set_duration(&a, ARMED_MS);
+    lv_anim_set_reverse_duration(&a, ARMED_MS);
+    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_start(&a);
 }
 
 void CubeDisplay::barBoxPos(int i, int rows, int& x, int& y) {
@@ -1413,9 +1899,6 @@ void CubeDisplay::setMode(Mode m) {
         opActive = false;
         clearOpExtras();
         // Put back what an operation screen hid.
-        show(img_pane);
-        show(img_nextFrame);
-        show(img_nextLabel);
         hide(lbl_msg);
         hide(lbl_status);
         hide(lbl_footer);
@@ -1452,26 +1935,15 @@ void CubeDisplay::setMode(Mode m) {
     }
 }
 
-// Serial output happens BEFORE the widget guard in each of these.
+// Serial output happens BEFORE the widget guard in each of these. A machine
+// whose panel failed to initialise is exactly the machine whose operator needs
+// the text most, and printing after an early return would make the console go
+// quiet precisely when the screen did.
 //
-// A machine whose panel failed to initialise is exactly the machine whose
-// operator needs the text most, and it is the only remaining way to see what it
-// is doing. Printing after an early return would make the console go quiet
-// precisely when the screen did.
-// Progress updates from inside a running operation.
-//
-// These are called from deep in CubeSystem, which knows what the machine is
-// doing but nothing about how the panel is dressed. When an operation screen is
-// already up they just replace its headline or sub-line, leaving the frame,
-// title, hint bar and any step rows exactly as the caller that opened the
-// screen arranged them. Rebuilding the screen here instead would make every
-// progress tick flash the whole panel.
-// Echo to Serial only when the text actually changes.
-//
-// A live screen repaints at ~20 Hz, and these used to print every call — so a
-// running Hardware Test emitted the same line twenty times a second, burying
-// everything else in the console and spending real time on it. The panel is
-// idempotent; the log should be too.
+// Echo only when the text actually changes. A live screen repaints at ~20 Hz,
+// and these used to print every call — a running Hardware Test emitted the
+// same line twenty times a second, burying everything else in the console and
+// spending real time on it. The panel is idempotent; the log should be too.
 static bool changed(char* last, size_t cap, const char* msg) {
     const char* s = msg ? msg : "";
     if (strncmp(last, s, cap - 1) == 0) return false;
@@ -1480,6 +1952,12 @@ static bool changed(char* last, size_t cap, const char* msg) {
     return true;
 }
 
+// Progress updates from inside a running operation. Called from deep in
+// CubeSystem, which knows what the machine is doing but nothing about how the
+// panel is dressed: with an operation screen already up they only replace its
+// headline or sub-line, leaving the frame, title, hint bar and rows exactly as
+// the caller that opened the screen arranged them. Rebuilding the screen here
+// would make every progress tick flash the whole panel.
 void CubeDisplay::setMessage(const char* msg) {
     static char lastMsg[96] = { 1, 0 };
     if (changed(lastMsg, sizeof(lastMsg), msg)) Serial.println(msg ? msg : "");
@@ -1516,13 +1994,6 @@ void CubeDisplay::clearStatus() {
     if (lbl_status) {
         lv_label_set_text(lbl_status, "");
     }
-}
-
-// Kept for callers that have a title and one block of text and do not care
-// about the rest. Routed through the themed screen so there is only ever one
-// operation look on this panel.
-void CubeDisplay::showMessage(const char* title, const char* body, const char* footer) {
-    showOperation(OpKind::Info, title, body, footer);
 }
 
 // ---------------------------------------------------------------------------
@@ -1572,11 +2043,11 @@ void CubeDisplay::showList(const MenuScreen*      screen,
         // the transition, not the end — the design is explicit about this, and
         // it is what makes the new screen feel like it is already arriving
         // while the old items are still clearing.
-        lv_label_set_text(lbl_title, screen->title ? screen->title : "");
+        setTitleText(screen->title);
         applyTheme(CubeMenu::themeOf(screen, items[selectedRow]));
         swapDetail(items[selectedRow], false);
 
-        startWheel(pendDir);
+        startWheel();
         return;
     }
 
@@ -1600,7 +2071,7 @@ void CubeDisplay::applyScreen(const MenuScreen*      screen,
                               const MenuItem* const* items,
                               int                    rows,
                               int                    selectedRow) {
-    lv_label_set_text(lbl_title, screen->title ? screen->title : "");
+    setTitleText(screen->title);
     show(lbl_title);
 
     for (int i = 0; i < kRows; ++i) {
@@ -1636,7 +2107,6 @@ void CubeDisplay::applyScreen(const MenuScreen*      screen,
     placeCursor(selectedRow, rows);
 
     curRows = (int8_t)rows;
-    curSel  = (int8_t)selectedRow;
     show(box_desc);
 }
 
@@ -1704,8 +2174,9 @@ void CubeDisplay::detailFadedOut(lv_anim_t* a) {
 //  The design rotates the whole bar group about a pivot off-screen right. LVGL
 //  cannot do that here: rotating a container renders it through a layer, and a
 //  transformed layer is allocated whole — 320x240 at 16 bpp is 150 KB against a
-//  32 KB pool, and even a single 167x56 bar box is ~19 KB. Both fail, and with
-//  LV_USE_LOG at 0 they fail by drawing nothing.
+//  64 KB pool, and even a single 167x56 bar box is ~19 KB on top of a widget
+//  set already at ~35 KB. Such allocations fail, and with LV_USE_LOG at 0 they
+//  fail by drawing nothing.
 //
 //  So each bar is moved along the arc its centre would have travelled, without
 //  tilting. That reproduces the paths exactly — including the way lower bars
@@ -1735,8 +2206,7 @@ void CubeDisplay::placeBarsAt(float deg, int rows, lv_opa_t opa) {
     }
 }
 
-void CubeDisplay::startWheel(int8_t dir) {
-    (void)dir;
+void CubeDisplay::startWheel() {
     transitioning = true;
 
     // The cursor does not ride the wheel: it belongs to the selected item, and
@@ -1816,6 +2286,46 @@ void CubeDisplay::wheelInDone(lv_anim_t* a) {
 
 void CubeDisplay::update() {
     lv_task_handler();
+}
+
+// Forget what is on the glass and re-send every pixel on the next update().
+//
+// ILI9341_T4 is a differential driver: it keeps internal_fb as its record of
+// what the panel shows and transmits only the pixels that differ from it. That
+// is what makes the UI fast, and it is also a trap — anything that corrupts
+// the glass behind the driver's back (supply sag or SPI noise while a servo or
+// stepper starts during a transfer) is never repaired, because as far as the
+// driver knows those pixels are already right. The symptom is a screen that is
+// part picture, part coloured snow, and heals only where something happens to
+// be redrawn. The fix is not to draw more; it is to make the driver forget.
+//
+// setFramebuffer() is the driver's own "I know nothing about the glass": it
+// waits for any transfer in flight, zeroes internal_fb and drops its mirror
+// flag, after which the first flush-complete goes out as a dummy diff, i.e.
+// EVERY pixel. The whole-screen invalidate has to follow IMMEDIATELY — with
+// the mirror dropped, a partial flush in between would push a mostly-zero
+// buffer and black out the panel — and the two together make the next
+// lv_task_handler() render all bands and then upload the full frame. The
+// render and the upload are the ordinary refresh path every screen switch
+// already takes; the only thing added is the flag flip. Cost: one full frame,
+// ~125 ms at 10 MHz.
+//
+// Not tft->update(internal_fb) — see begin(). Not tft->clear() — it paints the
+// glass black synchronously, which flashes, and what follows is a diff against
+// black rather than an unconditional upload. Not lv_refr_now() — there is no
+// need, the next pump renders, and staying on the normal path keeps this on
+// the code that is proven every frame.
+//
+// In synchronous mode (the default) there is no mirror to forget: a whole-
+// screen invalidate makes the next update() render every band and write each
+// one straight to the panel, so that alone is the full repaint.
+void CubeDisplay::repaintAll() {
+    if (!tft || !disp) return;
+    Serial.println(F("Display: full repaint requested"));
+#if CUBE_DISPLAY_ASYNC_DMA
+    tft->setFramebuffer(internal_fb);
+#endif
+    lv_obj_invalidate(lv_screen_active());
 }
 
 void CubeDisplay::waitForSelect(const char* msg) {

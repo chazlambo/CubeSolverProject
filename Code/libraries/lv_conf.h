@@ -1,6 +1,6 @@
 /**
  * @file lv_conf.h
- * Minimal configuration for LVGL v9.1.0 optimized for Teensy 4.1
+ * Configuration for LVGL v9.4 on the Teensy 4.1 (the desktop simulator pins the same release)
  *
  * ---------------------------------------------------------------------------
  * PLACEMENT
@@ -16,31 +16,21 @@
  *                         not fail to build; it renders wrong colors, which
  *                         looks exactly like a hardware fault.
  *   LV_BIG_ENDIAN_SYSTEM 0
- *   LV_MEM_SIZE         - 48 KB static pool. LVGL allocates from this, not
+ *   LV_MEM_SIZE         - 64 KB static pool. LVGL allocates from this, not
  *                         from the heap, and running out of it does NOT
  *                         degrade gracefully: LV_USE_ASSERT_MALLOC is 1 and
  *                         LVGL's default assert handler is `while(1);`, so an
  *                         exhausted pool HALTS THE MACHINE, silently, because
  *                         LV_USE_LOG is 0.
  *
- *                         This was 32 KB, which was ~1 KB clear of the themed
- *                         menu's own peak. Adding the operation screens (the
- *                         status rows, the calibration chips, the progress
- *                         bar) pushed the measured peak to 27.3 KB, and the
- *                         transient draw layers on top of that took it over —
+ *                         64 KB is a measurement, not a guess: the widget set
+ *                         alone reached 35 KB and a transient draw layer needs
+ *                         ~8 KB on top, which is why the boot check in
+ *                         CubeDisplay::begin() warns below 8 KB free. At 32 KB
  *                         the firmware hung at startup with no output at all.
- *
- *                         Raised again to 64 KB when the screens kept coming:
- *                         the widget set reached 35 KB and the boot check below
- *                         warned that under 8 KB was left, which is less than a
- *                         draw layer needs. 64 KB puts ~28 KB back.
- *
- *                         Both figures were measurements, not guesses. Press M
- *                         in the desktop simulator for live usage, and watch the
- *                         line CubeDisplay::begin() prints at boot — it warns
- *                         below 8 KB free, which is the number that matters.
- *                         The Teensy 4.1 has 1 MB of RAM and the framebuffers
- *                         already account for ~195 KB, so this is not where the
+ *                         Press M in the desktop simulator for live usage. The
+ *                         Teensy 4.1 has 1 MB of RAM and the framebuffers
+ *                         already take ~195 KB, so this is not where the
  *                         pressure is.
  *
  *   - LV_USE_LOG 0 means LVGL failures are silent.
@@ -137,10 +127,34 @@
  *====================*/
 #define LV_BIG_ENDIAN_SYSTEM 0
 
-/* DEAD SETTING (v8 spelling). LV_TICK_CUSTOM was removed in LVGL v9; the tick
- * source is now supplied at runtime via lv_tick_set_cb(millis), which the
- * sketch already does. Harmless, kept only to avoid churn. */
-#define LV_TICK_CUSTOM 1
+/* LOAD-BEARING on hardware. Teensy 4.x places everything that is not
+ * explicitly assigned into RAM1, .rodata included — so plain `const` font
+ * data is copied to DTCM at boot rather than left in flash. Undecorated, the
+ * five baked fonts plus LVGL's built-in Montserrats put ~33 KB of glyph
+ * bitmaps into the same 512 KB of RAM1 that must also hold ITCM code, and the
+ * firmware overflowed at link time — "program exceeds memory space", after a
+ * clean compile, which reads like nothing that is wrong in the source.
+ *
+ * PROGMEM moves them to flash. Flash is memory-mapped on this part, so LVGL
+ * still reads the glyphs in place, with no accessor and no copy. This is the
+ * same idiom utility/theme_progmem.h already applies to the baked images; the
+ * fonts were simply never given it. The desktop simulator has no PROGMEM, and
+ * there the definition is skipped so LVGL's own empty default applies.
+ *
+ * The __ASSEMBLER__ guard is not decoration: lv_conf.h reaches the assembler
+ * too, by way of the core's startup sources, and an unguarded #include of a C
+ * header there fails as a page of "bad instruction" errors pointing at
+ * <machine/_default_types.h> — nothing that names LVGL or this file. */
+#ifndef __ASSEMBLER__
+#  if defined(__has_include)
+#    if __has_include(<avr/pgmspace.h>)
+#      include <avr/pgmspace.h>
+#    endif
+#  endif
+#  ifdef PROGMEM
+#    define LV_ATTRIBUTE_LARGE_CONST PROGMEM
+#  endif
+#endif
 
 /* GOTCHA: with float support off, LVGL's built-in sprintf cannot format %f.
  * C-library sprintf("%.2f") from Teensyduino still works — that's a different
@@ -177,24 +191,14 @@
 /*==================
  * WIDGETS
  *================*/
-/* WARNING — v8 vs v9 SPELLINGS.
- * LVGL v9 renamed several of these. The v8 names below are not recognised, so
- * v9 falls back to its own defaults (mostly ON):
- *     LV_USE_BTN        -> v9: LV_USE_BUTTON
- *     LV_USE_IMG        -> v9: LV_USE_IMAGE
- *     LV_USE_BTNMATRIX  -> v9: LV_USE_BUTTONMATRIX
- * The ones set to 1 are harmless (v9 defaults them on anyway). The ones set to
- * 0 are NOT saving the flash you'd expect — buttonmatrix in particular is
- * still being compiled in. Rename them if you want the savings.
- * Verify with: grep -rn "LV_USE_BUTTONMATRIX" <lvgl>/src/lv_conf_internal.h */
+/* v9 spellings only. LV_USE_BTN / LV_USE_IMG / LV_USE_BTNMATRIX are v8 names
+ * that v9 silently ignores — do not reintroduce them. */
 #define LV_WIDGETS_HAS_DEFAULT_VALUE 0
 #define LV_USE_OBJ              1
 #define LV_USE_LABEL            1
-#define LV_USE_BTN              1   /* v8 name — see warning above */
-#define LV_USE_IMG              1   /* v8 name — see warning above */
 
-// OPTIONAL BUT KEEP OFF FOR NOW:
-#define LV_USE_BTNMATRIX        0   /* v8 name — does NOT disable in v9 */
+#define LV_USE_ARC              1   /* the dial on the idle screen */
+
 #define LV_USE_TEXTAREA         0
 #define LV_USE_KEYBOARD         0
 #define LV_USE_DROPDOWN         0
@@ -204,9 +208,64 @@
 #define LV_USE_SPINBOX          0
 #define LV_USE_ANIMIMG          0
 
-/* NOTE for the menu UI work: lv_list, lv_bar, lv_roller and lv_slider are not
- * named in this file, so they take v9's defaults (enabled). If flash ever gets
- * tight, disable them explicitly with their v9 names rather than v8 ones. */
+/* The rest of v9's widget set, off. It was RAM, not flash, that got tight:
+ * these compile into ITCM, which shares RAM1 with every variable, so an
+ * unused widget costs RAM even though it is code.
+ *
+ * The whole firmware creates four kinds of object: lv_obj, lv_label, lv_image
+ * and lv_arc. Verify with:
+ *     grep -rhoE "lv_[a-z0-9]+_create" Code/libraries/CubeSolver "Code/Main Code"
+ * Anything named here that a screen starts using fails to COMPILE, loudly, so
+ * this list cannot rot into a silent rendering fault. */
+#define LV_USE_BUTTON           0
+#define LV_USE_BUTTONMATRIX     0
+#define LV_USE_BAR              0
+#define LV_USE_SLIDER           0
+#define LV_USE_CHART            0
+#define LV_USE_TABLE            0
+#define LV_USE_ROLLER           0
+#define LV_USE_LIST             0
+#define LV_USE_CANVAS           0
+#define LV_USE_CHECKBOX         0
+#define LV_USE_SWITCH           0
+#define LV_USE_LINE             0
+#define LV_USE_LED              0
+#define LV_USE_MENU             0
+#define LV_USE_MSGBOX           0
+#define LV_USE_SPAN             0
+#define LV_USE_SPINNER          0
+#define LV_USE_TABVIEW          0
+#define LV_USE_TILEVIEW         0
+#define LV_USE_WIN              0
+#define LV_USE_SCALE            0
+#define LV_USE_IMAGEBUTTON      0
+
+/*=========================
+ * SOFTWARE DRAW: PIXEL FORMATS
+ *=========================*/
+/* One blender is compiled per source colour format, and they are big: the
+ * eight formats turned off here were 27 KB of ITCM between them, for art this
+ * project does not have. Every baked asset is RGB565A8 or RGB565 — confirm
+ * with:
+ *     grep -rhoE "LV_COLOR_FORMAT_[A-Z0-9_]+" Code/libraries/CubeSolver
+ *
+ * Leave the four below ON. RGB565 and RGB565A8 are the asset formats; A8 is
+ * the mask format glyphs render through; ARGB8888 is what LVGL builds a
+ * transient draw layer in when it composites with opacity, so it is needed
+ * even though no asset uses it. Turning one of those off does not fail to
+ * build — it drops the drawing, which looks like a corrupt screen. */
+#define LV_DRAW_SW_SUPPORT_RGB565               1
+#define LV_DRAW_SW_SUPPORT_RGB565A8             1
+#define LV_DRAW_SW_SUPPORT_A8                   1
+#define LV_DRAW_SW_SUPPORT_ARGB8888             1
+
+#define LV_DRAW_SW_SUPPORT_RGB565_SWAPPED       0
+#define LV_DRAW_SW_SUPPORT_RGB888               0
+#define LV_DRAW_SW_SUPPORT_XRGB8888             0
+#define LV_DRAW_SW_SUPPORT_ARGB8888_PREMULTIPLIED 0
+#define LV_DRAW_SW_SUPPORT_L8                   0
+#define LV_DRAW_SW_SUPPORT_AL88                 0
+#define LV_DRAW_SW_SUPPORT_I1                   0
 
 /*==================
  * THEMES

@@ -34,4 +34,24 @@ bool pumpDelay(unsigned long ms);
 // Run one pump iteration without waiting. Safe to call anywhere.
 bool pumpOnce();
 
+// Set while a motor is mid-move, to keep the DISPLAY out of the step loop.
+//
+// The pump does two jobs: it refreshes the panel, and it watches for the abort
+// chord. Only the second one may happen while steppers are running. Refreshing
+// the panel means an LVGL render and an SPI flush — tens of milliseconds during
+// which nothing calls run(), so no steps come out, and a constant-speed
+// MultiStepper move simply loses that time. That is torque lost mid-turn, and
+// it is what makes a face jam.
+//
+// The abort watch is safe to keep: it is one short I2C read, already throttled
+// to 25 ms, costing about a step at full speed.
+//
+// The display does not suffer. executeSolve() calls displayProgress() before
+// every move, so the panel still repaints once per move — which is all a
+// progress bar over a 20-move solution can usefully show anyway.
+//
+// Callers must SAVE AND RESTORE it rather than clearing it, so nested moves
+// cannot hand the display back early. Same discipline as pumpAbortSuppressed.
+extern bool pumpMotionOnly;
+
 #endif // CubePump_h

@@ -89,19 +89,11 @@ extern int topServoEEPROMAddress, botServoEEPROMAddress;
 // Servo Objects
 extern CubeServo topServo, botServo;
 
-// Tuning block: defaults live in the source, overrides in EEPROM. Appended
-// after every calibration block so it cannot shift anyone's existing
-// calibration.
-extern int tuningEEPROMAddress;
-
-// Fault log ring: the last 24 faults, appended after tuning for the same
-// cannot-shift-anyone reason.
-extern int faultLogEEPROMAddress;
-
-// Stats counters: the lifetime solve records. Their own block, not a corner
-// of tuning — solve counts change every run and tuning almost never, so
-// sharing would rewrite the tuning bytes on every solve for nothing.
-extern int statsEEPROMAddress;
+// Blocks appended after every calibration block by initializeEEPROMLayout();
+// the rationale for each lives in its class header.
+extern int tuningEEPROMAddress;     // CubeTuning
+extern int faultLogEEPROMAddress;   // CubeFaultLog
+extern int statsEEPROMAddress;      // CubeStats
 
 extern int eepromBytesUsed;      // total footprint, for the boot report
 

@@ -92,24 +92,20 @@ static void actSolve() { g_solveRuns++; }
 static void actEject() { g_ejectRuns++; }
 static void actAbout() { g_aboutRuns++; }
 
-extern const MenuScreen kSettings;
-extern const MenuScreen kCalibration;
-extern const MenuScreen kModes;
-
 static const MenuItem kCalItems[] = {
     { "Calibration Status", nullptr, nullptr },
     { "Color Sensors",      nullptr, nullptr },
     { "Motor Positions",    nullptr, nullptr },
     { "Servo Positions",    nullptr, nullptr },
 };
-const MenuScreen kCalibration = { "Calibration", kCalItems, 4 };
+static const MenuScreen kCalibration = { "Calibration", kCalItems, 4 };
 
 static const MenuItem kSettingsItems[] = {
     { "Calibration", &kCalibration, nullptr  },
     { "Diagnostics", nullptr,       nullptr  },
     { "About",       nullptr,       actAbout },
 };
-const MenuScreen kSettings = { "Settings", kSettingsItems, 3 };
+static const MenuScreen kSettings = { "Settings", kSettingsItems, 3 };
 
 static const MenuItem kModesItems[] = {
     { "Scramble Solve", nullptr, nullptr },
@@ -118,7 +114,7 @@ static const MenuItem kModesItems[] = {
     { "Step Solve",     nullptr, nullptr },
     { "Patterns",       nullptr, nullptr },
 };
-const MenuScreen kModes = { "Modes", kModesItems, 5 };
+static const MenuScreen kModes = { "Modes", kModesItems, 5 };
 
 static const MenuItem kMainPreItems[] = {
     { "Load & Scan Cube", nullptr,   actScan },
@@ -185,7 +181,7 @@ int main() {
     CHECK(menu.atRoot(), "still at root after refused Back");
 
     // --- actions fire ------------------------------------------------------
-    menu.handle(MenuEvent::Up);          // -> index 1 ... wait, from 2 Up -> 1
+    menu.handle(MenuEvent::Up);          // -> index 1
     menu.handle(MenuEvent::Up);          // -> index 0
     CHECK(menu.selectedIndex() == 0, "back at Load & Scan, got %u", menu.selectedIndex());
     menu.handle(MenuEvent::Select);
@@ -354,8 +350,8 @@ int main() {
         m.render();
         CHECK(g_frame.theme == MenuTheme::Violet, "Inherit should fall back to the screen");
 
-        // An untouched three-field table — the shape every existing screen
-        // still uses — must resolve to a real color rather than nothing.
+        // An untouched three-field table — a screen that names no theme at
+        // all — must resolve to a real color rather than nothing.
         CHECK(CubeMenu::themeOf(&kMainPre, &kMainPreItems[0]) == MenuTheme::Green,
               "a table that names no theme should land on Green");
     }

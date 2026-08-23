@@ -9,10 +9,10 @@
 // tolerance belongs to the CubeSystem — and moving them here would mean every
 // read going through a lookup for no gain.
 //
-// So this stores an ARRAY OF INT32 by index and nothing else. The caller keeps
-// a table of accessors alongside it, pushes loaded values into their owners at
-// boot, and pulls them back out to save. The table is the interesting part and
-// it lives with the screen that edits it; this is just the drawer.
+// So this stores an ARRAY OF INT32 by index and nothing else. CubeTuneTable
+// keeps the table of accessors alongside it, pushes loaded values into their
+// owners at boot, and pulls them back out to save. The table is the
+// interesting part and it lives in CubeTuneTable.cpp; this is just the drawer.
 //
 // WHY A VERSION STAMP
 // -------------------
@@ -25,12 +25,9 @@
 //
 // WHERE IT SITS IN EEPROM
 // -----------------------
-// After every calibration block, and nothing may ever be inserted above it.
-// initializeEEPROMLayout() hands out addresses sequentially, so an insertion
-// shifts every address after it — which would quietly reinterpret an existing
-// machine's motor and color calibration as garbage. Blocks added since (the
-// fault log, then the stats counters) are APPENDED after this one, for the
-// same reason.
+// After every calibration block, placed by initializeEEPROMLayout(), which
+// hands out addresses sequentially — so nothing may ever be inserted above an
+// existing block (that would silently shift a calibrated machine's data).
 
 #ifndef CubeTuning_h
 #define CubeTuning_h
@@ -41,7 +38,9 @@
 class CubeTuning {
 public:
     // Bump on ANY change to the order or length of the caller's table.
-    static const uint16_t kVersion = 1;
+    // 2: "Step accel" inserted at index 15 (Face Motors), shifting Alignment
+    //    and Color by one. Every stored value reverts to its default once.
+    static const uint16_t kVersion = 2;
 
     // Arbitrary, but not 0x0000 or 0xFFFF: those are what erased and
     // never-written EEPROM read as, and a stamp that matches blank memory

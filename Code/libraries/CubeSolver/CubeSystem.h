@@ -9,7 +9,16 @@ public:
     CubeSystem();
 
     // Main Functions
-    void begin();                   // Initializes all hardware
+    // Initializes all hardware. Pass kNoDisplay from a sketch that owns the
+    // panel itself (the pre-menu bring-up sketches create their own
+    // ILI9341_T4 driver and LVGL display on the same pins): begin() then
+    // skips cubeDisplay.begin(), displayInitialized stays false, and every
+    // display call in this class no-ops while the motion, sensor and homing
+    // bring-up run unchanged. Without it, two drivers fight over one glass —
+    // the library's themed UI paints over the sketch's screen and both diff
+    // engines corrupt each other's idea of the panel content.
+    static constexpr bool kNoDisplay = false;
+    void begin(bool withDisplay = true);
     int scanCube();
     
     // Motor Calibration Functions
@@ -22,11 +31,13 @@ public:
     int calibrateColorSensors();    // Calibrates sensors using solved cube
 
     // Move Functions
+    //
+    // executeMove() is deliberately move-then-check: two "smarter" schemes were
+    // tried here and reverted after breaking working solves — read the comment
+    // on its definition before adding verification ladders or gates.
     int executeMove(const String& move, bool moveVirtual = false, bool align = false);
-    bool backoutMove(int targetPositions[6]);
-    int alignMotors();              // Re-aligns motors after a move (faster, selective)
     bool checkAlignment();          // Check if motors are currently aligned
-    int alignMotorsInternal(bool selectiveAlign);
+    int alignMotorsInternal();
 
     // Main Solving Functions
     void clearSolution();
@@ -51,17 +62,6 @@ public:
     // Not touched by any ISR — plain state. Kept non-volatile deliberately so
     // the threading model isn't misrepresented.
     bool abortRequested = false;
-
-    // Programmatic abort, for callers without a button (a serial command, a
-    // limit switch, a future e-stop). The UI uses the chord.
-    //
-    // Mirrors clearAbort()'s discipline so the gesture state cannot be left in a
-    // combination that says "abort pending" and "waiting for a release" at once.
-    void requestAbort() {
-        abortRequested   = true;
-        chordMustRelease = false;
-        chordHeldSince   = 0;
-    }
 
     // Clearing also demands the chord be RELEASED before a new hold can count.
     // Less critical now that the gesture needs two buttons, but still correct:
@@ -88,11 +88,21 @@ public:
     // solution can never be replayed.
     //
     // Called from every error path that can leave the machine HOLDING the cube:
-    // executeSolve()'s move failures, the abort paths, and scanCube()'s
-    // reorientation failures. scanCube()'s color/build errors deliberately do
-    // NOT call it — at those points the ring and both servos are already
-    // retracted (the scan loop ends with ringRetract/botServoRetract), and
-    // wiping the scan record would destroy the data repairScan() needs.
+    // executeSolve()'s move failures, the abort paths, scanCube()'s
+    // reorientation failures, and calibrateColorSensors()' rotation failures.
+    //
+    // scanCube()'s color/build errors deliberately do NOT call it. scanCube()
+    // ESTABLISHES the released state rather than inheriting it: it opens with
+    // unloadCube(), never extends the top servo, and never leaves the ring out
+    // across a reading, so every color/build return is made from a released
+    // machine and there is nothing for safeStop() to release. Staying out of
+    // the way is what preserves the scan data repairScan() and the
+    // failure-review screens work from — safeStop() would also reset
+    // virtualCube and drop the solution, which those paths have no use for.
+    //
+    // The exemption stands ONLY because of that entry release: from the clamped
+    // rest state a code 1 or 2 used to return with all three grippers closed on
+    // the cube and nothing downstream to open them.
     void safeStop(int faultCode = 0);
 
     // Release the cube. Order is mechanically load-bearing:
@@ -101,6 +111,21 @@ public:
     // once rather than being re-derived at each call site.
     void unloadCube();
 
+    // Release everything EXCEPT the bottom servo, which stays where it is and
+    // keeps holding the cube up.
+    //
+    // The first two thirds of unloadCube(), and the reason it is a call rather
+    // than two lines at each site is the same reason unloadCube() is: the
+    // ordering is mechanical, not a stack to be inferred. The bottom servo is
+    // load-bearing in the literal sense here — retract it and the cube drops
+    // into the bay, which is exactly what the callers of this must not do.
+    //
+    // Two callers want it: the post-solve display spin, which turns the whole
+    // cube on the bottom motor with nothing else engaged, and the eject
+    // sequence, which has to lift the cube out of a ring it is no longer
+    // inside. Neither can use unloadCube().
+    void unloadCubeKeepBottom();
+
     // Latched code from the most recent safeStop(). 0 = no fault.
     // Read it in your error screen if you want the underlying cause rather than
     // the code the calling layer returned.
@@ -108,11 +133,11 @@ public:
 
     // Signed shortest-path error between two AS5600 readings, in (-2048, +2048].
     //
-    // Replaces five hand-rolled copies of the 2048/4096 arithmetic. Two of them
-    // disagreed: alignMotorsInternal() computed a wraparound-safe MAGNITUDE but
-    // then chose its direction with a raw `cur > tgt` comparison, which sends
-    // the motor the long way round whenever the error straddles the 0/4095
-    // seam; backoutMove() handled the seam correctly but used the opposite sign.
+    // Replaces several hand-rolled copies of the 2048/4096 arithmetic that
+    // disagreed about direction at the 0/4095 seam: the historical homing loop
+    // computed a wraparound-safe MAGNITUDE but chose its direction with a raw
+    // `cur > tgt` comparison, which sends the motor the long way round
+    // whenever the error straddles the seam.
     static inline int encError(int cur, int tgt) {
         int d = (cur - tgt) & 0x0FFF;          // mod 4096
         return (d > 2048) ? d - 4096 : d;      // fold into the short way round
@@ -120,23 +145,32 @@ public:
 
     // Which way to step when encError() is positive.
     //
-    // +1 reproduces alignMotorsInternal()'s original behaviour. That routine
-    // runs on every move of every solve on a machine that works, so its sign is
-    // almost certainly the physically correct one — backoutMove() was the
-    // inverted copy. If a bench test shows alignment running AWAY from target,
-    // flip this to -1. It is the only place the convention is decided.
+    // +1 reproduces the historical homing loop's behaviour away from the seam,
+    // which is the behaviour November's working solves ran on. If a bench test
+    // ever shows alignment running AWAY from target, flip this to -1. It is
+    // the only place the convention is decided.
     static constexpr int kAlignStepSign = +1;
 
     // Error codes returned by the alignment / move paths.
     static constexpr int ERR_ALIGN_TIMEOUT  = 2;   // did not converge in time
     static constexpr int ERR_ENCODER_FAULT  = 4;   // encoder unreadable — NOT a jam
-    static constexpr int ERR_ABORTED        = 5;   // user held SELECT to abort
+    static constexpr int ERR_ABORTED        = 5;   // user held the SELECT+LEFT abort chord
 
     // Cube Loading Functions
     // Top Servo Functions
     void topServoExtend();
     void topServoRetract();
     void topServoPartial();
+
+    // The top gripper's eject pose. Honest caveat: the tuning table gives the
+    // TOP servo no Partial or Eject row, so CubeServo::ejectTarget() falls back
+    // to partialTarget() and this moves the horn exactly where topServoPartial()
+    // does. It exists so the jog page can offer every named position on every
+    // gripper uniformly rather than special-casing which servo has which, and
+    // it becomes a distinct move the moment anyone pins a top-servo eject.
+    // The coarse state it leaves behind IS distinct either way (3, not 2).
+    void topServoEject();
+
     void toggleTopServo();
 
     // Bot Servo Functions
@@ -160,9 +194,6 @@ public:
     void ringRetract();
 
     // Display Functions
-    // NOTE: displayBegin() was removed — the display is now initialised inside
-    // begin(). The declaration outlived its definition and any sketch calling
-    // it failed at link time with an error pointing at the .ino rather than here.
     void displaySetMessage(const char* msg);
     void displaySetStatus(const char* msg);
     void displayClearStatus();
@@ -183,9 +214,8 @@ public:
     // the same shape as the real one instead of quietly drifting.
 
     // A scan is THREE passes, not six face reads: the two color boards read
-    // one face each at the same time, with a whole-cube reorientation between
-    // passes (ROTX after the first, ROTZ after the second). Order matches the
-    // scan loop in scanCube().
+    // one face each at the same time, with a whole-cube reorientation (ROTX
+    // then ROTZ) between passes. Order matches the scan loop in scanCube().
     static const int kScanPasses = 3;
     static const char* const kScanPassLabels[kScanPasses];
 
@@ -254,7 +284,10 @@ public:
     // see the derivation beside the definition.
     static const char kCalStartFacelets[55];
 
-    // The same thing in words, for the line under the picture.
+    // The same thing as an INSTRUCTION, for the line under the picture. Two
+    // lines, separated by a newline — see the essay beside the definition for
+    // why it tells the operator to go and load a solved cube rather than just
+    // naming the colors.
     static const char* const kCalStartText;
     void displayWaitForSelect(const char* msg);
     bool displayReady();
@@ -332,8 +365,6 @@ public:
     // is far too chatty for a demo. Turn it on to characterise whether residual
     // error is missed-steps-during-motion or drift-while-de-energised.
     bool debugAlignLog = false;
-    int startCalIndex[6] = {0,0,0,0,0,0};
-    bool motorMoved[6] = {false, false, false, false, false, false};
 
     // Cube Solve Variables
     int servoDelay = 200;
@@ -368,21 +399,19 @@ public:
     // colors on the least-confident stickers. Returns 0 if a substitution
     // produced a physically valid cube, non-zero if none did (in which case the
     // original scan is restored).
-    // Defaults cover EVERY candidate, deliberately.
     //
-    // classify() returns a runner-up for every sticker, so a real scan has ~48
-    // candidates, not a handful. With a window of 6 the pair search examined 15
-    // of 1128 possible pairs — 1.3% — and the compensating Y/W swap this
-    // function exists to fix is a PAIR, so it was only ever found when both
-    // misread stickers happened to be the least confident on the whole cube.
-    //
-    // Measured cost of searching everything: one rebuild plus both validators is
-    // ~0.5 us on x86 -O2, so 1176 substitutions is ~0.6 ms there and realistically
-    // 3-10 ms on a 600 MHz Cortex-M7. (An earlier comment here claimed ~10 us
-    // total — that was wrong by two to three orders of magnitude.) Against a
-    // 25-40 s rescan it is still nothing, and repairScan() runs at most once per
-    // scan, so there is no reason to window it.
-    int repairScan(int maxSingles = 54, int maxPairs = 54);
+    // Searches EVERY candidate, deliberately: classify() returns a runner-up for
+    // every sticker (~48 candidates), the compensating Y/W swap is a PAIR, and a
+    // window of 6 only ever found it when both misread stickers were the least
+    // confident on the cube. Full search is ~3-10 ms on the Cortex-M7, once per scan.
+    int repairScan();
+
+    // How many stickers the LAST repairScan() call actually reassigned:
+    // 0 (none / refused), 1 (single) or 2 (compensating pair). Public so the
+    // sketch can tell the operator a scan was repaired rather than read clean
+    // — a repaired scan is trustworthy (the substitution had to validate and
+    // win on confidence) but it is information the operator should see.
+    int lastRepairCount = 0;
 
     // Solution String
     int solutionLength = 0;

@@ -25,11 +25,12 @@ cmake -S Code/sim -B Code/sim/build-test -DSIM_SKETCH=Test_Menu
 cmake --build Code/sim/build-test -j && ./Code/sim/build-test/cubesim
 ```
 
-Needs `cmake`, a C++17 compiler, `libsdl2-dev`, and network access on the first
-configure (LVGL is fetched, not vendored).
+Needs `cmake`, a C++17 compiler, and network access on the first configure:
+LVGL is fetched, not vendored, and so is SDL2 unless pkg-config finds a system
+copy (`libsdl2-dev` on Debian/Ubuntu makes the configure faster, nothing more).
 
 ```sh
-sudo apt install cmake build-essential libsdl2-dev
+sudo apt install cmake build-essential libsdl2-dev   # optional on Linux
 ```
 
 ## Controls
@@ -69,7 +70,8 @@ That last point is not theoretical. The menu theme's frame band was originally
 baked as an A8 mask, which LVGL copies into RAM rather than reading from flash;
 at 49 KB it did not fit the pool, and because `LV_USE_LOG` is 0 it failed by
 silently drawing nothing. `M` prints the heap so that class of bug is visible
-here instead of on the bench. Expect roughly 63% of the 48 KB pool in use, and
+here instead of on the bench. The pool is 64 KB (`LV_MEM_SIZE`);
+`CubeDisplay::begin()` prints its usage at boot and warns below 8 KB free, and
 note that exhausting it halts the firmware in a `while(1)` rather than
 degrading — which is exactly how it presents: a window that never draws.
 

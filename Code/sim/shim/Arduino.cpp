@@ -4,7 +4,6 @@
 SerialSim Serial;
 
 unsigned long millis() { return sim::millisNow(); }
-unsigned long micros() { return sim::millisNow() * 1000UL; }
 
 void delay(unsigned long ms) {
     // Sliced, with an SDL pump between slices — see the note in Arduino.h.
@@ -27,7 +26,6 @@ void delayMicroseconds(unsigned long us) {
 void pinMode(int, int)      {}
 void digitalWrite(int, int) {}
 int  digitalRead(int)       { return HIGH; }
-int  analogRead(int)        { return 512; }
 
 long random(long max)           { return max > 0 ? (long)(std::rand() % max) : 0; }
 long random(long min, long max) { return max > min ? min + random(max - min) : min; }

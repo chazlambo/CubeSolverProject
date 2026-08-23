@@ -56,18 +56,10 @@ void VirtualCube::resetOrientation() {
 }
 
 void VirtualCube::resetColor() {
-  // Undefine faces.
-  //
-  // This previously called setColorArray(<color>, "QQQQ<c>QQQQ", <left>) six
-  // times. setColorArray validates all nine characters against RGBYOW and
-  // returns error 2 on the first 'Q' BEFORE writing anything, so every one of
-  // those calls failed and every return value was discarded. Net effect: the
-  // six side arrays were never reset here, and were never initialised by the
-  // constructor either — they held indeterminate memory until a successful
-  // scan populated them, and a reset left stale colors from the previous cube.
-  //
-  // Write the sentinels directly instead of routing them through the validator
-  // that rejects them.
+  // Undefine faces. Written directly rather than through setColorArray(): it
+  // validates every character against RGBYOW and rejects the 'Q' sentinel
+  // before writing anything, so routing the reset through it silently leaves
+  // the previous cube's colors in place.
   char* const sides[6] = { redSide, orangeSide, yellowSide, greenSide, blueSide, whiteSide };
   const char  centre[6] = { 'R',    'O',        'Y',        'G',       'B',      'W'      };
 
@@ -432,10 +424,8 @@ int VirtualCube::setFaceSquare(char color, int squarePos, char newColor)
   }
 
   // Check if position is valid
-  // NOTE: bound is 8, not 9. Faces are char[9] (indices 0-8), so squarePos == 9
-  // used to pass validation and write one byte past the end of the array. The
-  // six side arrays are declared consecutively with no padding, so that
-  // silently corrupted a sticker on a DIFFERENT face.
+  // Faces are char[9], so 8 is the last valid index. The six side arrays are
+  // declared back to back, so an off-by-one here lands on another face.
   if (squarePos < 0 || squarePos > 8 || squarePos == 4) {
     return 2;
   }
@@ -986,14 +976,11 @@ int VirtualCube::splitSolveString(String input, char delimiter, String output[],
   //  >=0 - The number of moves in solution
   //   -1 - Solution has more tokens than output[] can hold
   //
-  // The capacity argument is not optional. This function previously had no
-  // bound at all and wrote output[tokenCount++] until the input was exhausted,
-  // while solveCube() accepted a maxMoves parameter and never referenced it.
-  // That was safe only by coincidence: kociemba runs with maxDepth 24 and no
-  // phase separator, so it emits at most 24 tokens into an array of 50. Raise
-  // maxDepth, enable useSeparator, or reuse this helper on a serial-entered
-  // scramble and it overruns an array of Arduino String objects — stomping
-  // heap pointers and then free()ing garbage.
+  // The bound matters even though kociemba (maxDepth 24, no phase separator)
+  // emits at most 24 tokens into an array of 50: raise maxDepth, enable
+  // useSeparator, or reuse this on a serial-entered scramble and an unbounded
+  // split overruns an array of Arduino String objects — stomping heap pointers
+  // and then free()ing garbage.
 
   if (maxTokens <= 0) {
     return -1;
@@ -1149,22 +1136,18 @@ int VirtualCube::solveCube(String moves[], int maxMoves){
   // >=0 - Number of moves
   //  -1 - Cube is not ready
   //  -2 - Solution not found (illegal cube, or solver timed out)
-  //  -3 - Centres are not canonical  (orientation was misread)
+  //  -3 - Centres are not canonical (cubeArray corrupted; cannot happen after buildCubeArray(), see validateCentres())
   //  -4 - A corner or edge is not a real cubie (compensating color misread)
   //  -5 - Solution has more moves than `moves` can hold
 
-    // Make sure the cube has been built BEFORE spending up to `timeOut` ms in
-    // the solver.
-    //
-    // This check used to sit AFTER kociemba::solve() and AFTER the solution had
-    // already been split into moves[], and it returned +1. CubeSystem tests
-    // `if (solveOutput < 0)`, so +1 was read as "a one-move solution" and
-    // reported as success — the machine would execute move 1 of N and stop.
+    // Before spending up to `timeOut` ms in the solver. Every failure here must
+    // be NEGATIVE: CubeSystem tests `solveOutput < 0`, so a positive code reads
+    // as a move count and the machine executes that many moves.
     if (!cubeReady) return -1;
 
     // Reject cubes the solver would happily accept but that cannot physically
-    // exist. Both checks are microseconds and both catch scan errors that would
-    // otherwise be executed as ~20 real moves on the machine.
+    // exist. Microseconds each; validatePieces() is the one that catches scan
+    // errors that would otherwise be executed as ~20 real moves on the machine.
     if (validateCentres() != 0) return -3;
     if (validatePieces()  != 0) return -4;
 

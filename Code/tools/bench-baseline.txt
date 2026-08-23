@@ -1,0 +1,35 @@
+# Baseline session for Bench_Tune — machine EMPTY (no cube), fingers free.
+#   python Code/tools/bench.py COMx -f Code/tools/bench-baseline.txt --log baseline.log --csv baseline.csv
+# Every line is one protocol command; see Bench_Tune.ino for the formats.
+
+status
+get
+cal                 # the 24 stored marks and the four gaps per motor (expect ~1024 each)
+enc                 # raw angle + nearest mark / error, de-energised
+noise 0 100         # U encoder: 100 back-to-back reads, spread in counts
+noise 3 100         # D encoder
+home                # [align] lines = pre-correction error per motor; then enc/near
+relax               # energise -> read -> de-energise -> read: rotor relaxation per motor
+home
+relax
+
+# Free-air moves at today's settings (no ramp, motors off between moves).
+# Residuals (res column) near 0 = clean; clusters near +-82 = lost electrical cycles.
+rep 20 U U'
+rep 20 D D'
+rep 10 ROTX ROTX
+rep 10 ALL ALL
+
+# Same again with hold torque on: fingers stay energised between moves.
+hold on
+rep 20 U U'
+rep 20 D D'
+hold off
+
+# Same again with a 20-step ramp.
+set accel 20000
+rep 20 U U'
+rep 20 D D'
+set accel 0
+
+stop

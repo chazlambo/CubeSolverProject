@@ -2,11 +2,18 @@
 #include "SimHost.h"
 
 namespace {
+// The seesaw pin that each PHYSICAL key sits on. The breakout is mounted
+// rotated 180 degrees on the machine, so the D-pad pairs are swapped — see the
+// long note in RotaryEncoder.h. The shim models the board as mounted rather
+// than as printed, so these must stay in step with the driver's constants:
+// together they cancel, the simulator's arrow keys move the UI exactly as the
+// bench buttons do, and a future "tidy-up" that reverts only one of the two
+// files shows up immediately as inverted arrows in the sim.
 const uint8_t PIN_SELECT = 1;
-const uint8_t PIN_UP     = 2;
-const uint8_t PIN_LEFT   = 3;
-const uint8_t PIN_DOWN   = 4;
-const uint8_t PIN_RIGHT  = 5;
+const uint8_t PIN_UP     = 4;
+const uint8_t PIN_LEFT   = 5;
+const uint8_t PIN_DOWN   = 2;
+const uint8_t PIN_RIGHT  = 3;
 
 bool pressed(uint8_t pin) {
     switch (pin) {

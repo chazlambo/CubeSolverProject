@@ -22,8 +22,10 @@ public:
     bool begin(uint8_t = 0x49, int8_t = -1, bool = true) { return true; }
     void pinMode(uint8_t, uint8_t) {}
 
-    // Pin numbering matches RotaryEncoder's PIN_* constants: SELECT 1, UP 2,
-    // LEFT 3, DOWN 4, RIGHT 5. Pressed reads LOW, as with INPUT_PULLUP.
+    // Pin numbering matches RotaryEncoder's PIN_* constants — the board as
+    // MOUNTED, rotated 180 degrees: SELECT 1, DOWN 2, RIGHT 3, UP 4, LEFT 5
+    // (see the note in Adafruit_seesaw.cpp). Pressed reads LOW, as with
+    // INPUT_PULLUP.
     bool     digitalRead(uint8_t pin);
     uint32_t digitalReadBulk(uint32_t pins);
     int32_t  getEncoderPosition();

@@ -2,6 +2,7 @@
 #include "CubePump.h"
 
 PumpFn systemPump = nullptr;
+bool   pumpMotionOnly = false;
 
 bool pumpOnce() {
     if (systemPump == nullptr) return true;
@@ -17,8 +18,9 @@ bool pumpDelay(unsigned long ms) {
 
     const unsigned long start = millis();
 
-    // lv_conf.h sets LV_DEF_REFR_PERIOD to 33 ms. Pumping a little faster than
-    // that keeps the display smooth without spinning the I2C bus needlessly.
+    // lv_conf.h sets LV_DEF_REFR_PERIOD to 33 ms. Pumping well under that keeps
+    // the display smooth, and the input read inside the pump has its own 25 ms
+    // throttle, so this does not spin the I2C bus.
     const unsigned long kPumpInterval = 5;
 
     // Pump at least once even for a zero-length wait, so pumpDelay(0) works as

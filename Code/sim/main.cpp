@@ -43,6 +43,7 @@ static void printHelp() {
         "    F                    arm a fault: the next operation fails\n"
         "    C                    toggle whether a cube is loaded and scanned\n"
         "    K                    toggle the calibration flags\n"
+        "    M                    print the LVGL heap report\n"
         "    P                    screenshot to sim-shot-NN.bmp\n"
         "    Esc / close window   quit\n"
         "\n"

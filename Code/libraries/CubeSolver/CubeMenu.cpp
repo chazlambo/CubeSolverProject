@@ -78,13 +78,6 @@ bool CubeMenu::back() {
     return true;
 }
 
-void CubeMenu::toRoot() {
-    if (depth == 0) return;
-    depth = 0;
-    dirty = true;
-    nav   = MenuNav::Back;
-}
-
 bool CubeMenu::handle(MenuEvent ev) {
     const MenuScreen* s = current();
     if (s == nullptr || s->items == nullptr || s->count == 0) return false;
@@ -114,14 +107,10 @@ bool CubeMenu::handle(MenuEvent ev) {
             return enter(item->submenu);
         }
         if (item->action != nullptr) {
-            // Mark dirty BEFORE the call, not after.
-            //
-            // The action may switch the application away from the menu (to a
-            // scan, a solve, an info screen). Setting dirty afterwards would be
-            // the same value, but doing it first documents that the flag is
-            // about "the panel no longer shows this menu", which is true either
-            // way: if the action stayed in the menu, its own screen output has
-            // already overwritten us.
+            // The action may leave the menu (a scan, a solve, an info screen)
+            // or draw its own screen over it in place. Either way the panel
+            // no longer shows this menu, so it must be redrawn when we come
+            // back.
             dirty = true;
             item->action();
             return true;

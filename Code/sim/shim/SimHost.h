@@ -5,9 +5,10 @@
 //  Owns the window, the RGB565 panel buffer, and the keyboard/wheel state that
 //  the Adafruit_seesaw shim reports as button presses.
 //
-//  Nothing in the firmware knows this file exists. It is reached only through
-//  the two hardware shims that stand in for the parts of the machine the PC
-//  does not have: ILI9341_T4 (the panel) and Adafruit_seesaw (the wheel).
+//  Nothing in the firmware knows this file exists. It is reached through the
+//  shims that stand in for the parts of the machine the PC does not have —
+//  ILI9341_T4 (the panel), Adafruit_seesaw (the wheel), Arduino.cpp's
+//  millis()/delay() — and by the simulator's own main.cpp and CubeSystemSim.cpp.
 // =============================================================================
 
 #ifndef SimHost_h
@@ -29,7 +30,6 @@ void setScale(int scale);
 
 bool init();          // called from ILI9341Driver::begin()
 void shutdown();
-bool ready();
 
 // Drain SDL's event queue.
 //

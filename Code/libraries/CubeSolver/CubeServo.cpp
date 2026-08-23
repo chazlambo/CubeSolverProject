@@ -4,13 +4,10 @@ CubeServo::CubeServo(int pin, int eepromAddr, unsigned int retPos, unsigned int 
   : pin(pin), eepromAddr(eepromAddr), currentPos(retPos), retPos(retPos), extPos(extPos), extState(-1), sweepDelay(sweepDelay) {}
 
 unsigned int CubeServo::partialTarget() const {
-    // A pinned value wins. Otherwise 3/4 of the way from retracted to extended.
-    //
-    // The old inline expression was 3*(retPos+extPos)/4, which only equals this
-    // when retPos == 0. That happens to hold today (both servos retract to 0),
-    // so it was latent rather than live — but it is wrong in general and would
-    // silently mis-position the horn the moment a non-zero retract position is
-    // used. Signed arithmetic so an inverted ext/ret pair doesn't underflow.
+    // A pinned value wins. Otherwise 3/4 of the way from retracted to extended:
+    // retPos plus 3/4 of the span, NOT 3*(retPos+extPos)/4, which only agrees
+    // when retPos == 0. Signed arithmetic so an inverted ext/ret pair doesn't
+    // underflow.
     if (partialExplicit) return partialPos;
     return (unsigned int)((int)retPos + 3 * ((int)extPos - (int)retPos) / 4);
 }
@@ -31,13 +28,12 @@ void CubeServo::begin() {
     //   - after power loss mid-sweep it holds the position the sweep started
     //     from, bounding the error to one sweep's travel
     //
-    // This replaces the old behaviour, which reconstructed currentPos from the
-    // coarse state alone using (extPos + retPos) / 2. For the "partially
-    // retracted" state that guessed 130 while partial() had actually parked the
-    // horn at 195, so the first servo.write() after a power cycle commanded an
-    // instantaneous ~43 degree jump — with the linkage possibly engaged with
-    // the cube. sweepTo() begins by writing the ASSUMED current angle, so an
-    // inaccurate currentPos is a slam, not a slow correction.
+    // Guessing it from the coarse state instead (e.g. the midpoint, 130, for
+    // "partial" when partial() parks the horn at 195) makes the first
+    // servo.write() after a power cycle an instantaneous ~43 degree jump, with
+    // the linkage possibly engaged with the cube: sweepTo() begins by writing
+    // the ASSUMED current angle, so an inaccurate currentPos is a slam, not a
+    // slow correction.
     //
     // Note a genuinely unknown position cannot be recovered without feedback.
     // PWMServo emits no pulse until the first write(), so the horn is limp
@@ -51,15 +47,27 @@ void CubeServo::begin() {
     // loops are skipped and the only thing issued is the endpoint write added at
     // the bottom of sweepTo() — the horn jumps straight to the target from
     // wherever it physically is, with EEPROM then stamped "retracted".
-    // (Before sweepTo() wrote its endpoint, the same fallback issued NOTHING and
-    // left the cube clamped; the mechanism changed, the wrong answer did not.)
     // Assume the worst case per known state instead.
     if (currentPos > 270) {
         switch (extState) {
             case 0:  currentPos = retPos;          break;   // no sweep needed anyway
             case 1:  currentPos = extPos;          break;
             case 2:  currentPos = partialTarget(); break;
-            default: currentPos = extPos;          break;   // unknown -> assume extended
+            case 3:  currentPos = ejectTarget();   break;   // untuned, so == partialTarget()
+            // Unknown means power was lost MID-SWEEP — extState is stamped -1
+            // before every sweep — so the horn is somewhere between the two
+            // endpoints and nothing knows where. The midpoint is the right
+            // guess: whichever way the first retract() then sweeps, it travels
+            // at most half the range at 15 ms a step.
+            //
+            // Assuming extPos instead would be strictly worse. An
+            // interrupted RETRACT stores full clamp, and the first PWM pulse
+            // throws the horn to 205/260 in one write onto a cube still
+            // between the grippers. An interrupted EXTEND stores retPos,
+            // sweepTo() skips both loops as already-there, and the endpoint
+            // write snaps the horn fully open — the cube drops. A virgin or
+            // erased EEPROM closes both grippers at boot.
+            default: currentPos = (extPos + retPos) / 2; break;
         }
     }
 
@@ -69,6 +77,7 @@ void CubeServo::begin() {
 
         case 1:     // Extended
         case 2:     // Partially retracted
+        case 3:     // Ejected — presenting a cube, so certainly still holding one
         default:    // Unknown (power lost mid-sweep)
             retract();              // Always start in retracted position
             break;
@@ -117,10 +126,9 @@ void CubeServo::eject() {
     if (!sweepTo(target)) { updateEEPROM(); return; }   // aborted — state stays unknown
     currentPos = target;
 
-    // State 2, the same as partial(). The distinction between "presenting" and
-    // "partially retracted" matters to the operator and not at all to begin(),
-    // which retracts out of either one.
-    extState = 2;
+    // State 3 — distinct from partial (2) only so a page can name the pose;
+    // begin() treats both alike. See coarseState() in the header.
+    extState = 3;
     updateEEPROM();
 }
 
@@ -139,6 +147,10 @@ void CubeServo::retract() {
 }
 
 void CubeServo::toggle() {
+    // Tests for the extended endpoint rather than listing the others, so the
+    // added ejected state (3) needs nothing here: toggle is a two-position
+    // gesture, and everything that is not extended — retracted, partial,
+    // ejected, unknown — extends, as it did when eject() recorded 2.
     if(extState==1) {  // If Extended
     retract();  // Retract
   }
@@ -187,8 +199,54 @@ void CubeServo::setSweepStepDelay(int ms) {
     sweepDelay = ms;
 }
 
+// The largest preview that is still allowed to be instant, in the 0-270 domain.
+//
+// Wheel-following MUST stay instant — a sweep at 15 ms a step cannot follow a
+// wheel, which is the whole reason previewRaw() exists. But the FIRST preview
+// after entering a tuning row is not a follow: the editor seeds its working
+// value from the STORED ENDPOINT, not from where the horn is standing, so the
+// opening detent on Top Servo > Retract asks for 1 degree while the horn is
+// parked at 205 with the ring and the bottom gripper still closed on the cube.
+// That is exactly the instantaneous full-travel slam begin() guards against on
+// the boot path, arriving through a different door.
+//
+// Eight degrees tells the two apart:
+//   - A wheel cannot exceed it. Every servo row in CubeTuneTable.cpp steps by
+//     1 degree, and the editor collapses a burst of detents into ONE step
+//     however fast the wheel is spun, so a genuine follow is always 1. Eight
+//     leaves room for a servo row that later adopts the coarser step the ring
+//     rows use (5) without collapsing every detent into a sweep.
+//   - It cannot jam anything. Eight degrees is 3% of full travel — five steps
+//     of the 180-degree range the horn is actually commanded in — a nudge
+//     wherever in the linkage it happens. The travels this catches are the
+//     205 and 260 degree ones.
+//
+// Anything larger is the first preview of a session, or a discard putting a
+// part back where it started, or something else with no business slamming a
+// horn: all of them are moves, and moves sweep.
+static const unsigned int kPreviewInstantSpan = 8;
+
 void CubeServo::previewRaw(unsigned int pos) {
     const unsigned int target = clampServoPos((long)pos);
+
+    // Unknown BEFORE the move, not after. From here the horn is at neither
+    // endpoint, and the sweep below pumps the UI — so a page repainted
+    // mid-travel must not still be reading "retracted". No updateEEPROM()
+    // beside it: a preview costs no write, per detent or otherwise.
+    extState = -1;
+
+    const long delta  = (long)target - (long)currentPos;
+    const long travel = delta < 0 ? -delta : delta;
+
+    if (travel > (long)kPreviewInstantSpan) {
+        // Too far to be a wheel detent, so move it like a move. sweepTo()
+        // updates currentPos as it steps and returns false if the abort chord
+        // cut it short; either way currentPos already says where the horn
+        // actually got to, so there is nothing to record here — and nothing
+        // MAY be recorded, because the horn may not have arrived.
+        sweepTo(target);
+        return;
+    }
 
     // Same 270 -> 180 mapping sweepTo() uses. Writing the raw 0-270 value
     // straight to PWMServo would put the horn at two thirds of the angle asked
@@ -199,7 +257,6 @@ void CubeServo::previewRaw(unsigned int pos) {
     // accurate; leaving it stale here would make the next extend() or retract()
     // start its sweep from a position the horn is nowhere near.
     currentPos = target;
-    extState   = -1;        // neither endpoint any more
 }
 
 bool CubeServo::sweepTo(unsigned int newPos) {
@@ -216,18 +273,29 @@ bool CubeServo::sweepTo(unsigned int newPos) {
     // currentPos is updated as we go so that an abort (or a power loss) leaves
     // a position estimate that reflects where the horn actually got to, not
     // where the sweep started.
+    // An abort STOPS THE OPERATION, it does not stop the horn. Returning the
+    // instant pumpDelay() reports the chord would leave the horn mid-travel
+    // while the caller acts on the abort — and in a scan reorientation the very
+    // next thing is ringMiddle(), whose ~450 steps are deliberately NOT
+    // abortable, so the ring would close at the grip plane on a cube still
+    // sitting below it. So finish the travel at the same rate on plain delay()
+    // — the abort is already latched, and pumping again would return instantly
+    // — then report it. The mechanism is settled before the caller unwinds.
+    bool aborted = false;
     if(currentAngle < newAngle) {                               // If servo needs to go forwards
         for(unsigned int i=currentAngle; i < newAngle; i++) {   // Sweep through all angles in between current and desired position
         servo.write(i);                                         // Write servo to new angle
         currentPos = map(i, 0, 180, 0, 270);
-        if (!pumpDelay(sweepDelay)) return false;               // aborted mid-sweep
+        if (aborted)                        delay(sweepDelay);
+        else if (!pumpDelay(sweepDelay))    aborted = true;
         }
     }
     else if(currentAngle > newAngle) {                          // If servo needs to go backwards
         for(unsigned int i=currentAngle; i > newAngle; i--) {   // Sweep through all angles in between current and desired position
         servo.write(i);                                         // Write servo to new angle
         currentPos = map(i, 0, 180, 0, 270);
-        if (!pumpDelay(sweepDelay)) return false;               // aborted mid-sweep
+        if (aborted)                        delay(sweepDelay);
+        else if (!pumpDelay(sweepDelay))    aborted = true;
         }
     }
 
@@ -238,14 +306,21 @@ bool CubeServo::sweepTo(unsigned int newPos) {
     servo.write(newAngle);
     currentPos = newPos;
 
-    return true;    // reached the target
+    // false still means "the operator asked to stop", so callers unwind exactly
+    // as before and leave extState unknown. The horn IS at the target now, so
+    // that is merely pessimistic — the next boot retracts, which is safe.
+    return !aborted;
 }
 
 // EEPROM layout for a servo. initializeEEPROMLayout() reserves sizeof(int) == 4
 // bytes per servo and only one was ever used, so the commanded position fits in
 // the spare bytes without changing the layout or invalidating existing data.
 //
-//   +0        int8   extState  (-1 unknown, 0 retracted, 1 extended, 2 partial)
+//   +0        int8   extState  (-1 unknown, 0 retracted, 1 extended, 2 partial,
+//                               3 ejected)
+//
+// 3 was appended, never renumbered, so bytes from older builds keep their
+// meaning (see coarseState() in the header).
 //   +1 .. +2  uint16 currentPos (0-270)
 //   +3        unused
 void CubeServo::loadStateFromEEPROM() {

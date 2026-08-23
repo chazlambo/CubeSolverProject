@@ -21,6 +21,26 @@ public:
     void toggle();     // Toggle between extended/retracted
     bool isExtended(); // Returns true if extended
 
+    // The tri-state isExtended() flattens away, for anything that has to SHOW
+    // where the horn is rather than decide something from it.
+    //
+    // A diagnostics page that opens on "?" is lying by omission: the state
+    // survives a reset in EEPROM and begin() has already acted on it, so the
+    // machine knows perfectly well where it parked. Nothing exposed it.
+    //
+    //   0 = retracted, 1 = extended, 2 = partial, 3 = ejected, -1 = unknown
+    //
+    // -1 is a real answer and callers must render it as such. It means the
+    // horn is genuinely at neither endpoint — mid-sweep, aborted, or moved by
+    // previewRaw() — and the class refuses to guess.
+    //
+    // 2 and 3 are distinct only so a page can SHOW which pose the horn is in;
+    // begin() retracts out of either. 2 keeps its old meaning, so an EEPROM
+    // written by firmware that predates 3 reports an ejected servo as partial
+    // — wrong by one name, safe in every other respect, and corrected the
+    // first time eject() runs. No version bump needed.
+    int coarseState() const { return extState; }
+
     // Present the cube for the operator to take. A position of its own rather
     // than a second name for partial(): the bottom servo has to hold the cube
     // clear of the ring to be gripped, and push it high enough to be picked up,
@@ -53,12 +73,23 @@ public:
     void setExtended(unsigned int pos);
     void setSweepStepDelay(int ms);
 
-    // Drive the horn straight to a raw position with no sweep.
+    // Drive the horn to a raw position, instantly when the change is small.
     //
     // For setting a position BY EYE, which is the only way an endpoint gets
     // set: the point is watching the horn while the number changes, and a sweep
-    // at 15 ms a step cannot follow a wheel. Callers MUST step it — each call
-    // jumps instantly, so a large change is a slam, not a move.
+    // at 15 ms a step cannot follow a wheel. So a change small enough to BE a
+    // wheel detent is written straight out, with no sweep and no delay.
+    //
+    // A LARGE change is not a follow and is swept instead. It cannot have come
+    // from a wheel — it is the first preview after a tuning row seeded itself
+    // from a stored endpoint, or a discard putting a part back — and there the
+    // gap is a full travel, taken in one instant, with the cube quite possibly
+    // still clamped. The threshold and its reasoning live in the .cpp.
+    //
+    // Callers MUST still step it: this decides HOW to move, not how far. And a
+    // swept preview can be cut short by the abort chord, so after one the horn
+    // may be short of the value on screen; the next preview sweeps again from
+    // wherever it stopped, which is why nothing here records an arrival.
     //
     // Leaves the coarse state unknown, because after this the horn is at
     // neither endpoint. Does NOT write EEPROM; call persist() once the wheel
@@ -79,12 +110,10 @@ private:
     unsigned int currentPos;    // Position the servo is currently set to
     unsigned int retPos;        // Retracted position value (0-270)
     unsigned int extPos;        // Extended position value (0-270)
-    int extState;               // 0 = retracted, 1 = extended, 2 = partially retracted, -1 = unknown
+    int extState;               // 0 = retracted, 1 = extended, 2 = partially retracted, 3 = ejected, -1 = unknown
     int sweepDelay;             // Time in ms to delay between each sweep step
 
-    // Pinned positions. eject() and partial() both record state 2: neither is
-    // an endpoint, and the only thing begin() does with that is retract on the
-    // next boot — which is the right answer for both.
+    // Pinned positions — see partialTarget() / ejectTarget().
     unsigned int partialPos      = 0;
     bool         partialExplicit = false;
     unsigned int ejectPos        = 0;

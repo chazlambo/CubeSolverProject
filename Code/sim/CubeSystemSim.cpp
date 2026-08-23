@@ -45,7 +45,7 @@ const unsigned long kScanReorientMs  = 700;    // x2 rotations
 const unsigned long kSolveComputeMs  = 900;    // kociemba on a Teensy
 const unsigned long kRingMoveMs      = 450;
 const unsigned long kPerMoveMs       = 220;    // machine: ~250-400 ms
-const unsigned long kCalMotorMs      = 2500;
+const unsigned long kCalMotorMs      = 2800;   // 4 ALL moves + 3 x 300 ms settle
 const unsigned long kCalColorMs      = 4000;
 
 const int kFakeSolutionLength = 21;
@@ -116,7 +116,11 @@ bool CubeSystem::pumpTick() {
     // the firmware's own code.
     sim::pumpEvents();
 
-    displayUpdate();
+    // Mirrors the firmware: no display refresh while a stepper is moving.
+    // sim::pumpEvents() above stays unconditional — that is the window's own
+    // event queue, not the panel, and skipping it would hang the simulator
+    // rather than model anything real.
+    if (!pumpMotionOnly) displayUpdate();
 
     if (pumpAbortSuppressed) {
         chordHeldSince = 0;
@@ -125,7 +129,9 @@ bool CubeSystem::pumpTick() {
 
     unsigned long now = millis();
     if (now - lastInputPoll >= 25) {
-        if (now - lastInputPoll > 200) {
+        // 400 ms, as in CubeSystem.cpp — it must clear the longest unpumped
+        // stretch (see the note there).
+        if (now - lastInputPoll > 400) {
             chordHeldSince = 0;
         }
         lastInputPoll = now;
@@ -159,10 +165,13 @@ bool CubeSystem::pumpTick() {
 // ---------------------------------------------------------------------------
 CubeSystem::CubeSystem() {}
 
-void CubeSystem::begin() {
+void CubeSystem::begin(bool withDisplay) {
     Serial.begin(baudRate);
     Serial.println(F("[sim] CubeSystem (simulated) starting"));
 
+    // The desktop window IS the display; a sim run without it would show
+    // nothing at all, so the opt-out is accepted but ignored.
+    (void)withDisplay;
     displayInitialized = cubeDisplay.begin(10000000);
 
     s_pumpOwner = this;
@@ -228,6 +237,24 @@ int CubeSystem::scanCube() {
     int8_t* faceChips = scanFaceChips;
     for (int f = 0; f < 6; ++f) faceChips[f] = -1;
 
+    // The real scanCube()'s entry condition, kept here because the SKETCH can
+    // see it: the servo and ring shims record state, cubeIsClamped() reads it,
+    // and the sketch parks the machine clamped after a scan and after a solve.
+    // Without this the simulated Scan would run — and the screens after it
+    // would reason — from a clamped machine the firmware releases.
+    displaySetStatus("Lowering the cube");
+    displayUpdate();        // as the firmware: say it before the travel starts
+    unloadCube();
+
+    // The firmware squares the face fingers here, released, before the first
+    // reorientation lifts the cube into them. Same status, same duration as
+    // the homeMotors() stub below, and skipped on an uncalibrated machine
+    // exactly as the firmware skips it.
+    if (g_motorCalibrated) {
+        displaySetStatus("Homing motors");
+        if (homeMotors() != 0) return 70;
+    }
+
     for (int pass = 0; pass < CubeSystem::kScanPasses; ++pass) {
         const int fa = CubeSystem::kScanPassFaces[pass][0];
         const int fb = CubeSystem::kScanPassFaces[pass][1];
@@ -241,9 +268,8 @@ int CubeSystem::scanCube() {
         displayFaces(faceChips);
 
         // Record the pass the way the real scanCube() does — in SCAN order,
-        // incrementally. Without this a failed scan left nothing behind, and
-        // the screens that review one had nothing to show in the simulator
-        // even though the machine would have had a full set of readings.
+        // incrementally — so a failed scan still leaves readings for the
+        // screens that review one, as it does on the machine.
         for (int sen = 0; sen < 2; ++sen) {
             const int f = 2 * pass + sen;
             const char col = kSimFaceColor[CubeSystem::kScanPassFaces[pass][sen]];
@@ -282,8 +308,7 @@ int CubeSystem::solveVirtual() {
     // The wait's abort result is deliberately IGNORED: the real kociemba call
     // blocks unpumped, so the machine cannot notice the chord during the
     // compute — a latched abort surfaces at the first move boundary as 105,
-    // and the sim must rehearse that path, not invent an abortable compute
-    // (returning 11 here misreported it as "Cube not scanned yet" besides).
+    // and the sim must rehearse that path, not invent an abortable compute.
     simWait(kSolveComputeMs);
     if (injectFault) return kFakeSolveFault;
 
@@ -342,6 +367,17 @@ int CubeSystem::calibrateMotorRotations() {
 int CubeSystem::calibrateColorSensors() {
     const bool injectFault = sim::consumeFaultInjection();
 
+    // The real routine's entry condition, and its consequences for the sketch.
+    // Color calibration is one menu level from the clamped rest state, so it
+    // releases rather than inheriting; and its eight reorientations are not
+    // tracked in the model, so the cube it leaves behind is NOT the one
+    // virtualCube describes. Both are visible from the sketch here — through
+    // cubeIsClamped() and through isReady()/"Cube Ready" — so a stub that
+    // skipped them would show a menu the machine never shows.
+    unloadCube();
+    virtualCube.resetCube();
+    clearSolution();
+
     // The real routine's color order, so the chips fill in the same sequence
     // here as on the machine. Each rotation feeds a DIFFERENT color to each
     // board, which is why the two rows do not fill together.
@@ -384,27 +420,23 @@ int CubeSystem::calibrateColorSensors() {
 // (scramble, idle turns, pattern folds). The real one drives a stepper and
 // checks the encoder; here it takes a plausible amount of time, can be
 // aborted, and consumes the F key's armed fault — the modes' per-move failure
-// paths are unreachable without that. An armed fault therefore also fails the
-// next jog turn; deliberate, since jog has a failure screen worth exercising
-// too. Whole-cube rotations take longer because they re-grip.
+// paths (and jog's failure screen) are unreachable without that. Whole-cube
+// rotations take longer because they re-grip.
 //
-// moveVirtual is honored exactly as the real code honors it: applied AFTER
-// the wait — physical first, model last, so an abort mid-move leaves the
-// model untracked exactly as the machine does — and applied for EVERY token,
-// rotations included. That last part reproduces a trap on purpose:
-// VirtualCube parses a move's first character as its face, so "ROTX" with
-// moveVirtual=true silently runs an R turn on the model. The real firmware
-// has that trap, the callers are contracted around it, and a sim that
-// quietly skipped the model move for ROT/ALL would hide exactly the caller
-// bug it exists to catch before the bench. This is also what lets the
-// sketch's modes genuinely disorder the virtual cube in the sim — the only
-// way "skip the scramble when already scrambled" and "refuse a pattern on an
-// unsolved cube" can be seen working.
+// moveVirtual is honored as the real code honors it: applied AFTER the wait
+// (physical first, model last, so an abort mid-move leaves the model
+// untracked) and for EVERY token, rotations included. That reproduces a trap
+// on purpose: VirtualCube parses a move's first character as its face, so
+// "ROTX" with moveVirtual=true silently runs an R turn on the model. The
+// callers are contracted around that, and skipping the model move for
+// ROT/ALL here would hide exactly the caller bug the sim exists to catch.
+// It is also what lets the sketch's modes genuinely disorder the virtual
+// cube, which is the only way "skip the scramble when already scrambled"
+// and "refuse a pattern on an unsolved cube" can be seen working.
 //
 // Known wrinkle: solveVirtual()'s canned solution bears no relation to the
-// scrambled state, so a sim mode-solve leaves the model disordered rather
-// than solved — press C to reset it. Wiring the real solver fixes that, and
-// is Tier 2 (see the file banner).
+// scrambled state, so a sim mode-solve leaves the model disordered — press C
+// to reset it. Wiring the real solver fixes that (Tier 2, see the banner).
 int CubeSystem::executeMove(const String& move, bool moveVirtual, bool align) {
     (void)align;
     // The real failure point is the pre-move encoder read, before any motion
@@ -430,8 +462,8 @@ int CubeSystem::homeMotors() {
 bool CubeSystem::getMotorCalibration() { return g_motorCalibrated; }
 bool CubeSystem::getColorCalibration() { return g_colorCalibrated; }
 
-// Called from the sketch's main loop via a sim hook (see main.cpp) so the K and
-// C keys can flip machine state without waiting out an operation.
+// Called by main.cpp between passes of the sketch's loop(), so the K and C
+// keys can flip machine state without waiting out an operation.
 void simApplyHotkeys(CubeSystem& cube) {
     if (sim::consumeCalToggle()) {
         g_motorCalibrated = !g_motorCalibrated;
@@ -459,6 +491,7 @@ void simApplyHotkeys(CubeSystem& cube) {
 void CubeSystem::topServoExtend()  { topServo.extend();  }
 void CubeSystem::topServoRetract() { topServo.retract(); }
 void CubeSystem::topServoPartial() { topServo.partial(); }
+void CubeSystem::topServoEject()   { topServo.eject();   }   // untuned: same pose as partial
 void CubeSystem::toggleTopServo()  { topServo.toggle();  }
 
 void CubeSystem::botServoExtend()  { botServo.extend();  }
@@ -467,20 +500,41 @@ void CubeSystem::botServoPartial() { botServo.partial(); }
 void CubeSystem::botServoEject()   { botServo.eject();   }
 void CubeSystem::toggleBotServo()  { botServo.toggle();  }
 
-void CubeSystem::ringExtend()  { pumpDelay(kRingMoveMs); }
-void CubeSystem::ringPartial() { pumpDelay(kRingMoveMs); }
-void CubeSystem::ringMiddle()  { pumpDelay(kRingMoveMs); }
-void CubeSystem::ringRetract() { pumpDelay(kRingMoveMs); }
-void CubeSystem::toggleRing()  { pumpDelay(kRingMoveMs); }
+// The ring DOES go through cubeMotors, even though the shim cannot turn a
+// stepper: ringMove() is what records ringState, and cubeIsClamped() and the
+// Hardware Test ring row both read it — a bare wait here leaves them frozen at
+// whatever boot decided. It is safe because the AccelStepper shim reports
+// every move as instantly arrived, so ringMove() does its bookkeeping and
+// returns without spinning. The pumpDelay after it stands in for the travel
+// that removes — keep it, or the ring teleports and the operation screens
+// flash past unreadably.
+void CubeSystem::ringExtend()  { cubeMotors.ringMove(2); pumpDelay(kRingMoveMs); }
+void CubeSystem::ringPartial() { cubeMotors.ringMove(3); pumpDelay(kRingMoveMs); }
+void CubeSystem::ringMiddle()  { cubeMotors.ringMove(1); pumpDelay(kRingMoveMs); }
+void CubeSystem::ringRetract() { cubeMotors.ringMove(0); pumpDelay(kRingMoveMs); }
+void CubeSystem::toggleRing()  { cubeMotors.ringToggle(); pumpDelay(kRingMoveMs); }
 
 void CubeSystem::unloadCube() {
     // Same order as the firmware, and for the same mechanical reason.
     const bool wasSuppressed = pumpAbortSuppressed;
     pumpAbortSuppressed = true;
 
+    unloadCubeKeepBottom();
+    botServoRetract();
+
+    pumpAbortSuppressed = wasSuppressed;
+    chordHeldSince = 0;
+}
+
+// The partial release: ring and top only, the cube left up on the bottom
+// gripper. Nothing here can drop a cube, but the timings are what the sketch
+// waits through, so it must cost the same as the firmware's.
+void CubeSystem::unloadCubeKeepBottom() {
+    const bool wasSuppressed = pumpAbortSuppressed;
+    pumpAbortSuppressed = true;
+
     ringRetract();
     topServoRetract();
-    botServoRetract();
 
     pumpAbortSuppressed = wasSuppressed;
     chordHeldSince = 0;

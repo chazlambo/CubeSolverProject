@@ -178,7 +178,11 @@ void setup()
     lv_task_handler();
 
     // -------- Cube ----------
-    Cube.begin();
+    // kNoDisplay: this sketch owns the panel (its own ILI9341_T4 driver and
+    // LVGL display, set up above). Letting the library bring up its themed UI
+    // too would put two diff-based drivers on one glass and paint the menu
+    // over these labels.
+    Cube.begin(CubeSystem::kNoDisplay);
 
     ui_set_message("Ready.");
     ui_clear_status();

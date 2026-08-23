@@ -1,4 +1,25 @@
 #include "ColorSensor.h"
+#include <Wire.h>
+
+// The VEML6040 Arduino library defines these; the desktop simulator's shim
+// header does not, and this file is compiled there too. Falling back to the
+// datasheet values keeps the sim building without a shim change — and the
+// #ifndef means the library's own definitions win wherever they exist.
+#ifndef VEML6040_I2C_ADDRESS
+#define VEML6040_I2C_ADDRESS 0x10
+#endif
+#ifndef COMMAND_CODE_WHITE
+#define COMMAND_CODE_WHITE   0x0B
+#endif
+#ifndef COMMAND_CODE_RED
+#define COMMAND_CODE_RED     0x08
+#endif
+#ifndef COMMAND_CODE_GREEN
+#define COMMAND_CODE_GREEN   0x09
+#endif
+#ifndef COMMAND_CODE_BLUE
+#define COMMAND_CODE_BLUE    0x0A
+#endif
 
 
 ColorSensor::ColorSensor(TCA9548* multiplexers[2], const int LEDPIN, int muxOrder[9], int channelOrder[9], int& eepromFlagAddress, int (&eepromAddresses)[9][7][4])
@@ -38,6 +59,8 @@ int ColorSensor::begin() {
     // Initialize LED pin
     pinMode(ledPin, OUTPUT);
     digitalWrite(ledPin, LOW);
+    invalidateLive();   // the LED just went dark and every channel is about to
+                        // be walked below
 
     // Check if calibration can be loaded, otherwise reset to zero
     if (!loadCalibration()) {
@@ -96,21 +119,19 @@ void ColorSensor::setIntegrationIndex(int index) {
     if (index > 5) index = 5;
     integrationTime = integrationRegFor(index);
 
-    // waitTime tracks it, because the two are one setting wearing two hats:
-    // wait too little after a longer integration and every sticker is read
-    // mid-conversion.
-    //
-    // The ratio is the one this machine actually runs — 300 ms of wait for 160
-    // ms of integration, 1.875x. The declaration says "integration time * 2.5",
-    // which would be 400; the comment has never matched the value. Preserving
-    // the behaviour rather than the comment keeps a scan that works today
-    // working, and 1.875x is already well clear of one conversion.
+    // waitTime tracks it: wait too little after a longer integration and every
+    // sticker is read mid-conversion. 1.875x (300 ms for 160 ms) is the ratio
+    // this machine has always run — well clear of one conversion, and kept
+    // rather than rounded to a tidier multiple so a scan that works keeps working.
     waitTime = (integrationMsFor(index) * 300) / 160;
 
     applyIntegrationTime();
 }
 
 void ColorSensor::applyIntegrationTime() {
+    invalidateLive();   // walks every channel, and changes the window length a
+                        // live settle is measured in
+
     for (int sensorIdx = 0; sensorIdx < 9; sensorIdx++) {
         int muxIdx = muxOrder[sensorIdx] - 1;
         int chan   = channelOrder[sensorIdx];
@@ -132,6 +153,8 @@ void ColorSensor::applyIntegrationTime() {
 }
 
 void ColorSensor::readSensor(int sensorIdx) {
+    invalidateLive();   // clears both muxes below; a held live channel is gone
+
     // Look up which multiplexer and channel this sensor is on
     int muxIdx = muxOrder[sensorIdx] - 1;
     int chan   = channelOrder[sensorIdx];
@@ -155,6 +178,9 @@ void ColorSensor::readSensor(int sensorIdx) {
 }
 
 void ColorSensor::scanSingle(int sensorIdx) {
+    invalidateLive();   // re-selects the mux and cycles the LED below, so any
+                        // held live session's channel and warm LED are gone
+
     // Turns on LED to scan
     // Turn on illumination LED
     digitalWrite(ledPin, HIGH);
@@ -199,7 +225,260 @@ void ColorSensor::scanSingle(int sensorIdx) {
 }
 
 void ColorSensor::setLED(bool ledState) {
+    // A live read may skip its settle only because it knows the LED has been on
+    // since it lit it, and which channel is held. Anyone moving the LED behind
+    // its back ends that — including turning it ON, since until this moment the
+    // sensors were integrating in the dark.
+    invalidateLive();
+
     digitalWrite(ledPin, ledState);
+}
+
+// --- Cheap presence polling -------------------------------------------------
+//
+// Why a sweep may read nine sensors back to back with no settle between them,
+// when scanSingle() waits ~900 ms for one: scanSingle()'s wait is for the LED.
+// It lights it on every call, and the register then holds a window integrated
+// in the dark until two windows have passed. A presence session lights the LED
+// once; after that every VEML6040 on the board — selected or not, the mux only
+// gates the bus — holds a lit window of its own, so selecting a channel and
+// reading it is a reading of that sensor, never of the one before it. See
+// ColorSensor.h for the full contract.
+//
+// This buys latency with accuracy and must never be used to classify a sticker.
+
+void ColorSensor::presenceBegin() {
+    setLED(true);
+
+    // Nothing is held between sweeps, so begin() only has to make sure nothing
+    // is held NOW — a channel left selected by whatever ran before would put a
+    // second sensor on the bus under the first sweep's reads.
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
+
+    presenceLive    = true;
+    presenceStartMs = millis();
+}
+
+int ColorSensor::presenceSweep(int white[9]) {
+    // RETURNS (see the header for the reasoning):
+    //  >= 0 : number of sensors that faulted; white[i] is the count or -1
+    //    -1 : no session open
+    //    -2 : still warming up — the LED has not been on for two windows yet
+    if (!presenceLive) return -1;
+
+    // Unsigned subtraction, so this stays correct across the millis() rollover.
+    if ((uint32_t)(millis() - presenceStartMs) < (uint32_t)presenceWarmupMs()) {
+        return -2;
+    }
+
+    int faults = 0;
+    for (int sensorIdx = 0; sensorIdx < 9; sensorIdx++) {
+        int muxIdx = muxOrder[sensorIdx] - 1;
+        int chan   = channelOrder[sensorIdx];
+
+        // Same idiom as scanSingle(): clear both muxes, then enable the one
+        // channel. TCA9548::setChannelMask() skips the write when the mask is
+        // already what it is asked for, so this is two transactions per
+        // sensor, not three.
+        //
+        // A mux that refuses the select is a fault for THIS sensor: the read
+        // below would go to whichever channel the mux was left on, which is a
+        // plausible number for the wrong sensor — the one thing worse than no
+        // number at all.
+        multiplexers[0]->setChannelMask(0x00);
+        multiplexers[1]->setChannelMask(0x00);
+        if (!multiplexers[muxIdx]->selectChannel(chan)) {
+            white[sensorIdx] = -1;
+            faults++;
+            continue;
+        }
+
+        // readChannelRaw() rather than veml.getWhite(): the library's read()
+        // returns 0 when the transaction fails, which is exactly what a dark
+        // sensor returns, so a bus fault would arrive here disguised as "the
+        // cube is gone". MotorEncoder::scan() talks to the AS5600 by hand for
+        // the same reason.
+        const int w = readChannelRaw(COMMAND_CODE_WHITE);
+        if (w < 0) {
+            white[sensorIdx] = -1;
+            faults++;
+        } else {
+            white[sensorIdx] = w;
+        }
+    }
+
+    // Leave nothing selected: the other board's sweep is next on the same bus.
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
+    return faults;
+}
+
+void ColorSensor::presenceEnd() {
+    // Unconditional, so it is idempotent and safe on an abort path that does
+    // not know whether a session was ever opened. The LED matters most: it is
+    // the only thing here that stays lit and drawing current forever if a
+    // caller forgets, and the machine has no other way to notice.
+    setLED(false);
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
+    presenceLive = false;
+}
+
+// --- Live diagnostic read ---------------------------------------------------
+//
+// The contract, the cost table and the reason this may skip a wait scanSingle()
+// may not are all in ColorSensor.h. The short version: scanSingle() pays ~900 ms
+// because it re-selects the mux and re-lights the LED every call; a live read
+// holds both, so it only pays for what changed.
+
+void ColorSensor::invalidateLive() {
+    liveSensor = -1;
+    liveLedOn  = false;
+}
+
+int ColorSensor::readChannelRaw(int commandCode) {
+    // Deliberately no mux select here — liveRead() has already established the
+    // channel, and re-selecting per channel would put the mux writes back into
+    // the very loop this exists to make cheap.
+    Wire.beginTransmission(VEML6040_I2C_ADDRESS);
+    Wire.write(commandCode);
+    if (Wire.endTransmission(false) != 0) {   // repeated start, no stop
+        return -3;
+    }
+
+    int n = Wire.requestFrom((int)VEML6040_I2C_ADDRESS, 2);
+    if (n != 2) {
+        return -4;
+    }
+
+    // The VEML6040 returns little-endian 16-bit values.
+    uint16_t lsb = Wire.read();
+    uint16_t msb = Wire.read();
+    return (int)((uint16_t)((msb << 8) | lsb));
+}
+
+int ColorSensor::liveSettleMsFor(int sensorIdx) const {
+    if (sensorIdx < 0 || sensorIdx > 8) return 0;
+
+    const int window = integrationMsFor(getIntegrationIndex());
+
+    // The LED has to have been on for two windows whatever else is true: when
+    // it lights, the register still holds a window integrated in the dark and
+    // the window in progress is only partly lit, so the second complete window
+    // is the first honest one. Identical to presenceWarmupMs(), and for the
+    // identical reason — but charged only for the time not already elapsed,
+    // because a page reading its fourth sensor lit the LED long ago.
+    int ledDue = 2 * window;
+    if (liveLedOn) {
+        // Unsigned subtraction, so this stays correct across the millis()
+        // rollover.
+        uint32_t on = (uint32_t)(millis() - liveLedOnMs);
+        ledDue = (on >= (uint32_t)(2 * window)) ? 0 : (int)((uint32_t)(2 * window) - on);
+    }
+
+    // Moving to a different sensor: one window guarantees that what comes back
+    // was integrated entirely after the switch, so no window can be attributed
+    // to the wrong sensor. Staying on the same one costs nothing at all.
+    const int chanDue = (liveSensor == sensorIdx) ? 0 : window;
+
+    return (ledDue > chanDue) ? ledDue : chanDue;
+}
+
+int ColorSensor::liveRead(int sensorIdx, int rgbw[4], ColorReading* out) {
+    if (sensorIdx < 0 || sensorIdx > 8) return -1;
+
+    // Presence wins. A session is a state handler watching for the cube being
+    // lifted out; stealing its channel would make it read some other sensor
+    // and decide the cube had gone. Refusing is the only answer that cannot be
+    // mistaken for a measurement.
+    if (presenceLive) return -5;
+
+    // digitalWrite rather than setLED(), which invalidates the live session by
+    // design. This is the one place allowed to move the LED without doing so,
+    // because it is the thing keeping the record of when it moved.
+    if (!liveLedOn) {
+        digitalWrite(ledPin, HIGH);
+        liveLedOn   = true;
+        liveLedOnMs = millis();
+    }
+
+    // Computed before the select, so the warm-up clock is read once and the
+    // answer matches what the caller was told by liveSettleMsFor().
+    const int settle = liveSettleMsFor(sensorIdx);
+
+    if (liveSensor != sensorIdx) {
+        int muxIdx = muxOrder[sensorIdx] - 1;
+        int chan   = channelOrder[sensorIdx];
+
+        // Same idiom as scanSingle()/presenceSweep(): clear both muxes, then
+        // enable the one channel. Unlike scanSingle() nothing clears it again
+        // on the way out — that held selection is what makes the next call of
+        // the same sensor free.
+        multiplexers[0]->setChannelMask(0x00);
+        multiplexers[1]->setChannelMask(0x00);
+        multiplexers[muxIdx]->selectChannel(chan);
+        liveSensor = sensorIdx;
+    }
+
+    if (settle > 0) {
+        // Pumped, so the panel keeps refreshing and the abort chord is noticed
+        // mid-wait. An aborted wait returns after ~0 ms with the register still
+        // holding the pre-switch window — the wrong-but-plausible color
+        // scanSingle() bails rather than report.
+        if (!pumpDelay(settle)) {
+            // Unwind completely rather than just dropping the cache: an abort
+            // is the page going away, and this is the one exit that would
+            // otherwise leave a channel held and the LED lit with no one left
+            // to call liveEnd(). Same bail scanSingle() makes, same reason.
+            liveEnd();
+            return -2;
+        }
+    }
+
+    static const int kCmd[4] = { COMMAND_CODE_RED,  COMMAND_CODE_GREEN,
+                                 COMMAND_CODE_BLUE, COMMAND_CODE_WHITE };
+
+    // Read into a scratch array first: a fault partway through must leave the
+    // caller's rgbw[] untouched, holding the last good reading, rather than a
+    // half-updated mixture of two.
+    int v[4];
+    for (int k = 0; k < 4; ++k) {
+        v[k] = readChannelRaw(kCmd[k]);
+        if (v[k] < 0) {
+            // A bus fault means the mux state is no longer worth trusting; make
+            // the next call re-select and re-settle rather than read whatever
+            // answers next.
+            invalidateLive();
+            return v[k];            // -3 or -4, passed through unchanged
+        }
+    }
+
+    for (int k = 0; k < 4; ++k) rgbw[k] = v[k];
+
+    // Neither currentRGBW nor scanVals is written — see the header. A live
+    // reading must never be mistakable for scan data.
+    if (out) *out = classify(sensorIdx, rgbw);
+
+    return 0;
+}
+
+void ColorSensor::liveRelease() {
+    // Does NOT touch the LED, deliberately. A page alternating between the two
+    // boards must release this board's channel before reading the other (all
+    // four muxes are on one bus and every VEML answers at the same address),
+    // but dropping the LED as well would make it re-warm on the way back and
+    // charge two windows instead of one.
+    multiplexers[0]->setChannelMask(0x00);
+    multiplexers[1]->setChannelMask(0x00);
+    liveSensor = -1;
+}
+
+void ColorSensor::liveEnd() {
+    // Unconditional for the same reason as presenceEnd(): idempotent, safe on
+    // an abort path, and the LED must never be left lit.
+    liveRelease();
+    setLED(false);      // which also clears liveLedOn, via invalidateLive()
 }
 
 void ColorSensor::scanFace() {
@@ -321,7 +600,7 @@ int ColorSensor::checkSensorHealth(int sensorIdx) const {
     // A channel that reads identically zero for every real color is a dead
     // photodiode channel, not a legitimate measurement. Board 2 sensor 2 shows
     // exactly this on green across every archived calibration run, and nothing
-    // in software could previously see it: setColorCal only rejects negatives
+    // else checks for it: setColorCal only rejects negatives
     // and values above 65535, so 0 is "valid" and colorDistance computes
     // happily on two of three dimensions.
     for (int k = 0; k < 3; k++) {           // R, G, B — W is the divisor
@@ -350,8 +629,8 @@ ColorReading ColorSensor::classify(int sensorIdx, const int rgbw[4]) const {
 
     static const char colorChars[7] = { 'R', 'G', 'B', 'Y', 'O', 'W', 'E' };
 
-    // colorDistance divides by the white channel. A zero W makes every distance
-    // inf/NaN, which used to fall through to 'U' by accident; make it explicit.
+    // colorDistance divides by the white channel; a zero W makes every distance
+    // inf/NaN, so reject it explicitly.
     if (rgbw[3] <= 0) return r;
 
     int   best = -1,  second = -1;
@@ -389,9 +668,8 @@ ColorReading ColorSensor::classify(int sensorIdx, const int rgbw[4]) const {
     // Absolute test: is the reading even in the neighbourhood of a reference?
     //
     // Deliberately generous — see distanceFraction in the header. Requiring
-    // bestD <= sep (i.e. fraction 1.0) is unachievable in practice because
-    // run-to-run drift is roughly 70% of the separation itself, and it rejects
-    // most legitimate readings.
+    // bestD <= sep (i.e. fraction 1.0) refuses ~31% of correct readings,
+    // because run-to-run drift is roughly 70% of the separation itself.
     bool inRange = (bestD <= distanceFraction * sep);
 
     // Relative test: decisively closer to one reference than to the next?
@@ -570,14 +848,10 @@ bool ColorSensor::loadCalibration() {
 }
 
 bool ColorSensor::saveCalibration() {
-    // Write order matters. This function previously wrote the valid flag FIRST,
-    // then the data, then the flag again — so the table was marked good before
-    // a single value landed. Calibration takes tens of seconds and several
-    // physical cube rotations, so a power loss, reset or abort part-way through
-    // left a valid flag over a half-old / half-new table, and loadCalibration()
-    // happily returned true for it.
-    //
-    // Correct order: invalidate, write data, then validate.
+    // Write order matters: invalidate, write data, verify, then validate.
+    // Calibration takes tens of seconds and several physical cube rotations,
+    // so a power loss, reset or abort part-way through must not leave a valid
+    // flag over a half-old / half-new table that loadCalibration() would accept.
 
     // 1. Invalidate. Anything that reads the table from here until the final
     //    write will correctly conclude it is not calibrated.
@@ -593,10 +867,8 @@ bool ColorSensor::saveCalibration() {
         }
     }
 
-    // 3. Verify what actually landed before claiming success. The old code
-    //    ended with `return loadCalibration()`, which looked like a write
-    //    verify but only re-read the flag it had just written and copied the
-    //    values back into calVals[] without comparing anything.
+    // 3. Verify what actually landed before claiming success — re-reading via
+    //    loadCalibration() would only copy the values back without comparing.
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 7; j++) {
             for (int k = 0; k < 4; k++) {
@@ -619,9 +891,10 @@ bool ColorSensor::saveCalibration() {
 }
 
 void ColorSensor::resetCalibration() {
-    // Derived limits must be recomputed after ANY change to calVals — see the
-    // note in the header. resetCalibration/setColorCal/a failed saveCalibration
-    // all used to leave sensorSeparation describing the previous table.
+    // NOTE: sensorSeparation[] is NOT recomputed here (nor by setColorCal(), nor
+    // by a failed saveCalibration()); it is refreshed on the next successful
+    // loadCalibration()/saveCalibration(). Until then classify() is working from
+    // the previous table's limits.
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 7; j++) {
             for (int k = 0; k < 4; k++) {

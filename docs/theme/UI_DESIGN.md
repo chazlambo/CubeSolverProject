@@ -18,7 +18,6 @@ something that does not match — bake it instead.
 |---|---|
 | Design source of truth | `docs/theme/melee-menu-lvgl-preview.html` (native 320x240) |
 | Full-resolution master | `docs/theme/melee-menu-mockup.html` (1200x900) |
-| Original handoff spec | `docs/theme/MENU_THEME_HANDOFF.md` |
 | Asset baker | `Code/tools/bake_theme.py` |
 | Generated assets + fonts | `Code/libraries/CubeSolver/utility/` |
 | Generated placement constants | `Code/libraries/CubeSolver/utility/CubeThemeAssets.h` |
@@ -28,32 +27,64 @@ something that does not match — bake it instead.
 | Operation sequence shape | `Code/libraries/CubeSolver/CubeOpShape.cpp` |
 | Desktop simulator | `Code/sim/` — see its README |
 
-When the LVGL preview and the handoff doc disagree on a size, **the preview
-wins**; its numbers were tuned for this panel.
-
 ---
 
 ## 2. The visual language
 
 **The frame band is the identity.** One continuous band around the content,
-recolored to say what is going on. In a menu it takes the color of the
-**selected item** — moving the wheel recolors the whole frame. On an operation
-screen it takes the color of the operation. That color is the one piece of
-state readable from across the room, so it is worth keeping honest.
+recolored as you move. In a menu it takes the color of the **selected item** —
+turning the wheel recolors the whole frame. It is the one piece of state
+readable from across the room, so it is worth keeping honest.
 
-| Theme | Fill | Edge | Used for |
+**The color says WHERE YOU ARE, not what the machine is doing.** A branch of
+the menu tree is one color from the row that opens it, down through its
+submenus, and out through the operation screens that branch leads to. Yellow
+means "somewhere under Settings" whether you are reading About or watching a
+motor calibration sweep. This is the Melee menu the design is modelled on,
+where the whole Options branch is one color and the whole Trophies branch is
+another.
+
+| Theme | Fill | Edge | Branch |
 |---|---|---|---|
-| Green | `#14522A` | `#4ADE70` | main menus, solving, done |
-| Blue | `#1D2680` | `#6D7CF0` | scanning, the primary action |
-| Red | `#6E1A10` | `#F0603A` | Modes, stopped/error |
-| Violet | `#4A1A72` | `#AE6AF0` | calibration, eject |
-| Yellow | `#6E5A10` | `#E8CF3A` | settings, info screens |
-| Purple | `#33176E` | `#8A62E8` | stats, diagnostics |
+| Blue | `#1D2680` | `#6D7CF0` | main menu, Load & Scan, Solve — the main line of work. Also Demo Mode |
+| Red | `#6E1A10` | `#F0603A` | Modes, and Scramble Solve. Also every Error screen, always |
+| Green | `#14522A` | `#4ADE70` | Eject Cube. Also Patterns |
+| Yellow | `#6E5A10` | `#E8CF3A` | Settings and its entire subtree. Also Idle Mode |
+| Purple | `#33176E` | `#8A62E8` | Stats. Also Step Solve |
+| Violet | `#4A1A72` | `#AE6AF0` | no branch — kept for the Idle Mode cycle and for a future one |
 
-`CubeDisplay::OpKind` maps operations onto these: `Scan`→Blue, `Solve`/`Done`→
-Green, `Calibrate`→Violet, `Info`→Yellow, `Error`→Red.
+Modes is the branch that fans out: the screen is red, but each of the five
+modes owns a color and keeps it through its own operation screens. A running
+mode is somewhere you can be for minutes, and the five are five different
+things that happen to be filed together.
 
-**Typography** — four baked fonts, each with one job. Do not introduce a fifth
+**This replaced an older rule**, which was that the frame reported machine
+state — blue scanning, violet calibrating, green solving. The two schemes
+fought over one band: the menu already recolored by selection, so a solve
+launched from a blue row turned green for no reason the operator could see.
+Wayfinding won. `CubeDisplay::OpKind` still maps `Scan`→Blue, `Solve`/`Done`→
+Green, `Calibrate`→Violet, `Info`→Yellow, but that mapping is now only the
+fallback for a caller that has not named a branch.
+
+**Two exceptions, and only two.**
+
+- **`Error` is red, always**, overriding the branch. A fault has to be
+  unmistakable, red already means "stopped" everywhere in this machine, and a
+  blue solve that failed into a blue screen would say nothing went wrong.
+  Enforced in `CubeDisplay::setOpTheme()`, which refuses to repaint an Error
+  screen, rather than left to callers to remember.
+- **Idle Mode cycles all six colors**, one per move, on purpose: it is the
+  screen whose whole job is looking alive from across a room. Idle Mode's
+  *other* screens — the clamp, the solve it hands off to — wear its yellow.
+
+**How a screen gets its color.** `CubeSolver.ino` keeps `s_opTheme`, set in
+one place: `loop()` copies `CubeMenu::themeOf()` off the row under the cursor
+just before `Menu.handle()` runs it. Every operation screen goes through the
+sketch's `opScreen()` helper, which calls `showOperation()` and then
+`setOpTheme(s_opTheme)`. So a new screen inherits its branch's color by
+existing, and nothing in the sketch calls `showOperation()` directly.
+
+**Typography** — five baked fonts, each with one job. Do not introduce a sixth
 without a reason; each costs ~20-40 KB of flash.
 
 | Font | Face | Used for |
@@ -86,10 +117,10 @@ promised an interaction that was not there. Status belongs to chips, the
 progress bar, the status table or plain text. When something genuinely is a list
 of choices, bars are right and should be used.
 
-`docs/theme/SCREEN_PLAN.md` designs the screens that do not exist yet — Patterns,
-Idle, Step Solve, Cube State, Parameters and the rest — and ranks the shared
-pieces they are waiting on. Read it before designing a new screen; the one you
-want may already be sketched.
+`docs/theme/SCREEN_PLAN.md` records how every screen was designed — Patterns,
+Idle, Step Solve, Cube State, Parameters and the rest — and which shared pieces
+exist. Read it before designing a new screen or changing one; the piece you
+want may already be built.
 
 ---
 
@@ -121,7 +152,7 @@ These are not style preferences; exceeding them clips, ellipsises or collides.
 | Menu items per screen | **5** | `kVisibleRows`. The zigzag layout has five slots. A sixth wants a submenu, not a scrollbar. |
 | Menu caption | **~34 chars** | 182 px at Anton 11, else ellipsised. |
 | Preview entries | **5 max, ~13 chars** | `PREV_W` is 54 px; the pane is a perspective trapezoid whose right border sits near x=282, *not* at the asset's bounding box. |
-| Operation body rows | **6** | `kOpLines`, 216 px wide from x=52. |
+| Operation body rows | **7** | `kOpLines`, 216 px wide from x=52. Seven, because the machine has seven motor encoders. |
 | Calibration chips | **6 colors x 2 boards** | fixed by the hardware. |
 | Panel | **320x240, RGB565** | 16-bit color quantises; flat fills and clearly-separated colors hold up, near-neighbour gradients band. |
 
@@ -130,7 +161,7 @@ fewer start at y=76 with 29. `CubeDisplay::barBoxPos()` owns this.
 
 ---
 
-## 4. Five traps that cost real time
+## 4. Traps that cost real time
 
 ### 4.1 Running out of LVGL memory HALTS the machine, silently
 
@@ -143,7 +174,9 @@ the then-32 KB pool and the firmware hung at boot producing no output at all.
 
 **Rule:** after adding widgets, check the pool. `CubeDisplay::begin()` prints it
 over Serial once every widget exists; `M` in the simulator prints it live.
-Current: peak ~27 KB of 48 KB. Leave at least 8 KB free — a draw layer needs it.
+The pool is 64 KB (`LV_MEM_SIZE`); the boot line says how much the widget set
+takes — ~35 KB at the last raise. Leave at least 8 KB free — a draw layer needs
+it.
 
 ### 4.2 A8 images are copied into RAM; RGB565A8 is read from flash
 
@@ -243,13 +276,24 @@ Edit the table in `CubeSolver.ino`. Nothing else needs touching.
 
 ```c
 { "Label", &kScreenSub, nullptr, "Caption under 34 chars.",
-  kPrevSomething, 3, MenuTheme::Violet },
+  kPrevSomething, 3 },
 ```
 
 `submenu` **or** `action`, never both. `preview` non-null spells out what the
 submenu contains; leave it null for an item that starts an operation and the
-pane draws the placeholder plates instead. Omit `theme` to inherit the screen's.
-Three-field `{ label, submenu, action }` still compiles — the rest default.
+pane draws the placeholder plates instead. Three-field
+`{ label, submenu, action }` still compiles — the rest default.
+
+**Omit `theme` unless the item leaves its branch.** Inheriting the screen's is
+what keeps a branch one color by construction instead of by every row agreeing,
+and the color is now wayfinding (see §2). The tree names a theme in exactly
+three places: the top-level rows, the five Modes rows, and the Patterns rows —
+and the last of those are a preview device rather than a place, which is why
+`actPattern()` overrides `s_opTheme` back to the screen's green.
+
+If a `preview` list is edited, fix the item's `previewCount` and the screen's
+`count` in the same breath. They are parallel numbers, not derived ones, and a
+stale one either mislabels the pane or walks off the end of the table.
 
 ### Add a menu screen
 
@@ -263,10 +307,16 @@ tables reference each other.
 showOp(Op::Calibrate, "Servo Calibration", "Setting endpoints", "Do not touch");
 ```
 
+`showOp()` is `opScreen()` plus the flush; use `opScreen()` if you are about to
+decorate and want one repaint rather than two. Either way the frame comes out
+the color of the branch you are in — `kind` only names what sort of screen this
+is, and picks the fallback color if no branch has been set. Use `Op::Error`
+when, and only when, something has gone wrong: it pins the frame red.
+
 Then optionally decorate — these are separate calls because most screens want
 only one:
 
-- `cubeDisplay.setOpLines(rows, n)` — up to 6 rows. `"Label\tValue"` renders as
+- `cubeDisplay.setOpLines(rows, n)` — up to 7 rows (`kOpLines`). `"Label\tValue"` renders as
   an aligned pair; no tab means a full-width line.
 - `cubeDisplay.setOpSteps(labels, n, active, done)` — named steps drawn with the
   menu's own bar art. **Takes over from the headline**, which it hides.
@@ -303,7 +353,7 @@ coordinates.
 ## 7. Verifying
 
 The simulator runs the **real firmware** — the same `CubeDisplay`, the same
-`lv_conf.h`, the same 48 KB pool. Use it; do not design against the HTML.
+`lv_conf.h`, the same 64 KB pool. Use it; do not design against the HTML.
 
 ```sh
 cmake --build Code/sim/build -j && ./Code/sim/build/cubesim --scale 3
@@ -313,10 +363,11 @@ cmake --build Code/sim/build -j && ./Code/sim/build/cubesim --scale 3
 the LVGL pool. `C` toggles the cube state to reach both main menus. `F` arms a
 fault to reach the error screens.
 
-Driving it from a script has two traps, both documented in `Code/sim/README.md`:
-SDL creates more than one X window (take the **last** match), and buttons are
-level-sampled every 25 ms so a press must be **held**, not tapped. Kill leftover
-instances with `pkill -x cubesim` — `pkill -f cubesim` matches your own shell.
+Driving it from a script has three traps, all documented in `Code/sim/README.md`:
+SDL creates more than one X window (try each and keep the one that takes
+focus), buttons are level-sampled every 25 ms so a press must be **held**, not
+tapped, and focus drifts mid-run. Kill leftover instances with `pkill -x cubesim`
+— `pkill -f cubesim` matches your own shell.
 
 For a visual check, render the preview at 320x240 with headless Chrome and
 compare side by side. That is how the original port was validated to near
@@ -347,7 +398,7 @@ g++ -fsyntax-only -std=c++17 -DLV_CONF_INCLUDE_SIMPLE -ICode/sim/shim \
 |---|---|---|
 | Theme assets (flash) | ~565 KB | ~3.3 MB free after the solver's 4.14 MiB of tables |
 | Generated source | 3.7 MB of `.c` | committed, like the kociemba tables |
-| LVGL pool | ~27 KB peak | 48 KB (`LV_MEM_SIZE`) |
+| LVGL pool | ~35 KB after UI build (see the boot line) | 64 KB (`LV_MEM_SIZE`) |
 | Framebuffers (RAM) | ~195 KB | 1 MB on a Teensy 4.1 |
 
 Flash is plentiful, the LVGL pool is not. When adding widgets, prefer reusing

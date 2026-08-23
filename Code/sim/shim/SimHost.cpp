@@ -98,7 +98,6 @@ void shutdown() {
     g_ready = false;
 }
 
-bool ready()         { return g_ready; }
 bool quitRequested() { return g_quit;  }
 
 void pumpEvents() {
@@ -136,7 +135,7 @@ void pumpEvents() {
                 case SDLK_k: g_calToggle  = true; break;
                 case SDLK_m:
                     // LVGL heap report. The simulator builds against the
-                    // firmware's own lv_conf.h, so this is the Teensy's 32 KB
+                    // firmware's own lv_conf.h, so this is the Teensy's 64 KB
                     // pool, not the host's. Worth having a key for: LV_USE_LOG
                     // is 0, so a pool that fills up says nothing at all — it
                     // just silently stops drawing whatever it could not fit.

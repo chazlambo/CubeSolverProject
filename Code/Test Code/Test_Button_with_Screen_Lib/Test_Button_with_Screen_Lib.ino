@@ -125,7 +125,9 @@ void setup()
 
     // ------------------------ CUBE SYSTEM INIT ------------------------
     Serial.println("Initializing CubeSystem (includes menuEncoder.begin())...");
-    Cube.begin();
+    // kNoDisplay: this sketch owns the panel — see Test_Scan_Solve_Screen for
+    // what happens when the library's display is brought up alongside it.
+    Cube.begin(CubeSystem::kNoDisplay);
 
     last_raw_pos = menuEncoder.getPosition();
 

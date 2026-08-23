@@ -31,10 +31,9 @@
 //
 // WHERE IT SITS IN EEPROM
 // -----------------------
-// Appended after the fault log. initializeEEPROMLayout() hands out addresses
-// sequentially, so nothing may ever be inserted above this block — that would
-// quietly reinterpret an existing machine's calibration. Anything added later
-// is appended after it, for the same reason.
+// Appended after the fault log by initializeEEPROMLayout(), which hands out
+// addresses sequentially — so nothing may ever be inserted above an existing
+// block (that would silently shift a calibrated machine's data).
 
 #ifndef CubeStats_h
 #define CubeStats_h

@@ -25,8 +25,9 @@
 #  RGB565/RGB565A8 are read in place from flash and cost no RAM. Alpha-only
 #  formats take a different branch: decode_alpha_only() calls lv_draw_buf_create
 #  and copies the whole image into a fresh w*h RAM buffer. A 255x194 A8 band is
-#  49 KB against this project's 32 KB LV_MEM pool, so it fails to allocate — and
-#  with LV_USE_LOG at 0, it fails *silently* and simply never appears.
+#  49 KB against this project's 64 KB LV_MEM pool, ~35 KB of which the widget
+#  set already holds, so it fails to allocate — and with LV_USE_LOG at 0, it
+#  fails *silently* and simply never appears.
 #
 #  RGB565A8 costs 3 bytes per pixel instead of 1, which is the whole reason the
 #  asset total is ~570 KB rather than ~350 KB. On a Teensy 4.1 that is flash
@@ -58,13 +59,12 @@ REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 # other subdirectory are silently ignored — the sketch would build, then fail
 # to link against every asset here.
 OUT = os.path.join(REPO, "Code", "libraries", "CubeSolver", "utility")
-ASSETS = OUT
 
 # ---------------------------------------------------------------------------
 #  Geometry, mirrored from the LVGL preview's <script>.
 #
-#  The preview is authoritative on sizes (the handoff says so explicitly: its
-#  numbers were readability-tuned for this panel). Keep these in step with it.
+#  The preview is authoritative on sizes: its numbers were readability-tuned
+#  for this panel. Keep these in step with it.
 # ---------------------------------------------------------------------------
 LX, LY = 320, 240
 MASTER_W, MASTER_H = 1200, 900      # the master mockup's coordinate space
@@ -250,8 +250,8 @@ def emit_rgb565a8(name, img):
 
 
 def _write(name, body):
-    os.makedirs(ASSETS, exist_ok=True)
-    with open(os.path.join(ASSETS, f"{name}.c"), "w") as f:
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, f"{name}.c"), "w") as f:
         f.write(body)
 
 
@@ -425,7 +425,7 @@ def bake_fonts(tmp):
         subprocess.run(["curl", "-sL", url, "-o", dst], check=True, timeout=180)
 
     for name, ttf, size, what in FONTS:
-        out = os.path.join(ASSETS, f"{name}.c")
+        out = os.path.join(OUT, f"{name}.c")
         print(f"  {name}: {ttf} @ {size}px  ({what})")
         subprocess.run(
             ["npx", "-y", "lv_font_conv@1.5.3",
@@ -518,7 +518,7 @@ def main():
     ap.add_argument("--no-images", action="store_true", help="skip image rasterization")
     args = ap.parse_args()
 
-    os.makedirs(ASSETS, exist_ok=True)
+    os.makedirs(OUT, exist_ok=True)
     write_progmem()
 
     manifest = []

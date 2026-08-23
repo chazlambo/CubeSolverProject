@@ -82,7 +82,6 @@ public:
     bool startsWith(const String& t) const {
         return s_.size() >= t.s_.size() && s_.compare(0, t.s_.size(), t.s_) == 0;
     }
-    bool equals(const String& o) const { return s_ == o.s_; }
     int  toInt() const { return std::atoi(s_.c_str()); }
 
     String& operator+=(const String& o) { s_ += o.s_; return *this; }
@@ -93,8 +92,6 @@ public:
     bool operator!=(const String& o) const { return s_ != o.s_; }
     bool operator==(const char* o)   const { return s_ == (o ? o : ""); }
     bool operator!=(const char* o)   const { return s_ != (o ? o : ""); }
-
-    const std::string& std_str() const { return s_; }
 
 private:
     std::string s_;
@@ -114,7 +111,6 @@ public:
     void flush() { std::fflush(stdout); }
     int  available() { return 0; }
     int  read()      { return -1; }
-    int  peek()      { return -1; }
     operator bool() const { return true; }
 
     void print(const char* s)      { std::printf("%s", s ? s : ""); }
@@ -152,7 +148,6 @@ extern SerialSim Serial;
 //  Core functions
 // ---------------------------------------------------------------------------
 unsigned long millis();
-unsigned long micros();
 
 // delay() pumps the SDL event queue.
 //
@@ -167,7 +162,6 @@ void delayMicroseconds(unsigned long us);
 void pinMode(int pin, int mode);
 void digitalWrite(int pin, int value);
 int  digitalRead(int pin);
-int  analogRead(int pin);
 
 long random(long max);
 long random(long min, long max);
@@ -177,6 +171,14 @@ inline long map(long x, long inMin, long inMax, long outMin, long outMax) {
     if (inMax == inMin) return outMin;
     return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
-inline long constrain(long x, long lo, long hi) { return x < lo ? lo : (x > hi ? hi : x); }
+
+// Teensy 4 memory-placement attributes. The firmware uses DMAMEM to keep large
+// display buffers out of RAM1, where they compete with ITCM code. The desktop
+// has one flat address space and no such split, so these collapse to nothing —
+// which is also why the simulator cannot catch a RAM1 overflow. Only a real
+// Teensy link can.
+#ifndef DMAMEM
+#define DMAMEM
+#endif
 
 #endif // ARDUINO_H_SIM

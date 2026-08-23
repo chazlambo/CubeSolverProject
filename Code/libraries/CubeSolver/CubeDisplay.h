@@ -9,6 +9,31 @@
 #include "CubeMenu.h"                  // MenuScreen / MenuItem / MenuTheme / MenuNav
 #include "utility/CubeThemeAssets.h"   // baked images and fonts
 
+// How pixels get from LVGL to the glass.
+//
+// 0 (default): SYNCHRONOUS. Every LVGL flush is written straight to the panel
+//   as one exact CASET/PASET window, blocking until it is on the wire. No
+//   internal framebuffer, no diff buffers, no DMA, no interrupt chain. LVGL's
+//   own invalidation already limits each flush to what changed, so this is the
+//   differential update the other mode promises, done by the part that knows
+//   what changed. A whole frame costs ~125 ms at 10 MHz; a menu step a fraction.
+//
+// 1: ASYNC DMA. The driver's double-buffered differential mode: a 150 KB
+//   mirror of the glass, two diff buffers, uploads streamed by DMA from an
+//   interrupt chain while the CPU carries on. Faster, and the mode this
+//   firmware ran in until the bench showed, boot after boot, the glass holding
+//   the PREVIOUS frame in large contiguous chunks — or coloured snow — while
+//   the driver believed the new one had been sent. Three rounds of fixes inside
+//   that mode (a boot-frame wait, a forced full re-send, ordering changes) did
+//   not cure it and the driver's code gives no reason it should fail, which
+//   points at the wire: this board runs the driver at 10 MHz with a custom
+//   motherboard between Teensy and panel, and the DMA path toggles DC through
+//   the SPI chip-select logic between every chunk. Mode 0 takes all of that
+//   out of the loop. Flip this to 1 only to compare the two on the bench.
+#ifndef CUBE_DISPLAY_ASYNC_DMA
+#define CUBE_DISPLAY_ASYNC_DMA 0
+#endif
+
 class CubeDisplay {
 public:
     CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset, 
@@ -24,9 +49,22 @@ public:
     // band, the same title position, the same description box as a hint bar —
     // so an operation does not look like a different program.
     //
-    // The frame color says what kind of thing is happening at a glance, which
-    // is the one piece of information an operator across the room can still
-    // read.
+    // The frame color is WAYFINDING, not machine state.
+    //
+    // It used to be the latter — blue meant scanning, violet meant calibrating
+    // — and that fought the menu, which recolors the frame to the selected
+    // item's theme. Two schemes, one band. The menu won: a branch of the tree
+    // keeps its color all the way through the operation screens it leads to,
+    // so a yellow frame means "you are somewhere under Settings" whether you
+    // are reading About or watching a motor calibration sweep. The sketch says
+    // which branch it is in with setOpTheme(); OpKind is the fallback for a
+    // caller that has not, and it still names what KIND of screen this is for
+    // anything that wants to decorate by kind.
+    //
+    // Error is the one exception, and it is enforced here rather than trusted
+    // to callers: an Error screen is red whatever branch it happened in. Red
+    // means "stopped" everywhere in this machine, and a blue solve that fails
+    // into a blue screen would say nothing went wrong.
     enum class OpKind : uint8_t { Info, Scan, Solve, Calibrate, Done, Error };
 
     // The base screen. headline is the large line; hint fills the description
@@ -34,19 +72,15 @@ public:
     void showOperation(OpKind kind, const char* title,
                        const char* headline, const char* hint = nullptr);
 
-    // Recolor the frame without disturbing anything on the screen. For an
-    // operation that changes character partway through — a scramble becoming a
-    // solve — where calling showOperation() again would clear the progress bar
-    // and flicker. The frame is the state, so the state has to be able to move.
-    void setOpKind(OpKind kind);
-
     // Recolor the frame directly, bypassing the OpKind mapping.
     //
-    // OpKind exists so a frame color MEANS something — blue is scanning, red is
-    // stopped — and going through it is right for every screen that is doing a
-    // job. Idle Mode is the one that is not: it cycles all six colors slowly to
-    // look alive, and mapping that through OpKind would both misreport what the
-    // machine is doing and be unable to reach Purple, which no kind maps to.
+    // This is the normal way an operation screen gets its color: the sketch
+    // knows which branch of the menu the operator came down, and that branch's
+    // theme is what the frame should carry for as long as they are in it. It
+    // also reaches Purple and Green-as-a-branch, which no OpKind maps to.
+    //
+    // Ignored on an Error screen, deliberately — see OpKind above. A caller
+    // that wants a red screen recolored has to draw a different screen.
     void setOpTheme(MenuTheme theme);
 
     // Body rows under the headline, for the screens that are mostly text.
@@ -60,10 +94,38 @@ public:
     // What a status row's value is saying. Plain is the default; the rest tint
     // the value half so a checklist can be read by color before it is read by
     // word — which is the whole point of a checklist you watch running.
-    enum class RowMark : uint8_t { Plain, Good, Bad, Busy };
+    //
+    // Tuned is the tuning editor's: "this value is not the compiled default".
+    // It is amber rather than the yellow that was first asked for because Busy
+    // — the cursor — is already a yellow, and a page where the cursor row and
+    // the changed rows were the same color would say nothing about either.
+    // Busy still wins on the row under the cursor, as it does for every mark.
+    enum class RowMark : uint8_t { Plain, Good, Bad, Busy, Tuned };
 
+    // What a status row's value IS, when it is a state rather than a number.
+    // Off and On replace the value column with an unlit or lit block; Text,
+    // the default, leaves it as whatever followed the tab.
+    //
+    // Deliberately PARALLEL to RowMark rather than folded into it. RowMark
+    // answers "what color is this row", this answers "what is drawn in its
+    // value column", and the two compose — the jog page's cursor row is Busy
+    // and may also be lit, and a motor-enable row can be Bad and lit at once.
+    // Two more RowMark values would have made those mutually exclusive, so a
+    // row that lit up would silently lose the cursor, and would have quietly
+    // changed what every existing marks[] array means.
+    //
+    // The block is the chip vocabulary this theme already uses for status, at
+    // row size, so it cannot be mistaken for bar art. Off still DRAWS its
+    // outline: an empty cell reads as a broken row, not as "not pressed".
+    enum class RowValue : uint8_t { Text, Off, On };
+
+    // marks[] and values[] are both optional and both indexed by row. A row
+    // whose value is Off or On does not show its text value at all — two
+    // things in one column is how a row stops being scannable — so such a row
+    // may be written with an empty value ("SELECT\t") or with no tab at all.
     void setOpLines(const char* const* lines, int count,
-                    const RowMark* marks = nullptr);
+                    const RowMark* marks = nullptr,
+                    const RowValue* values = nullptr);
 
     // The six cube faces as a row of chips, each showing the color actually
     // read from that face's centre sticker, hollow until it has been. `active`
@@ -90,9 +152,46 @@ public:
                       int count, int active, int y);
 
     // Per-board color capture for the sensor calibration, as two rows of six
-    // chips. bits[b] holds one bit per color in kChipOrder, low bit first.
-    static const int kChipCount = kChipMax;
+    // chips. bits[b] holds one bit per color in kChipColors' order (W Y R O
+    // G B), low bit first.
     void setOpChips(const uint8_t* bits, int boards);
+
+    // Two captioned groups of nine cells, each drawn as a 3x3 — the shape of
+    // a color board itself. Eighteen sensors in one strip has to be counted
+    // along; two 3x3s are pointed at, which is the whole difference between
+    // "sensor 14" and "that one, bottom right of board 2".
+    //
+    // A THIRD chip system is exactly what this is not: it reuses the same
+    // chip[][] objects setOpChips() and setOpFaces() borrow — chip[0][0..8]
+    // is group A and chip[1][0..8] is group B — and lbl_chipRow[b] as the
+    // group caption. Nothing is created for it. Every one of the three
+    // layouts sets size, position and caption on each call, because they
+    // share the objects and none may inherit another's geometry.
+    //
+    // cells[] holds a chip color index (0..5) or one of the sentinels below;
+    // pass nullptr for a group to hide it. `cursor` is 0..17 across BOTH
+    // groups — the numbering a caller with eighteen sensors already has — or
+    // -1 for none. The cursor's group brightens its caption, so which board
+    // is being pointed at is readable without finding the cell first.
+    //
+    // It owns the WHOLE body — y 54 to 192, which is everything between the
+    // title and the hint bar. Open the screen with a null headline and put
+    // what the status rows would have said in the group captions; a headline,
+    // a sub-line or setOpLines() rows on the same screen draw straight
+    // through it.
+    static const int kGridCells = 9;
+
+    // Not read yet, and read but unusable. Both have to be distinguishable
+    // from all six sticker colors AND from each other, because "we have not
+    // asked this sensor yet" and "this sensor answered nonsense" are opposite
+    // conclusions: unread is a hollow outline, faulty is a filled dark cell
+    // with a red edge. Anything else negative is treated as unread.
+    static const int8_t kCellUnread = -1;
+    static const int8_t kCellFault  = -2;
+
+    void setOpGrid(const char* capA, const int8_t* cellsA,
+                   const char* capB, const int8_t* cellsB,
+                   int cursor = -1);
 
     // A color letter as the sensors and the virtual cube use them
     // ('W','Y','R','O','G','B') mapped to an index into the chip palette, or
@@ -135,22 +234,42 @@ public:
     void setOpDial(int value, int lo, int hi,
                    const char* centre, const char* caption);
 
+    // "This row is armed" — you have taken control of it and the next move
+    // goes to the machine. A small reverse-video badge at the top right,
+    // breathing slowly so it reads as a live state rather than as furniture.
+    //
+    // Non-color ON PURPOSE. Arming used to turn the frame yellow; the frame
+    // is wayfinding now and the whole Settings subtree — where every screen
+    // that can arm anything lives — is already yellow, so that signal moves
+    // nothing. A shape that appears and a motion that continues survive any
+    // frame color, including the one they sit on. It is not bar art: it is a
+    // chip-shaped badge, which in this theme means status.
+    //
+    // `label` is the word, short — about 8 characters at this face. nullptr
+    // or "" clears it, as does any showOperation(), so a screen that has not
+    // asked to be armed cannot inherit somebody else's badge. Calling it
+    // repeatedly with the badge already up only swaps the text; the breath is
+    // not restarted, so a page that repaints on a tick does not stutter.
+    //
+    // It sits on the TITLE's line, right-aligned to the same x=268 the status
+    // rows end at, which is the one strip of an operation screen that is
+    // always clear. A title long enough to reach x=212 would run under it.
+    void setOpArmed(const char* label);
+
     // Drop any of the decorations above.
     void clearOpExtras();
 
+
     // ---- Message screen -------------------------------------------------
     //
-    // The original two-label API. Calling either of these switches the panel
-    // back to message mode, so every existing caller in CubeSystem (the scan
-    // progress text, the calibration prompts, the error screens) keeps working
-    // unchanged and correctly takes the panel away from the menu.
+    // The two-label API CubeSystem's progress text, calibration prompts and
+    // error screens use. Either call switches the panel back to message mode,
+    // so a call from deep inside an operation takes the panel away from the
+    // menu; with an operation screen already up it only replaces that
+    // screen's headline or sub-line.
     void setMessage(const char* msg);
     void setStatus(const char* msg);
     void clearStatus();
-
-    // Message screen with an explicit title bar and footer hint. Passing
-    // nullptr for title or footer hides that element.
-    void showMessage(const char* title, const char* body, const char* footer = nullptr);
 
     // ---- Menu screen ----------------------------------------------------
     //
@@ -175,6 +294,11 @@ public:
                   MenuNav                nav = MenuNav::None);
 
     void update();  // Call lv_task_handler()
+
+    // Re-send every pixel on the next update(). ~125 ms at 10 MHz. Call it once
+    // the boot actuators have stopped and on each return to the menu; in the
+    // async DMA mode it also makes the driver forget its mirror of the glass.
+    void repaintAll();
 
     // Utility methods
     void waitForSelect(const char* msg);
@@ -234,8 +358,10 @@ private:
     lv_obj_t* box_desc;
     lv_obj_t* lbl_desc;
 
-    // All five bars share one parent so a screen transition can move them as a
-    // group without touching each in turn.
+    // All five bars and the cursor furniture share one parent so a mode change
+    // can show or hide them at once. The wheel does NOT move the group — a
+    // transformed container is a layer the pool cannot hold (see startWheel()),
+    // so placeBarsAt() moves each bar on its own.
     lv_obj_t* menuGroup;
     lv_obj_t* barBox[kRows];
     lv_obj_t* img_bar[kRows];
@@ -249,12 +375,12 @@ private:
     lv_obj_t* img_sonar[2];
 
     // ---- Operation-screen widgets ---------------------------------------
-    // Deliberately few: the headline and sub-line reuse lbl_msg / lbl_status,
-    // the hint bar reuses box_desc, and the step rows reuse the menu's bars.
-    // Only the body rows and the calibration chips are new.
+    // Only what the menu has no equivalent for: the headline and sub-line
+    // reuse lbl_msg / lbl_status and the hint bar reuses box_desc.
     lv_obj_t* lbl_line[kOpLines];
     lv_obj_t* lbl_lineVal[kOpLines];
-    lv_obj_t* chip[2][kChipCount];
+    lv_obj_t* row_dot[kOpLines];       // the boolean block, in place of a value
+    lv_obj_t* chip[2][kChipMax];
     lv_obj_t* lbl_chipRow[2];
     lv_obj_t* lbl_faceCap[kChipMax];
     lv_obj_t* lbl_ribbon[kRibbonSlots];
@@ -266,6 +392,7 @@ private:
     lv_obj_t* img_net;
     lv_obj_t* lbl_netFace[6];
     lv_obj_t* img_prevNet;      // the same net, pane-sized, for menu previews
+    lv_obj_t* badge_armed;      // the ARMED badge; its only child is its label
 
     lv_style_t white_style;
 
@@ -277,7 +404,7 @@ private:
     //
     // Widgets are created ONCE in begin() and shown/hidden, never created and
     // deleted per screen. Churning LVGL objects at menu speed fragments the
-    // 32 KB LV_MEM pool configured in lv_conf.h, and the failure mode of that
+    // 64 KB LV_MEM pool configured in lv_conf.h, and the failure mode of that
     // pool filling up is silent (LV_USE_LOG is 0).
     enum class Mode : uint8_t { None, Message, List };
     Mode mode;
@@ -287,12 +414,22 @@ private:
     // as far as the menu widgets are concerned.
     bool opActive;
 
+    // What the live operation screen was drawn as. Kept only so setOpTheme()
+    // can refuse to recolor an Error screen; nothing else reads it.
+    OpKind opKind;
+
     void setMode(Mode m);
     void buildUi();
 
     // ---- themed menu internals -------------------------------------------
     void buildTheme(lv_obj_t* scr);
     void buildOpUi(lv_obj_t* scr);
+
+    // The ONLY way the screen title is set. Picks the largest Anton that fits
+    // the frame's notch on one line and keeps the baseline steady across the
+    // two sizes — see the comment on the definition. Every path that shows a
+    // title goes through here, so no caller has to know the notch exists.
+    void setTitleText(const char* title);
     void applyTheme(MenuTheme t);
     static MenuTheme themeForKind(OpKind kind);
     void setPreview(const MenuItem* item);
@@ -311,14 +448,15 @@ private:
     // None of them transform a CONTAINER, and that is a hard constraint rather
     // than a style: a transformed object is rendered through a layer, LVGL
     // allocates the whole layer up front for a transform, and even one bar box
-    // (167x56 at 16bpp, ~19 KB) does not fit what is left of the 32 KB pool.
+    // (167x56 at 16bpp, ~19 KB) does not fit what is left of the 64 KB pool.
     // Transformed *images* are different — they stream through a small bounded
     // buffer — so the wheel moves each bar along its arc instead of rotating a
     // group. See the note above startWheel().
     void startCursorAnims();
     void placeBarsAt(float deg, int rows, lv_opa_t opa);
-    void startWheel(int8_t dir);
+    void startWheel();
 
+    static void armedExec(void* var, int32_t v);
     static void sonarExec(void* var, int32_t v);
     static void commaExec(void* var, int32_t v);
     static void detailExec(void* var, int32_t v);
@@ -339,7 +477,7 @@ private:
     // What is on the panel right now, so the outgoing half of a transition
     // knows how many bars to sweep. Zeroed whenever the menu loses the panel,
     // which is what stops an operation screen handing back into an animation.
-    int8_t            curRows, curSel;
+    int8_t            curRows;
     bool              transitioning;
 
     // Screen position of a bar's box, for `rows` items on screen. The row

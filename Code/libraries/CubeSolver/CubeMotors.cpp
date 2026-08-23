@@ -2,26 +2,46 @@
 #include "CubePump.h"
 
 
-// Run a MultiStepper move to completion while servicing the cooperative pump.
+// FACE-MOTOR MOVES ARE DELIBERATELY UNPUMPED.
 //
-// MultiStepper::runSpeedToPosition() is a blocking loop over run(); this is the
-// same loop with a pump call, so it is behaviourally identical to the stepper
-// but leaves no blind window. That matters more than it sounds: a half turn is
-// 200 steps at 1000 steps/s = 200 ms, and pumpTick() treats a >200 ms poll gap
-// as "we were blind, restart the hold timer" — so with the blocking version the
-// SELECT-held abort gesture could never accumulate its 1 s during a solve
-// containing half turns. Measured before this change: a 20-move solution with
-// SELECT held for 5.2 s never fired the abort.
+// Pumping them was tried on the bench and removed: pumpOnce() every 5 ms
+// triggers a seesaw I2C poll every 25 ms (~1 ms at 100 kHz), and at
+// 1000 steps/s that steals a step's worth of time ~40 times a second through
+// every turn — an audible growl and visible roughness on the machine's core
+// mechanic. Turning a face cleanly outranks noticing the abort chord a move
+// earlier, especially since between-move is the only mechanically safe place
+// to act on an abort anyway (see executeSolve()). The chord still accumulates
+// across moves: pumpTick()'s blind-gap threshold (400 ms) is sized above the
+// longest face move.
 //
-// It also unfreezes the display DURING the move rather than only after it.
-static void runPumped(MultiStepper &ms) {
+// The RING is the exception and keeps its pumped loop below: its travel is
+// ~2.8 s (a dead panel and an unheard chord for the whole stretch), it ramps
+// through an acceleration profile that masks millisecond-scale jitter, and it
+// is not part of the solve's move train.
+//
+// The simulator cannot show any of this — its ring is a pumpDelay() and its
+// steppers are free — so this trade has to be read here, not there.
+//
+// runToNewPosition() is moveTo() followed by run-until-done, so this is that
+// with the pump spliced into the loop. It does NOT abort the move: pumpOnce()
+// only keeps the display refreshing and lets the chord accumulate its hold, so
+// the gesture is noticed by whatever checks abortPending() next — a ring
+// stopped halfway is a ring in an unknown position, which is worse than one
+// that finishes.
+static void runPumpedSingle(AccelStepper &st, long newPos) {
+    const bool wasMotionOnly = pumpMotionOnly;
+    pumpMotionOnly = true;
+
+    st.moveTo(newPos);
     unsigned long lastPump = millis();
-    while (ms.run()) {
+    while (st.run()) {
         if (millis() - lastPump >= 5) {
             lastPump = millis();
             pumpOnce();
         }
     }
+
+    pumpMotionOnly = wasMotionOnly;
 }
 
 // Constructor 
@@ -61,19 +81,40 @@ void CubeMotors::begin() {
 }
 
 void CubeMotors::enableMotors() {
+    // The dwell applies only to a REAL off->on edge. Every move calls this
+    // first, and with the hold latch set the drivers are already on, so a
+    // dwell on every call would silently add to every move in a held train.
+    const bool wasOff = (motEnableState != 0);
     motEnableState = 0;
     digitalWrite(EN_PIN, motEnableState);
+    if (wasOff && enableDwellMs > 0) {
+        delay(enableDwellMs);           // blocking on purpose: same argument as
+                                        // the settle in executeMove()
+    }
 }
 
 void CubeMotors::disableMotors() {
+    // A no-op while held — see holdBegin(). The callers that disable are
+    // executeMove(), ringMove(), the aligner's exits and spinEnd()'s owner;
+    // none of them know whether they are inside someone else's move train,
+    // and that is the point: the owner of the train decides, once.
+    if (motHeld) return;
     motEnableState = 1;
     digitalWrite(EN_PIN, motEnableState);
 }
 
 void CubeMotors::homeRingStepper(AccelStepper &ringStep) {
     enableMotors();
-    ringStep.runToNewPosition(ringExtPos);
-    ringStep.runToNewPosition(ringRetPos);
+    // Pumped for the ABORT WATCH, not for the panel. Homing is the longest
+    // single move the machine makes, and CubeSystem::begin() registers the
+    // pump before cubeMotors.begin() so the chord can still be heard
+    // through it.
+    //
+    // The display genuinely IS frozen for this stretch — runPumpedSingle()
+    // sets pumpMotionOnly, which is the whole point: an LVGL render inside
+    // a step loop steals the time the steps need.
+    runPumpedSingle(ringStep, ringExtPos);
+    runPumpedSingle(ringStep, ringRetPos);
     disableMotors();
 
     ringState = 0;
@@ -110,27 +151,20 @@ void CubeMotors::ringMove(int state) {
             return;
     }
     
-    // Mark the state unknown IN EEPROM before moving, not just in RAM.
-    //
-    // The `ringState = -1` line below always had the right intent ("so it will
-    // rehome if turned off midway") but only ever touched the RAM copy, which
-    // is lost on power-off. EEPROM kept the previous — now wrong — state for
-    // the entire ~2.8 s of travel. Lose power mid-move and initRingStepper()
-    // trusts it: for the retracted case it calls setCurrentPosition() without
-    // moving, so a ring physically halfway out is believed to be at zero, and
-    // the next extend travels half the distance and stops short while
-    // reporting success.
-    //
-    // CubeServo already does this correctly (writes -1 before sweeping); the
-    // ring simply was not updated to match.
+    // Mark the state unknown IN EEPROM before moving, not just in RAM. The RAM
+    // copy is lost on power-off, and a stale EEPROM state is trusted by
+    // initRingStepper(): for the retracted case it calls setCurrentPosition()
+    // without moving, so a ring physically halfway out is believed to be at
+    // zero and the next extend stops short while reporting success. Same
+    // discipline as CubeServo, which writes -1 before every sweep.
     ringState = -1;
     EEPROM.put(ringStateEEPROMAddress, ringState);  // persist "in motion" BEFORE moving
 
     enableMotors();                         // Enable motors
-    ringStepper.runToNewPosition(newPos);   // Move ring to
+    runPumpedSingle(ringStepper, newPos);   // Move ring to — pumped, see above
     ringPos = newPos;                       // Update position variable
     disableMotors();                        // Disable motors
-    delay(20);                              // settle before the EEPROM write
+    pumpDelay(20);                          // settle before the EEPROM write
 
     ringState = state;                      // Update state variable
     EEPROM.put(ringStateEEPROMAddress, ringState); // Update state in EEPROM
@@ -143,6 +177,65 @@ void CubeMotors::ringToggle() {
     newRingState = 0;
   }
   ringMove(newRingState);
+}
+
+void CubeMotors::applyStepSpeed() {
+    for (int i = 0; i < 6; ++i) {
+        AccelStepper* st = stepperFor(i);
+        if (st) st->setMaxSpeed(stepSpeed);
+    }
+}
+
+void CubeMotors::applyRingMotion() {
+    ringStepper.setMaxSpeed(ringStepSpeed);
+    ringStepper.setAcceleration(ringStepAccel);
+}
+
+AccelStepper* CubeMotors::stepperFor(int idx) {
+    switch (idx) {
+        case 0: return &upStepper;
+        case 1: return &rightStepper;
+        case 2: return &frontStepper;
+        case 3: return &downStepper;
+        case 4: return &leftStepper;
+        case 5: return &backStepper;
+        default: return nullptr;
+    }
+}
+
+void CubeMotors::spinBegin(int motorIdx, float stepsPerSec) {
+    spinEnd();                       // idempotent; never hold two at once
+    spinStepper = stepperFor(motorIdx);
+    if (!spinStepper) return;
+    spinIdx  = motorIdx;
+    spinBase = spinStepper->currentPosition();
+
+    // setSpeed() is clamped to maxSpeed, so raise the ceiling first or a slow
+    // spin silently becomes no spin. Restored in spinEnd().
+    if (stepsPerSec < 1.0f) stepsPerSec = 1.0f;
+    spinStepper->setMaxSpeed(stepsPerSec);
+    spinStepper->setSpeed(stepsPerSec);
+}
+
+long CubeMotors::spinService() {
+    if (!spinStepper) return 0;
+    // runSpeed() steps only when the interval has elapsed, so calling it more
+    // often costs nothing and calling it late just delays one step rather than
+    // bunching several.
+    spinStepper->runSpeed();
+    return spinStepper->currentPosition() - spinBase;
+}
+
+void CubeMotors::spinEnd() {
+    if (!spinStepper) return;
+    // Hand the real position back to the pos[] MultiStepper works from. The
+    // stepper moved without this class being told, so without it the next
+    // moveTo() would compute its distance from a stale D.
+    pos[spinIdx] = spinStepper->currentPosition();
+    spinStepper->setMaxSpeed(stepSpeed);   // undo the ceiling spinBegin() lowered
+                                           // (same value applyStepSpeed() gives the other five)
+    spinStepper = nullptr;
+    spinIdx     = -1;
 }
 
 long CubeMotors::getPos(int posIdx){
@@ -158,7 +251,7 @@ void CubeMotors::moveTo(long newPos[6]){
         pos[i] = newPos[i];  // Update internal pos
     }
     multiStep.moveTo(pos);
-    runPumped(multiStep);   // blocking, but pumped — see runPumped()
+    multiStep.runSpeedToPosition();  // Blocking, unpumped — see the note at the top of this file
 }
 
 void CubeMotors::resetMotorPos(){
@@ -235,19 +328,54 @@ void CubeMotors::executeMove(String moveString) {
 
     // Move Steppers to position
     enableMotors();
-    multiStep.moveTo(pos);
-    runPumped(multiStep);
+    if (stepAccel > 0) {
+        runRamped();
+    } else {
+        multiStep.moveTo(pos);
+        multiStep.runSpeedToPosition();
+    }
 
     // Settle before torque is removed. Deliberately NOT pumpDelay: an aborted
-    // pumpDelay returns in ~0 ms, which would strip the 50 ms settle and
-    // de-energise six steppers immediately after an abrupt stop with a clamped
-    // cube's inertia still in the mechanism — strictly worse than blocking.
+    // pumpDelay returns in ~0 ms, which would strip the settle and de-energise
+    // six steppers immediately after an abrupt stop with a clamped cube's
+    // inertia still in the mechanism — strictly worse than blocking.
     delay(stepDelay);
     disableMotors();
-    delay(stepDelay);       // decay time; see note above
+}
 
-    
+void CubeMotors::runRamped() {
+    // Unpumped, like the MultiStepper path, and for the same reason (see the
+    // note at the top of this file).
+    AccelStepper* moving[6];
+    int n = 0;
+    for (int i = 0; i < 6; ++i) {
+        AccelStepper* st = stepperFor(i);
+        if (!st || st->currentPosition() == pos[i]) continue;
 
+        // Reset the profile state before EVERY ramped move. MultiStepper's
+        // moveTo() — which the alignment loop uses between face moves — leaves
+        // each stepper believing it is already travelling at full speed
+        // (_speed = +-stepSpeed, _n = 1), and AccelStepper::run() started from
+        // that state computes its stopping distance from the stale speed and
+        // launches at the cruise rate with no ramp at all. setCurrentPosition()
+        // with the position it already has zeroes _speed, _n and the interval
+        // without moving anything; it is the only public way to do that.
+        st->setCurrentPosition(st->currentPosition());
+        st->setMaxSpeed(stepSpeed);
+        st->setAcceleration(stepAccel);
+        st->moveTo(pos[i]);
+        moving[n++] = st;
+    }
+
+    // One pass per loop, every participant every pass. run() is cheap when no
+    // step is due, so the loop rate is set by the step intervals and the
+    // participants cannot drift apart: same distance, same profile, same
+    // micros() sample each pass.
+    bool any;
+    do {
+        any = false;
+        for (int k = 0; k < n; ++k) any |= moving[k]->run();
+    } while (any);
 }
 
 // Private Methods
@@ -267,11 +395,9 @@ void CubeMotors::initRingStepper(AccelStepper &ringStep) {// Initialize Ring Pos
   //
   // Must use get(), not read(): ringMove() persists this with EEPROM.put(),
   // which writes sizeof(int) == 4 bytes, while EEPROM.read() returns only the
-  // first byte. That worked by little-endian accident for values 0-3, but the
-  // "in motion" sentinel -1 (0xFFFFFFFF) came back as 255 rather than -1. It
-  // still landed in the default branch and re-homed, so the behaviour happened
-  // to be right — but for the wrong reason, and it would break the moment
-  // anyone compared ringState against -1 directly.
+  // first byte — fine for 0-3 by little-endian accident, but the "in motion"
+  // sentinel -1 (0xFFFFFFFF) comes back as 255, and getRingState() promises
+  // callers a -1.
   EEPROM.get(ringStateEEPROMAddress, ringState);
 
   // Assign position based on state, or rehome if unknown.

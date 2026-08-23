@@ -51,6 +51,15 @@ cmake --build Code/sim/build-test -j && ./Code/sim/build-test/cubesim
 Menu navigation has host-side tests needing neither hardware nor LVGL — see the
 header comment in `Code/tests/test_menu.cpp`. Run them after touching `CubeMenu`.
 
+**Motion tuning happens over Serial, not by editing constants.**
+`Code/Test Code/Bench_Tune` is a headless sketch that runs the real
+`CubeMotors`/`CubeSystem` code behind a line protocol (documented in its
+header): set a parameter, fire moves, and get every encoder before and after
+each move plus the residual against the commanded steps. `Code/tools/bench.py`
+drives it from a script and writes a CSV; `Code/tools/bench-baseline.txt` is
+the first session. The motor rotates **fingers** — the owner's word; never
+"cups" or "claws".
+
 ## Before changing anything the panel shows
 
 **Read `docs/theme/UI_DESIGN.md` first.** The UI is a baked theme generated from

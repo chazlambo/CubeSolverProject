@@ -69,8 +69,7 @@ bool MotorEncoder::deselectMux() {
 
 int MotorEncoder::scanChecked(int retries) {
     // Transient NACKs are normal on a bus shared by seven AS5600s behind a mux,
-    // so retry a couple of times, releasing the bus in between, before
-    // declaring the encoder dead.
+    // so retry a couple of times before declaring the encoder dead.
     //
     // Returns [0-4095] on success, or -1 on persistent failure. Callers must
     // check the sign and abort the motion — see the note in MotorEncoder.h.
@@ -129,6 +128,33 @@ int MotorEncoder::scan() {
     return value;
 }
 
+
+int MotorEncoder::readHealth(uint8_t* status, uint8_t* agc, uint16_t* magnitude) {
+    // Three separate transactions rather than one auto-incrementing read:
+    // the datasheet documents auto-increment for ANGLE's two bytes, and a
+    // diagnostic must not depend on behaviour it cannot vouch for.
+    struct Reg { uint8_t addr; uint8_t len; };
+    static const Reg regs[3] = { {0x0B, 1}, {0x1A, 1}, {0x1B, 2} };
+    uint16_t out[3] = {0, 0, 0};
+
+    for (int r = 0; r < 3; ++r) {
+        if (!selectMux()) return -1;
+        Wire.beginTransmission(ENC_ADDR);
+        Wire.write(regs[r].addr);
+        if (Wire.endTransmission(false) != 0) { deselectMux(); return -2; }
+        int n = Wire.requestFrom((int)ENC_ADDR, (int)regs[r].len);
+        if (n != regs[r].len) { deselectMux(); return -3; }
+        uint16_t v = 0;
+        for (int b = 0; b < n; ++b) v = (uint16_t)((v << 8) | Wire.read());
+        deselectMux();
+        out[r] = v;
+    }
+
+    if (status)    *status    = (uint8_t)out[0];
+    if (agc)       *agc       = (uint8_t)out[1];
+    if (magnitude) *magnitude = (uint16_t)(out[2] & 0x0FFF);
+    return 0;
+}
 
 bool MotorEncoder::isCalibrated() {
     return EEPROM.read(eepromFlagAddr) == kFlagValue;

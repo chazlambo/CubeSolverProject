@@ -85,9 +85,10 @@ struct MenuItem {
     // what lets a Patterns menu show what each pattern produces rather than
     // naming it and hoping. Takes precedence over `preview` when both are set.
     //
-    // Deliberately LAST. Every table in the tree writes its fields positionally
-    // and ends at `theme`, so a new field anywhere above it silently shifts
-    // what those braces mean.
+    // Deliberately LAST. Every other table in the tree writes its fields
+    // positionally and stops at `theme` — only the Patterns tables reach this
+    // far — so a new field anywhere above it silently shifts what those
+    // braces mean.
     const char*        previewNet   = nullptr;
 };
 
@@ -194,9 +195,6 @@ public:
     // application knows a Back at the top level means something else (or
     // nothing).
     bool back();
-
-    // Pop everything, keeping the cursor positions of the levels popped.
-    void toRoot();
 
     const MenuScreen* current() const;
     const MenuItem*   selectedItem() const;

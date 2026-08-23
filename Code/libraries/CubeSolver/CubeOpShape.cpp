@@ -25,10 +25,9 @@ const char* const CubeSystem::kScanPassLabels[CubeSystem::kScanPasses] = {
 // misdraws the panel and changes nothing else.
 //
 // Which also means this table is the ONE place that tracks the scanner's
-// physical orientation. It was [L,B] [U,F] [D,R] until the scanner was rotated
-// 90 degrees in CAD to make the assembly fit; that change needed no firmware at
-// all, and if the scanner moves again this is the only thing to update. See the
-// note at the top of the scan loop in CubeSystem.cpp.
+// physical orientation: the solver never reads it, so if the scanner moves
+// again this is the only thing to update. See the note at the top of the scan
+// loop in CubeSystem.cpp.
 //
 // If a pair ever comes up with its two colors swapped on screen, the sensors
 // are the other way round for that pass — swap the entry, not the sequence.
@@ -145,10 +144,9 @@ const uint8_t CubeSystem::kCalTopColors[CubeSystem::kCalTopRots][2] = {
 // procedure, and this is it.
 //
 // NOTE the tables above are COLOR labels, not positions. Nothing in
-// calibrateColorSensors() names a face except in its comments, so the color
-// scanner being rotated 90 degrees (see scanCube()) did not require the tables
-// to change — it required the CUBE to be loaded 90 degrees round to match. That
-// is the whole of the fix, and this constant is where it lives.
+// calibrateColorSensors() names a face except in its comments, so the scanner's
+// placement (see scanCube()) is expressed only by how the CUBE is loaded — and
+// this constant is where that lives.
 //
 // Derivation, which needs no assumption about rotation direction:
 //
@@ -178,4 +176,21 @@ const char CubeSystem::kCalStartFacelets[55] =
     "BBBBBBBBB"   // L  Blue
     "RRRRRRRRR";  // B  Red
 
-const char* const CubeSystem::kCalStartText = "White up, Orange front, Blue left";
+// The instruction, in words, for the line under the picture.
+//
+// TWO lines, and the first one is an ORDER rather than a caption. A screen
+// that shows a net and names three colors reads as a report of what the
+// machine is about to do; an operator who takes it that way loads whatever
+// cube is to hand, whichever way up it arrives, and calibrateColorSensors()
+// files those colors under the names the tables above assert with nothing
+// downstream able to notice. So it says SOLVED, and it says LOAD, before it
+// says which way round.
+//
+// The label under the picture is nearly all the text this screen has: the net
+// owns y 60..150 and an operation screen's headline slot at y 58 draws
+// straight through the U face, which leaves these two lines and the hint bar.
+// lbl_status wraps and grows downward from y 156, so the newline costs
+// nothing and lands well clear of the hint box at 199.
+const char* const CubeSystem::kCalStartText =
+    "Load a SOLVED cube exactly like this\n"
+    "White up, Orange front, Blue left";

@@ -26,7 +26,14 @@ public:
     void output(void*) {}
     bool begin(uint32_t) { return sim::init(); }
 
+    // setFramebuffer() and waitUpdateAsyncComplete() are the two halves of
+    // CubeDisplay::repaintAll() and of the boot-frame wait in begin(), and both
+    // are no-ops here for the same reason update() below is: there is no diff
+    // engine to reset and no DMA to wait for. So repaintAll() on the desktop is
+    // only the whole-screen invalidate that follows, and the wait is nothing.
+    // Both are bench-only behaviour — confirm changes to them on hardware.
     void setFramebuffer(uint16_t*) {}
+    void waitUpdateAsyncComplete() {}
     void setDiffBuffers(DiffBuffBase*, DiffBuffBase*) {}
     void setRotation(int) {}
     void setRefreshRate(int) {}
@@ -37,6 +44,17 @@ public:
         sim::blit(px, x1, x2, y1, y2);
         if (redrawNow) sim::present();
     }
+
+    // Push a whole frame, bypassing the differential path.
+    //
+    // A no-op here beyond presenting what has already been blitted, and that is
+    // faithful rather than lazy: on the real panel this exists because the
+    // driver only ever transmits pixels that differ from its own framebuffer,
+    // so anything on the glass it does not know about survives until something
+    // draws over it. The simulator has no glass and no diff engine — sim::blit
+    // writes every pixel it is given — so there is nothing here for a forced
+    // redraw to repair. The signature exists so CubeDisplay compiles unchanged.
+    void update(const uint16_t*, bool = false) { sim::present(); }
 };
 
 }  // namespace ILI9341_T4

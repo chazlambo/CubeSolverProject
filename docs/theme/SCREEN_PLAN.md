@@ -25,9 +25,41 @@ So: a bar is a thing you can pick. Status is chips, a progress bar, a table, or
 text. Never a bar. When something is genuinely a list of choices — Patterns,
 Parameters — bars are exactly right and should be used.
 
-Second rule, from the same place: **the frame color is the state.** Blue
-scanning, green solving/done, violet calibrating, yellow info/settings, red
-stopped. A new screen picks the one that already means what it means.
+Second rule, and it has been rewritten since most of this file was: **the
+frame color is where you are.** A branch of the menu tree is one color from the
+row that opens it all the way out through the operation screens it leads to —
+blue for the main line of work, red for Modes, green for Eject, yellow for the
+whole Settings subtree, purple for Stats. A new screen does not pick a color;
+it inherits its branch's.
+
+It used to mean machine state — blue scanning, green solving, violet
+calibrating — and several sections below still describe screens in those terms,
+noted where they do. The two schemes fought over one band, because a menu
+already recolors by selection, and wayfinding won. Only `Error` kept its old
+meaning: **red, always, whatever branch it happened in.** `UI_DESIGN.md` §2 has
+the full rule and the one other exception (Idle Mode's decorative cycle).
+
+### The Settings subtree
+
+Restructured with the color change, since one branch of one color also wants to
+be one branch of one shape:
+
+```
+   Settings
+     Diagnostics     read the machine    Hardware Test, Sensor Test,
+                                         Cube State, Fault Log
+     Calibration     teach the machine   Status, Color Sensors,
+                                         Motor Positions, Servo Positions
+     Parameters      change the machine  the six tuning sections
+     About
+```
+
+Diagnostics above Calibration because looking comes before altering, and
+Parameters promoted out of Diagnostics to sit beside Calibration because it
+WRITES — filing it under a menu named for reading was always a lie about it.
+Every screen under Settings is yellow. That does cost the local distinction
+Settings used to draw between Diagnostics (purple) and Calibration (violet);
+the title line still says which, and one branch of one color is the trade.
 
 ---
 
@@ -35,10 +67,10 @@ stopped. A new screen picks the one that already means what it means.
 
 | Piece | Call | Says |
 |---|---|---|
-| Frame color | `showOperation(kind, …)` | what kind of thing is happening |
+| Frame color | `opScreen(kind, …)` then `setOpTheme()` | which branch you are in |
 | Title | `showOperation(…, title, …)` | where you are |
 | Headline / sub-line | `showOperation(…, headline)` / `setStatus()` | what it is doing now |
-| Status table | `setOpLines()`, `"Label\tValue"` | facts, up to 6 rows |
+| Status table | `setOpLines()`, `"Label\tValue"` | facts, up to 7 rows (`kOpLines`) |
 | Face row | `setOpFaces()` | the six faces, filled with the color actually read |
 | Chip rows | `setOpChips()` | a set being collected, two rows |
 | Progress bar | `setOpProgress()` | how far through a countable job |
@@ -46,24 +78,24 @@ stopped. A new screen picks the one that already means what it means.
 | Hint box | `showOperation(…, hint)` | what button to press |
 | Preview pane | menu only | what is behind this item |
 
-## Vocabulary we still need, ranked
+## Vocabulary added while building
 
-Built so far, and where each lives:
+Where each of the later pieces lives:
 
 | Piece | Call | Built for |
 |---|---|---|
-| Cube net | `setOpCubeNet()` | Cube State, scan review, Patterns |
+| Cube net | `setOpCubeNet()` | Cube State, scan review, Patterns, the two Solve thinking screens |
 | Chip row | `setOpChipRow()` / `setOpFaces()` | scan faces, calibration, the jog strip |
 | Move ribbon | `setOpRibbon()` | Step Solve |
 | Row status marks | `setOpLines(..., marks)` | the jog cursor; Sensor Test uses it too |
-| Frame recolor | `setOpKind()` | phase changes, and "you are editing" |
+| Frame recolor | `setOpTheme()` | the branch color, and Idle Mode's cycle |
 
-Nothing is still missing — the last two landed with the machine side:
+Two more pieces came with the machine side:
 
-1. **Scrolling status list** — BUILT, for Fault Log. More than six rows with a
-   position readout in the hint bar rather than a scrollbar the theme has no
-   art for.
-2. **Value editor** — BUILT, for Parameters and Servo Positions. The Actuators
+1. **Scrolling status list**, for Fault Log. More than a page of rows
+   (`kOpLines`, seven) with a position readout in the hint bar rather than a
+   scrollbar the theme has no art for.
+2. **Value editor**, for Parameters and Servo Positions. The Actuators
    page's enter-pick-send on a gripper proved the interaction; the editor adds
    a NUMBER rather than three named positions, with the step size a column of
    the shared parameter table.
@@ -113,11 +145,151 @@ screen says "last scan, not built" rather than pretending otherwise.
 Sketches are the ~240x150 content area inside the frame. The title sits top-left
 and the hint box along the bottom on every one of them.
 
+### Solve, the thinking half — top level — **BUILT**
+
+The two screens between pressing Solve and the machine moving. Both are the
+same picture: the net of the cube *as it stands*, drawn by `setOpCubeNet()`
+from `VirtualCube::getColorArray()`. One function draws both — `drawSolveNet()`
+in the sketch — because they ask the operator the same question, "is this the
+cube you loaded", and only the line under the net changes.
+
+```
+        [ the unfolded net, y=60..150 ]
+           Finding solution...                <- sub-line, under the net
+                                              <- no hint: nothing is polled
+```
+```
+        [ the same net ]
+         Solution found in 21 moves           <- Cube.solutionLength, not a recount
+      SELECT to solve, LEFT to cancel         <- hint box
+```
+
+**No headline on either**, and that is structural rather than taste: the net
+occupies y=60..150 and `showOperation()` puts the headline at 58, so a screen
+carrying both draws one through the other. `setOpCubeNet()` moves the sub-line
+below the net for exactly this reason.
+
+The first screen has **no hint** because `solveVirtual()` blocks *without*
+pumping — nothing is polled while it is up, so an abort line would advertise a
+gesture the machine cannot hear.
+
+The first screen is painted by the Solve action but *flushed* by the `Solving`
+state, which pumps one refresh period (`pumpDelay(40)`) before the search
+blocks. A single `displayUpdate()` only marks widgets dirty; LVGL repaints when
+its 33 ms timer comes due, and without the pump the panel stayed on the menu
+for the whole compute — Solve read as a press that had not registered.
+
+The second is `AppState::SolveConfirm`, and its whole value is that nothing has
+started yet: no gripper driven, no solve timer, no stats touched. LEFT is
+therefore free — it returns to the menu leaving the cube exactly as it stood
+(clamped, in the usual case, which is where the scan and the previous solve
+leave it) and leaving no half-started solve behind. SELECT falls through to
+`Loading`.
+
+**Only say the machine is clamping when it is.** `Loading` clamps *only* if
+`cubeIsClamped()` says it is not already, and the "Clamping the cube" screen now
+lives inside that branch. It used to be painted unconditionally on the way in
+from `Solving`, which claimed a clamp on the common path where nothing moved.
+
+The whole run — both of these, the clamp if there is one, the moves, the display
+spin — wears the Solve row's **blue**, by the ordinary `s_opTheme` mechanism
+(§ "The rule everything here follows"). Nothing on the path names a colour; the
+`Op::Done` on the display spin is a label only, since `opScreen()` repaints the
+branch colour over the kind's fallback. A failure leaves through `fail()` and is
+red, as everywhere.
+
+### Solve, the display spin — top level — **BUILT**
+
+How a plain Solve ends. Not a straight release any more: the machine lets go of
+the ring and the top servo, keeps the cube up on the bottom gripper, and turns
+it slowly on the spot — one revolution about every eight seconds — while the
+result stands on the screen. With nothing else engaged the D motor turns the
+WHOLE cube rather than a face, which is why the model is never told about it.
+
+```
+                Solved!                     <- headline
+           21 moves in 4.62 s               <- sub-line, the shared formatter
+      SELECT clamps the cube and finishes   <- hint box
+```
+
+Reuses everything; needed nothing new. The interaction is the one novel part:
+SELECT (or LEFT) finishes the revolution so the cube is square, clamps it again
+bottom -> ring -> top, and returns to the menu — which leaves the machine
+holding the cube, so the next Solve skips its own clamp.
+
+**Modes do not end here.** They still finish through `Unloading`: Demo loops and
+would stall on a screen that waits for a press, and Step Solve is already
+human-paced. Making it universal is a one-line change, recorded in the sketch
+above `drawSolveDisplay()`.
+
+Rehearsed in `Test_Menu` as `Screens > Operations > Solve Result` — the
+"Solved!" screen the Scramble Solve demo already draws, minus the ribbon and
+bar, plus a hint. The spin itself is the part no bench sketch can show, so the
+demo is the still frame only.
+
+### Eject — top level — **BUILT**
+
+Was a screen that asked for a press: "take the cube out, then press SELECT". It
+watches now. The machine releases the ring and the top servo, lifts the cube on
+the bottom gripper — `unloadCubeKeepBottom()` then `botServoEject()`, straight
+there, no dip into the bay first — and then leaves both color boards illuminated
+and sweeps all eighteen sensors five times a second.
+
+```
+             Take the cube out              <- headline
+     SELECT if the machine does not notice  <- hint box
+```
+
+The hint is the whole design of the screen. The cube can just be taken, so the
+headline says only that; the button is named as a backstop, not as a step,
+because promising a press the operator does not need is how the old screen was
+wrong.
+
+Detection is **tare, pick witnesses, watch for the fall**. Once the LEDs have
+warmed, three `presenceSweep()`s of every sensor on both boards are averaged
+into a per-sensor baseline — taken while the cube is definitely still there.
+The sensors reading at least 50% of the brightest baseline are the *witnesses*:
+at the eject height the cube's lowest row sits a couple of millimetres from the
+top row of each board and bounces the LED straight back, while everything else
+looks at the bay, so brightness alone sorts out which sensors can see the cube.
+The cube is gone when more than half the witnesses have fallen to 40% of their
+own baselines for four consecutive sweeps. No absolute brightness anywhere —
+ambient light, LED output and sticker color all vary, and each baseline is
+measured against the very sticker that is about to leave. A negative read is
+an I2C fault and is never removal. A *fall* rather than "any change", because
+a hand reaching in is also a change — it reflects the LED into the bay-facing
+sensors a second before the cube leaves — but it cannot get between a sticker
+and the sensor it sits 2 mm from. The debounce is there because a cube loosely
+held can clear its witnesses while still resting on the platform.
+
+Every ending — detected, SELECT, the 120 s give-up timeout, the abort chord —
+goes through one `ejectFinish()`: LEDs off, bottom servo down, back to the
+menu, where the root list reverting to its pre-scan form is the confirmation.
+No "Cube ejected" acknowledgement screen, because that was the press being
+removed.
+
+**No sensor is chosen by hand.** The first version watched one sensor — first
+the centre, then the bottom-middle — and stood through its timeout, because
+which of the nine is physically uppermost is not knowable from this tree: the
+`{UL, UM, UR, ...}` names in `CubeHardwareConfig.cpp` predate the 90° scanner
+rotation the README describes. Sweeping all eighteen and letting the tare say
+which ones see the cube removes the guess. The tare and the verdict go to
+Serial (`Eject tare ...`, `Eject: cube gone ...`), which is where the 50%/40%
+thresholds get confirmed on the bench; the timeout exists so a machine whose
+sensors cannot see the cube at this height costs two minutes rather than forever.
+
+Rehearsed in `Test_Menu` as `Screens > Operations > Eject Prompt` — the
+prompt only. `Test_Menu`'s own root `Eject Cube` is an actuator exercise, not a
+screen demo, and the watch itself needs the real color boards, so neither
+rehearses the detection.
+
 ### Scramble Solve — Modes — **BUILT**
 
-Two phases, and the frame color should carry that: **red** while scrambling,
-**green** the moment it starts solving. Nothing else on the screen has to
-change for the operator to know which half they are watching.
+Two phases — scrambling, then solving — and the headline, sub-line and bar all
+say which. **They no longer recolor the frame.** The frame is red throughout,
+because red is Scramble Solve's place in the tree, and the frame answers "where
+am I" rather than "which half is this". The as-built plan below was written
+under the old rule and the color half of it is superseded.
 
 ```
               Scrambling                    <- headline, per phase
@@ -126,7 +298,8 @@ change for the operator to know which half they are watching.
 ```
 
 Reuses everything. Needed nothing new. Built first — it was the cheapest of
-the Modes and it proved the phase-color idea.
+the Modes, and the phase-color idea it proved is the one that later lost to
+wayfinding.
 
 ### Idle Mode — Modes — **BUILT**
 
@@ -156,10 +329,12 @@ the pending move from now — shortening the gap and then waiting out the old on
 reads as the setting not working.
 
 The frame color advances with each MOVE rather than on a timer of its own. This
-is the one place in this UI where frame color is decorative rather than
-semantic, and tying it to the moves at least makes it honest: a color change
-means something happened, so the machine reads as alive from further away than
-the move counter can be read.
+is the one sanctioned exception to frame-color-as-wayfinding: everywhere else
+the band says which branch you are standing in, and here it cycles all six on
+purpose. Tying it to the moves is what keeps it honest — a color change means
+something happened, so the machine reads as alive from further away than the
+move counter can be read. Idle Mode's other screens (the clamp, and the solve
+SELECT hands off to) wear the mode's own yellow.
 
 Idling **disorders the cube** — Step Solve must not then scramble a cube that
 is already scrambled. The firmware derives that from the cube model itself
@@ -168,23 +343,26 @@ is already scrambled. The firmware derives that from the cube model itself
 ### Demo Mode — Modes — **BUILT**
 
 Scramble, solve, repeat, unattended. Both halves already existed — the phase
-colors from Scramble Solve, the ribbon from Step Solve — so it is a loop around
-them plus a run counter.
+handling from Scramble Solve, the ribbon from Step Solve — so it is a loop
+around them plus a run counter.
 
-Four phases, because the machine has four:
+Four phases, because the machine has four. The colors this table used to name
+are gone: Demo Mode is **blue** end to end, its row's color in the Modes menu.
+A run scrambles and solves and scrambles again every few seconds, and
+recoloring the halves would have said the machine kept changing job.
 
 ```
-   Scrambling            red      30 moves, ribbon + bar
-   Computing the         green    the handover: no ribbon, no bar
+   Scrambling                     30 moves, ribbon + bar
+   Computing the                  the handover: no ribbon, no bar
      solution
-   Solving               green    21 moves, ribbon + bar
-   Solved!               green    the result, briefly
+   Solving                        21 moves, ribbon + bar
+   Solved!                        the result, briefly
 ```
 
 The pause to compute is not padding. The real machine has to work out a solution
 before it can run one, and a demo that jumped from the last scramble move
 straight to the first solve move would be showing something the machine never
-does. The frame turns green THERE rather than at the first solve move, because
+does. The handover happens THERE rather than at the first solve move, because
 that is the moment it stops scrambling — and the ribbon and bar go, because
 neither has anything true to say about a search that has not finished.
 
@@ -200,11 +378,12 @@ scrambled. Idle Mode and a previous run both leave it disordered, and thirty
 moves spent re-scrambling a scrambled cube would be a lie about what the machine
 does.
 
-Three phases: red while scrambling with the scramble ribbon running, yellow
-while computing, green for the step-through. The compute phase must CLEAR the
-ribbon and the progress bar — left up, a finished ribbon and a full bar sit
-under the word "Solving" and read as a solve that finished before it started.
-Both hide on a null/zero argument.
+Three phases: scrambling with the scramble ribbon running, computing, then the
+step-through. **Purple** throughout — Step Solve's color in the Modes menu — and
+not the red/yellow/green progression this originally specified; see the second
+rule above. The compute phase must still CLEAR the ribbon and the progress bar:
+left up, a finished ribbon and a full bar sit under the word "Solving" and read
+as a solve that finished before it started. Both hide on a null/zero argument.
 
 
 
@@ -258,6 +437,27 @@ It doubles as the **scan review**: with nothing built but a scan recorded, it
 shows the raw readings instead of an empty screen — which is the case where
 somebody most wants to look. See the caveat above.
 
+**And it turns.** With a model built, the wheel points at a face and UP/DOWN
+turn it, with the net redrawing after each move. The turn is applied to the
+**model only** — no motor, no servo — which is the opposite half of the trade
+`jogTurn()` makes on the Hardware Test page: that page moves the machine and
+therefore cannot keep the model, and this one keeps the model and therefore
+must not move the machine. Same desync, opposite ends.
+
+The screen says so in capitals under the net, next to the `< U >` selector,
+because the whole risk of the page is an operator believing the machine just
+moved.
+
+A model left turned would desync just as badly the other way — Solve would run
+against a state the machine is not holding — so the page does not leave it
+turned. Every move goes on a 60-entry trail (a turn that undoes the previous
+one pops instead of pushing, so forward-and-back costs no depth) and **every
+exit replays it backwards inverted**. A scan survives a visit here.
+
+The raw-scan form stays read-only: `VirtualCube::executeMove()` refuses a cube
+that is not ready, and the per-face rotation is unresolved anyway, so a turn
+would shuffle stickers inside a frame that does not mean anything yet.
+
 Still worth adding: mark the low-confidence stickers. `scanAlt` and `scanConf`
 already record the runner-up color and the confidence for every sticker, so the
 data is there — a hollow or outlined sticker for "the classifier was unsure
@@ -274,8 +474,9 @@ A list nobody selects from, so status rows rather than bars.
         ...
 ```
 
-Six rows at a time, wheel scrolls, and the position goes in the hint box —
-"7-12 of 24" — rather than inventing a scrollbar the theme has no art for.
+Seven rows at a time — the whole of `kOpLines` — wheel scrolls, and the
+position goes in the hint box — "8-14 of 24" — rather than inventing a
+scrollbar the theme has no art for.
 
 ### Hardware Test — Diagnostics — **BUILT**
 
@@ -319,8 +520,9 @@ grippers are clear**, so seeing where the grippers are WHILE jogging a face is
 the difference between a considered press and a jam.
 
 **Two levels everywhere: scroll to a thing, SELECT to enter it, LEFT to leave.**
-The frame goes yellow while you are inside something, so "I am about to move
-this" reads without a word.
+Entering something used to turn the frame yellow. The frame is Settings' yellow
+throughout now — it says where you are, not what is armed — so the hint line and
+the row mark carry that instead. Both already changed with the state.
 
 What the wheel then does depends on what you entered, and that difference is the
 whole design:
@@ -400,7 +602,7 @@ an I2C error instead of an angle. `MotorEncoder::scan()` returns the angle or a
 negative error code, and showing the error rather than a plausible number is the
 point of the screen.
 
-### Tuning — Calibration > Servo Positions and Diagnostics > Parameters — **BUILT**
+### Tuning — Calibration > Servo Positions and Settings > Parameters — **BUILT**
 
 The one that needed a genuinely new interaction: the wheel changes a *value*,
 not a cursor. Built as a settings list kept separate from `CubeMenu` rather than
@@ -419,12 +621,43 @@ Six sections, each a window onto one flat table:
 | Color | scans averaged, integration, color tol, margin frac, distance frac, min separation |
 
 Plus **Reset Defaults**, which clears the EEPROM stamp and re-applies every
-compiled default.
+compiled default — all six sections at once. One section at a time is done
+from inside the section: UP or DOWN on its Apply row stages that page's
+defaults as pending values, and Apply writes them.
 
 #### Interaction
 
 - Scroll to a row, SELECT to enter, wheel to change, SELECT to keep, LEFT to
-  restore. Frame goes **yellow** while a row is entered.
+  restore. The frame no longer changes on entry — it is Settings' yellow the
+  whole time — so the hint line becomes the value's range instead.
+- **Nothing is applied until the Apply row is pressed.** A parameter was one
+  press and one detent away from being changed for good, and a machine that
+  quietly kept the accident offered no route back to the number that worked.
+  What is gated is the *commit*, never the preview: a servo endpoint is set by
+  eye, so `previewRaw()` still runs on every detent exactly as before, and it
+  is `set()` that waits. While a section is open the owners and EEPROM hold
+  `parBase[]` and the wheel moves `parVal[]`; `set()` and `tuneSaveAll()` are
+  reached from the Apply row and nowhere else.
+- Changed rows carry a **leading star**, and the Apply row's value is the count
+  ("3 changed"). The star is in the label column rather than being a `RowMark`
+  because the cursor already owns the mark.
+- A value that is **not the compiled default** is drawn in amber
+  (`RowMark::Tuned`), so a page read cold says which numbers have been tuned
+  without anything having to be pressed. Amber, not yellow: the cursor is
+  already yellow. It follows the value shown, so a row wheeled back to its
+  default stops being amber as it gets there; the star still says it is
+  pending. On the cursor row the cursor wins, as it does over every mark.
+- **UP or DOWN on the Apply row loads this page's defaults** — as pending
+  values, through the same Apply gate, with no preview of the live rows (the
+  parts move when Apply stores the values and the machine next uses them,
+  exactly as after Reset Defaults). There is no row for it because Ring and
+  Color plus Apply already fill all seven lines. The hint on the Apply row
+  offers it whenever it would do something.
+- LEFT with changes pending **asks, in red** — the same shape as Reset
+  Defaults' confirm, and SELECT is the destructive answer there as it is
+  everywhere else in this sketch. Discarding drives every previewed part back
+  to its base value first: a live row has already moved the horn, so forgetting
+  the number is only half of putting it back.
 - A **toggle** flips in place. Entering an edit mode to choose between two
   values would be three presses to change one bit.
 - A **gated** row shows a red confirm FIRST. That ordering is the whole point:
@@ -453,7 +686,9 @@ a burst of detents at once turns a nudge into a slam.
 **Persist on the way out, not per detent.** `previewRaw()` deliberately skips
 EEPROM. But skipping it entirely is worse than either: `CubeServo::begin()`
 trusts the stored position to decide how far its first sweep travels, so a stale
-one arms a full-travel slam on the next power-up.
+one arms a full-travel slam on the next power-up. That write records where the
+horn is *standing*, not what its endpoints are, which is why it is right on the
+way out of an Apply and equally right on the way out of a discard.
 
 **Angle brackets are ASCII.** The baked fonts carry 0x20-0x7F and a missing
 glyph draws as an empty box in silence.
@@ -485,6 +720,76 @@ One behaviour change worth knowing: the bottom servo's partial and eject
 positions are now **pinned** rather than derived from the extend position, since
 boot applies every value whether it came from EEPROM or from the defaults.
 
+### Motor Calibration — Calibration > Motor Positions — **BUILT**
+
+Was one blocking call behind a "Finding home positions" screen. It is a flow
+now, because of what `calibrateMotorRotations()` actually does: it turns every
+face through four quarter turns and files the readings **relative to wherever
+the motors were standing when it started**. A face left out of square produces
+four marks out of square by the same amount, and nothing downstream can tell.
+
+So: square the faces by hand FIRST, then sweep. Five steps.
+
+```
+   Is the machine empty?              <- confirm; the grippers are about to
+   The grippers will close on an         close on an empty centre
+   empty centre and turn every face.
+   Take the cube OUT before starting.
+
+   U        squared 2013  m0 +3      <- the list. Six motors and a Save row.
+   R                1502  m1 -118       Wheel scrolls, SELECT enters a row.
+   F                 877  m2 +9         After the raw angle: the nearest
+   D            err -1                  STORED mark and the signed error to
+   L                3011  m3 -2         it, in counts — what the aligner homes
+   B                1244  m0 +0         to. An encoder fault is a fault, not
+   Save calibration  4 of 6 squared     a plausible number.
+
+              +3 steps   m0 +3       <- the dial, for one motor. Wheel steps
+                  ( 2013 )              it; SELECT accepts, LEFT does not.
+                   Motor U              Headline: steps jogged, nearest mark,
+         marks 2013 3037 4061 989       error. Sub-line: the four stored marks
+                                        the sweep will replace.
+```
+
+The mark readouts exist so a face squared by eye can be checked against what
+the machine will actually home to, and so "what does home currently mean for
+this motor" is answerable from the panel. "m1 -118" is a face 118 counts
+(~10 degrees) off its mark; both values come from `CubeSystem::encError()`
+over `MotorEncoder::getCalibration()`, the aligner's own test, so the screen
+and the aligner cannot disagree. Blank until a calibration exists.
+
+**Rows, not bars, and this is the exception that proves the rule.** Every row of
+the list IS a choice, which is what bar art is for — but bars have five slots
+and this list has seven, so they cannot be used at all. The cursor is a marked
+row instead, exactly as the jog page next door does it. Seven rows is the whole
+of `kOpLines` and they only fit with no headline and no sub-line, which is the
+Motor Sensors page's shape.
+
+**The clamp is the same three lines as Loading and ModeClamp** — bottom, ring,
+top — and honours the abort latch the same way. Every exit from the flow, LEFT
+or chord or fault, RELEASES: the flow shut the grippers and the menu has no
+idea it happened.
+
+**What SELECT means on the dial** is worth writing down because it is a real
+fork. It accepts the motor's PHYSICAL alignment and writes nothing; the Save
+row's sweep is what produces all twenty-four calibration values. The other
+reading — SELECT writes the current reading through
+`MotorEncoder::setCalibration()` — would be overwritten by the sweep moments
+later, which makes the dial ceremonial. The physical alignment survives to the
+sweep because `resetMotorPos()` only zeroes the step counters; it commands no
+travel.
+
+One detent is one step: at 100 steps per quarter turn and 4096 encoder counts
+per revolution that is about 10 counts, half the alignment tolerance the
+machine works to. It was two steps — one tolerance — until the bench found
+that too coarse to centre a face inside the band rather than at one edge of
+it, and the sweep's four marks are only as square as the dial left them.
+45 degrees out is 50 detents, which nobody squares a face from.
+
+The dial page owns its input like the jog page and the tuning editor, and for
+the same reason — the wheel steps a motor there, and `pollEvent()` collapses
+the wheel and the UP/DOWN buttons into one meaning.
+
 ### Stats — top level — **BUILT**
 
 Six rows — solves, best, average, last, run time, faults — which is exactly
@@ -495,24 +800,26 @@ would rewrite the tuning bytes on every solve for nothing.
 
 ---
 
-## Suggested order
+## Build order, as it happened
 
-All of it landed, roughly in this order:
+Roughly in this order:
 
 - **Patterns** — the four states and the preview pane came first; the move
   sequences now run, gated on a solved cube.
-- **Scramble Solve** — red while scrambling, green the moment it solves, one bar
-  throughout. Done.
-- **Step Solve** — the ribbon works and the moves execute, one per SELECT. Done.
+- **Scramble Solve** — the two phases with one bar throughout. (It was built
+  to recolor between them; it is red end to end since the frame became
+  wayfinding.)
+- **Step Solve** — the ribbon works and the moves execute, one per SELECT.
 - **Demo Mode** — scramble and solve on a loop with a run counter, showing the
-  moves rather than only a count. Done.
+  moves rather than only a count.
 - **Color Sensors** and **Motor Sensors** — real sensor reads, **throttled** and
   round-robin: every refresh is I²C traffic on the bus the wheel is also using.
-  Done.
 - **Hardware Test** — the Actuators page, ported into the firmware's
-  Diagnostics menu. Done.
+  Diagnostics menu.
 - **Tuning** — six sections editing the real values, with defaults in the
-  source and overrides in EEPROM. Done, including persistence and reset.
+  source and overrides in EEPROM, persistence and reset included.
+- **Color as wayfinding** — one color per branch, carried out of the menu and
+  through the operation screens, plus the Settings reshuffle above.
 
 **Every screen is now drawn AND wired.** `Test_Menu` covers the whole tree, and
 its `Screens > Modes` submenu is deliberately the same five items in the same
