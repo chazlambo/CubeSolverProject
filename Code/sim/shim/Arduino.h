@@ -172,6 +172,11 @@ inline long map(long x, long inMin, long inMax, long outMin, long outMax) {
     return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
+// Arduino's constrain is a macro; a template keeps the caller's type without
+// the macro's triple evaluation.
+template <typename T>
+inline T constrain(T x, T lo, T hi) { return x < lo ? lo : (x > hi ? hi : x); }
+
 // Teensy 4 memory-placement attributes. The firmware uses DMAMEM to keep large
 // display buffers out of RAM1, where they compete with ITCM code. The desktop
 // has one flat address space and no such split, so these collapse to nothing —

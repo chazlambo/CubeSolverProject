@@ -32,7 +32,7 @@ static const char* const kITNames[6] = { "40 ms", "80 ms", "160 ms",
 // stand between a wheel and a jam.
 const TuneParam kTune[] = {
     // --- Top servo, indices 0-2 ---
-    { "Extend", "Swings in to grip the cube", "deg", 205, 0, 270, 1,
+    { "Extend", "Swings in to grip the cube", "deg", 194, 0, 270, 1,
       TP_LIVE | TP_GATE,
       []() -> int32_t { return (int32_t)topServo.extended(); },
       [](int32_t v){ topServo.setExtended((unsigned)v); }, nullptr,
@@ -126,16 +126,19 @@ const TuneParam kTune[] = {
       [](int32_t v){ Cube.servoDelay = (int)v; }, nullptr },
 
     // --- Alignment, indices 19-22 ---
-    // 8..60, clamped in the setter as well as the table: tuneLoadAll() applies
+    // 3..60, clamped in the setter as well as the table: tuneLoadAll() applies
     // a stored value without consulting the range, so the table alone would
-    // not protect a machine that saved 200 under the old bounds. Below 8 the
-    // 10.24-count step lattice may hold no point inside the band and the
-    // aligner hunts to its timeout; above 60 (~5 degrees) a face that is
-    // visibly out of square passes as aligned.
-    { "Tolerance", "Counts a motor may sit off centre", "cts", 20, 8, 60, 1,
+    // not protect a machine that saved 200 under the old bounds. The floor
+    // was 8 and is 3 at the owner's request, for bench diagnosis — knowingly
+    // below the safe line: under ~6 the 10.24-count step lattice may hold no
+    // point inside the band and the aligner hunts to its timeout, so expect
+    // align-timeout faults at the bottom of the range rather than a machine
+    // that quietly holds a tighter square. Above 60 (~5 degrees) a face that
+    // is visibly out of square passes as aligned.
+    { "Tolerance", "Counts a motor may sit off centre", "cts", 20, 3, 60, 1,
       TP_PLAIN,
       []() -> int32_t { return Cube.motorAlignmentTol; },
-      [](int32_t v){ Cube.motorAlignmentTol = (int)(v < 8 ? 8 : (v > 60 ? 60 : v)); }, nullptr },
+      [](int32_t v){ Cube.motorAlignmentTol = (int)(v < 3 ? 3 : (v > 60 ? 60 : v)); }, nullptr },
     { "Align timeout", "Give up realigning after this", "ms", 500, 50, 5000, 50,
       TP_PLAIN,
       []() -> int32_t { return (int32_t)Cube.alignTimeout; },

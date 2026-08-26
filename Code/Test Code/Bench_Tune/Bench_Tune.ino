@@ -157,11 +157,12 @@ static void cmdSet(const char* name, const char* value) {
     else if (!strcmp(name, "delay"))       cubeMotors.setStepDelay((int)v);
     else if (!strcmp(name, "rotdelay"))    cubeMotors.setRotStepDelay((int)v);
     else if (!strcmp(name, "dwell"))       cubeMotors.setEnableDwell((int)v);
-    // Tolerance floor: half a step is 5.12 counts, so below ~8 the step
-    // lattice may hold no point inside the band and the aligner hunts to its
-    // timeout. Ceiling 60 (~5 deg) — the firmware's own table allows 200,
-    // which is the "accepts a 10-degree error" case the review flagged.
-    else if (!strcmp(name, "tol"))         Cube.motorAlignmentTol = (int)constrain(v, 8, 60);
+    // Tolerance floor 3, matching the tuning table (it was 8, lowered at the
+    // owner's request for bench diagnosis). Knowingly below the safe line:
+    // half a step is 5.12 counts, so under ~6 the step lattice may hold no
+    // point inside the band and the aligner hunts to its timeout — expect
+    // align-timeout faults at the bottom of the range. Ceiling 60 (~5 deg).
+    else if (!strcmp(name, "tol"))         Cube.motorAlignmentTol = (int)constrain(v, 3, 60);
     else if (!strcmp(name, "hometimeout")) Cube.homeTimeout = (unsigned long)constrain(v, 200, 10000);
     else if (!strcmp(name, "hold"))        { if (v) cubeMotors.holdBegin(); else cubeMotors.holdEnd(); }
     else if (!strcmp(name, "align"))       alignMode = (v != 0);

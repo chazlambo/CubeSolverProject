@@ -421,7 +421,13 @@ exactly what it was designed for.
 one `drawNet()` with the full-size version so the two cannot disagree about what
 a cube looks like.
 
-The four states are computed by applying each well-known sequence to a solved
+Nine patterns now, split across two screens because five rows is the limit:
+Checkerboard, Cube in Cube, Six Spot and Superflip plus a **More Patterns**
+row leading to Cube^3, Anaconda, Python, Tetris and Twister (sequences from
+ruwix.com). Each screen's rows index the shared `kPattern*` tables from its
+own base — table order is screen order, first screen then second.
+
+The states are computed by applying each well-known sequence to a solved
 cube and checked for nine of every color — a preview that is not a real cube
 would hide exactly the bugs this screen is for.
 
@@ -601,6 +607,17 @@ whether a value moves when you turn a face, and whether any encoder is reporting
 an I2C error instead of an angle. `MotorEncoder::scan()` returns the angle or a
 negative error code, and showing the error rather than a plausible number is the
 point of the screen.
+
+The DIAL this page opens (SELECT on a face row) grew real moves later: there,
+UP and DOWN run a full quarter turn — UP the plain move, DOWN the prime (U /
+U' with U entered) — so one motor's encoder can be watched across repeated
+aligned turns in each direction, which is the shape of a direction-dependent
+fault. Deliberately on the dial and not on the list: on a list you are
+navigating, a button that turns a motor fires on whatever row it lands on,
+and entering the motor first is what says "this one, on purpose". Diagnostic
+owner only — the CalFlow dial keeps UP/DOWN as single detents, because an
+aligned move there would home a hand-squared face back to the old marks. See
+`dialTurn()` in the sketch, mirrored in Test_Menu with canned encoder motion.
 
 ### Tuning — Calibration > Servo Positions and Settings > Parameters — **BUILT**
 
@@ -797,6 +814,15 @@ enough, so resist a seventh. The numbers are real now: an EEPROM block of
 counters (`CubeStats`), a block of ITS OWN rather than a corner of the tuning
 one: solve counts change every run and tuning changes almost never, so sharing
 would rewrite the tuning bytes on every solve for nothing.
+
+Solves is one tally, machine-paced and step solves together (the split lives
+only in EEPROM, keeping the untimed step solves out of the timed numbers).
+Best and Average speak only for solves longer than `kStatMinMoves` — a
+three-move touch-up finishing in seconds is not a record — and Best carries
+the move count of the solve that set it. The page owns its input (see
+`statsLoop()`): SELECT+RIGHT held five seconds resets everything, with a
+countdown on the status line, because a five-second hold with no feedback is
+indistinguishable from a dead button.
 
 ---
 

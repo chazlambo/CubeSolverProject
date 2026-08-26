@@ -207,6 +207,7 @@ extern const MenuScreen kScreenOps;
 extern const MenuScreen kScreenCube;
 extern const MenuScreen kScreenMsg;
 extern const MenuScreen kScreenPatterns;
+extern const MenuScreen kScreenPatternsMore;
 extern const MenuScreen kScreenModes;
 
 extern const MenuScreen kScreenDiag;
@@ -243,6 +244,7 @@ static void actDemoNetScrambled();
 static void actDemoNetLoad();
 static void actDemoSolveConfirm();
 static void actFoldPattern();
+static void actFoldPatternMore();
 static void actJog();
 static void actTopServo();
 static void actBotServo();
@@ -289,6 +291,8 @@ static const char* const kPrevOps[]   = { "Faces", "Chips", "Motor cal",
                                           "Solved!", "Eject" };
 static const char* const kPrevModes[] = { "Scramble", "Idle", "Demo", "Step",
                                           "Patterns" };
+static const char* const kPrevPatternsMore[] = { "Cube^3", "Anaconda", "Python",
+                                                 "Tetris", "Twister" };
 static const char* const kPrevMsg[]   = { "Info", "Error", "Stats" };
 
 // A canned solution for the Step Solve screen. Real notation, real length —
@@ -546,10 +550,11 @@ const MenuScreen kScreenModes = { "Modes", kModesItems, 5, MenuTheme::Red };
 // Item order IS table order: each row's previewNet indexes the shared
 // kPattern* tables by position, and actFoldPattern() reuses selectedIndex()
 // the same way — the same contract as the firmware's Patterns screen, which
-// this one rehearses row for row.
+// this one rehearses row for row, split and all: this screen owns table rows
+// 0-3, More Patterns rows kPatMoreBase up, exactly as the machine has it.
 //
-// The per-item themes here are NOT wayfinding — they are four different colors
-// so four rows of preview net do not all sit in the same frame. The branch
+// The per-item themes here are NOT wayfinding — they are different colors so
+// adjacent rows of preview net do not all sit in the same frame. The branch
 // color is the screen's green, and actFoldPattern() sets that explicitly so a
 // fold's operation screens do not inherit whichever row was picked.
 static const MenuItem kPatternItems[] = {
@@ -561,8 +566,28 @@ static const MenuItem kPatternItems[] = {
       nullptr, 0, MenuTheme::Yellow, CubeSystem::kPatternNets[2] },
     { "Superflip",    nullptr, actFoldPattern, "Every edge flipped.",
       nullptr, 0, MenuTheme::Purple, CubeSystem::kPatternNets[3] },
+    { "More Patterns", &kScreenPatternsMore, nullptr, "Five more shapes.",
+      kPrevPatternsMore, 5 },
 };
-const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 4, MenuTheme::Green };
+const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 5, MenuTheme::Green };
+
+// Where More Patterns' rows start in the kPattern* tables: one screen's worth
+// of patterns in, not five — the More Patterns row itself is not a pattern.
+static const int kPatMoreBase = 4;
+
+static const MenuItem kPatternMoreItems[] = {
+    { "Cube^3",   nullptr, actFoldPatternMore, "Cube in a cube in a cube.",
+      nullptr, 0, MenuTheme::Blue,   CubeSystem::kPatternNets[4] },
+    { "Anaconda", nullptr, actFoldPatternMore, "A snake wound round the cube.",
+      nullptr, 0, MenuTheme::Green,  CubeSystem::kPatternNets[5] },
+    { "Python",   nullptr, actFoldPatternMore, "The other snake.",
+      nullptr, 0, MenuTheme::Yellow, CubeSystem::kPatternNets[6] },
+    { "Tetris",   nullptr, actFoldPatternMore, "L R F B U' D' L' R'",
+      nullptr, 0, MenuTheme::Purple, CubeSystem::kPatternNets[7] },
+    { "Twister",  nullptr, actFoldPatternMore, "Two colors twist on every face.",
+      nullptr, 0, MenuTheme::Red,    CubeSystem::kPatternNets[8] },
+};
+const MenuScreen kScreenPatternsMore = { "More Patterns", kPatternMoreItems, 5, MenuTheme::Green };
 
 // The ones that are not modes: what the machine draws while it is scanning,
 // while it is learning colors, while it is being squared up before it can learn
@@ -1792,8 +1817,9 @@ static void sensorRawTick() {
 // Two things on top of that, and they are the same thought: a diagnostic that
 // can only watch is half a diagnostic. Home sends the machine to its detents,
 // which is what makes the numbers mean anything; entering a face motor puts it
-// on the wheel, so the number can be watched moving under your own hand. Both
-// are canned here — see motorsHome() and DialOwner.
+// on the wheel — where UP/DOWN also run full quarter turns, see the dial —
+// so the number can be watched moving under your own hand. Both are canned
+// here — see motorsHome() and DialOwner.
 //
 // Rows: the six face motors, the ring, then Home. Eight against
 // CubeDisplay::kOpLines' seven, so the window scrolls by one at the bottom —
@@ -2355,18 +2381,18 @@ static void actDemoSolveConfirm() {
 static int8_t      g_foldIdx  = 0;
 static const char* g_foldName = nullptr;
 
-static void actFoldPattern() {
+static void startFold(int tableIdx) {
     // Index FIRST, before the screen changes: the tick reads the shared
     // tables by row, and selectedIndex() only means this row while the menu
     // still shows it. Item order matches the kPattern* tables — see the
     // table's comment.
-    g_foldIdx = (int8_t)Menu.selectedIndex();
+    g_foldIdx = (int8_t)tableIdx;
     const MenuItem* it = Menu.selectedItem();
     g_foldName = (it && it->label) ? it->label : "Pattern";
 
     // The one override in this sketch, and the firmware's actPattern() makes
-    // the same one. The four Patterns rows are colored so four rows of preview
-    // net do not share a frame; those colors are a preview device, not four
+    // the same one. The Patterns rows are colored so adjacent rows of preview
+    // net do not share a frame; those colors are a preview device, not
     // places. The BRANCH is the screen's green, so put it back before any
     // operation screen is drawn.
     s_opTheme = MenuTheme::Green;
@@ -2375,6 +2401,9 @@ static void actFoldPattern() {
     cubeDisplay.setStatus(g_foldName);
     Cube.displayUpdate();
 }
+
+static void actFoldPattern()     { startFold(Menu.selectedIndex()); }
+static void actFoldPatternMore() { startFold(kPatMoreBase + Menu.selectedIndex()); }
 
 // ~140 ms per move — the same pace the scramble demos use, because it is the
 // machine's. Pieces only, per the 20 Hz rule.
@@ -2698,14 +2727,16 @@ static void actDemoEject() {
 //  carries the design brief), and the only question this demo answers on the
 //  bench is whether the label/value columns line up at realistic widths.
 //
-//  Row format mirrors the firmware's actStats — change both. That includes
-//  the "(+N step)" tally Step Solve adds to the Solves row (counted but
-//  untimed, so it must not inflate the count the average divides by) and the
-//  "-" a time shows before anything has been recorded.
+//  Row format mirrors the firmware's drawStats — change both. Solves is one
+//  tally (machine-paced and step solves together; the split lives only in
+//  EEPROM, keeping the untimed step solves out of Best and Average), Best
+//  carries the move count of the solve that set it, and a time shows "-"
+//  before anything has been recorded. The firmware page also owns the reset
+//  chord (SELECT+RIGHT held five seconds); this demo is layout only.
 static void actStats() {
     static const char* const rows[6] = {
-        "Solves\t128 (+6 step)",
-        "Best\t12.4 s",
+        "Solves\t134",
+        "Best\t12.4 s (18 moves)",
         "Average\t18.9 s",
         "Last\t15.2 s",
         "Run time\t9h 41m",
@@ -3039,13 +3070,26 @@ static void drawCalList() {
 // the title to Serial, and twenty times a second that is the flood the
 // animated demos already learned to avoid.
 static void drawCalDialFrame() {
-    // The title and the hint are all that change with the owner. The layout,
-    // the frame color and the interaction are deliberately identical: this is
-    // one screen opened from two places, not two screens that resemble each
-    // other. Both pages are the firmware's Settings yellow anyway.
+    // The title and the hint are all that change with the owner — and, since
+    // full moves arrived, one gesture: the diagnostic's UP/DOWN run quarter
+    // turns (see dialTurn()), while the CalFlow's stay single detents for
+    // squaring by hand. The layout, the frame color and everything else are
+    // deliberately identical: this is one screen opened from two places, not
+    // two screens that resemble each other. Both pages are the firmware's
+    // Settings yellow anyway.
     const bool diag = (dialOwner == DialOwner::Diagnostic);
+    static char hint[40];
+    if (diag) {
+        // Both moves spelled out rather than "UP/DOWN turns": the point of
+        // the buttons is testing one direction against the other, and the
+        // hint is where the operator checks which press is which.
+        snprintf(hint, sizeof(hint), "wheel steps - UP %s  DOWN %s'",
+                 kJogCaps[calSel], kJogCaps[calSel]);
+    } else {
+        snprintf(hint, sizeof(hint), "wheel steps - SELECT accepts");
+    }
     opScreen(Op::Calibrate, diag ? "Motor Sensors" : "Motor Calibration", nullptr,
-             diag ? "wheel steps - LEFT goes back" : "wheel steps - SELECT accepts");
+             hint);
 
     // "You have taken this row and the next detent goes to the machine." A
     // badge rather than a color: the whole Settings subtree — where every
@@ -3148,6 +3192,22 @@ static void calJog(int detents) {
     const int d = detents * calStepSize();
     encSteps[calSel] += d;
     calDelta += d;
+}
+
+// One canned quarter turn of the entered motor — the interaction the
+// firmware's dialTurn() runs for real on the DIAGNOSTIC dial: UP the plain
+// move, DOWN the prime. The canned encoder walks a quarter turn so the dial
+// swings the way a real one would, and the dwell is roughly a real move's
+// time, so the rehearsal paces like the machine. calDelta resets as the
+// firmware's does: an aligned move ends on a mark, so the travel count
+// restarts from a fresh reference.
+static void dialTurn(int dir) {
+    const char* mv = CubeSystem::kFaceMoves[calSel][dir > 0 ? 0 : 1];
+    cubeDisplay.setMessage(mv);     // the move's name while it "runs"
+    Cube.displayUpdate();
+    pumpDelay(300);
+    encSteps[calSel] += dir * cubeMotors.getTurnStep();
+    calDelta = 0;
 }
 
 // The clamp screen. The words are the machine's, including an abort chord with
@@ -3476,6 +3536,15 @@ static void calDialLoop() {
         // like the calibration dial.
         calJog(+1);
         calTick = 0;                // redraw at once: the face just moved
+    }
+
+    // UP and DOWN split by owner, as on the machine: on the DIAGNOSTIC dial
+    // they are full quarter turns (see dialTurn()); on the CalFlow dial they
+    // stay single detents for squaring by hand.
+    if (dialOwner == DialOwner::Diagnostic && (in.up || in.down)) {
+        dialTurn(in.up ? +1 : -1);
+        calTick = 0;                // redraw at once: the face just moved
+        return;
     }
 
     // One detent is one step, however fast the wheel is spun — the tuning

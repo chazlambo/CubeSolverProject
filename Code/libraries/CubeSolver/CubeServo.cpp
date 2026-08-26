@@ -62,7 +62,7 @@ void CubeServo::begin() {
             //
             // Assuming extPos instead would be strictly worse. An
             // interrupted RETRACT stores full clamp, and the first PWM pulse
-            // throws the horn to 205/260 in one write onto a cube still
+            // throws the horn to 194/260 in one write onto a cube still
             // between the grippers. An interrupted EXTEND stores retPos,
             // sweepTo() skips both loops as already-there, and the endpoint
             // write snaps the horn fully open — the cube drops. A virgin or
@@ -206,7 +206,7 @@ void CubeServo::setSweepStepDelay(int ms) {
 // after entering a tuning row is not a follow: the editor seeds its working
 // value from the STORED ENDPOINT, not from where the horn is standing, so the
 // opening detent on Top Servo > Retract asks for 1 degree while the horn is
-// parked at 205 with the ring and the bottom gripper still closed on the cube.
+// parked at 194 with the ring and the bottom gripper still closed on the cube.
 // That is exactly the instantaneous full-travel slam begin() guards against on
 // the boot path, arriving through a different door.
 //
@@ -219,7 +219,7 @@ void CubeServo::setSweepStepDelay(int ms) {
 //   - It cannot jam anything. Eight degrees is 3% of full travel — five steps
 //     of the 180-degree range the horn is actually commanded in — a nudge
 //     wherever in the linkage it happens. The travels this catches are the
-//     205 and 260 degree ones.
+//     194 and 260 degree ones.
 //
 // Anything larger is the first preview of a session, or a discard putting a
 // part back where it started, or something else with no business slamming a

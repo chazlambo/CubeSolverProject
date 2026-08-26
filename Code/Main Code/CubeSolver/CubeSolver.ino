@@ -41,11 +41,11 @@
 //
 //  Left out on purpose
 //  -------------------
-//  Every menu item has a real screen behind it, backed by the machine. One
-//  thing is left out deliberately:
-//
-//    - Stats has no reset gesture. What a reset should spare — the fault
-//      history? the lifetime run clock? — is a design question first.
+//  Every menu item has a real screen behind it, backed by the machine.
+//  (Stats' reset gesture — SELECT+RIGHT held five seconds on the page — spares
+//  nothing: solves, times, faults and the run clock all go. CubeStats::clear()
+//  only drops the magic, so an accidental wipe is recoverable with a
+//  programmer, which is what made an all-of-it reset acceptable.)
 // =============================================================================
 
 #include <CubeSystem.h>
@@ -134,6 +134,13 @@ enum class AppState : uint8_t {
     MotorDial,
     CubeState,
 
+    // The Stats page. Info-shaped — a static table, SELECT or LEFT leaves —
+    // but it owns its input like the four above, because its reset gesture is
+    // a CHORD (SELECT+RIGHT held five seconds) and pollEvent() cannot see
+    // one: it collapses RIGHT into Select and fires on the press edge, so the
+    // page would exit the instant the chord began to form.
+    Stats,
+
     // The Sensor Test pages. Live readouts: Sensors and SensorRaw are the
     // color-board pair — the two 3x3 grids, then one sensor's raw numbers —
     // Motors is the seven encoder angles, InputReport the wheel and buttons.
@@ -141,8 +148,12 @@ enum class AppState : uint8_t {
     // All three use pollEvent(), not pollJog(): here the wheel moves a CURSOR,
     // which is exactly the meaning pollEvent() gives it. Motors can start
     // things that move — Home, and the dial one of its rows opens — but the
-    // moment the wheel has to mean "step this motor" the page has handed over
-    // to MotorDial above, which owns its input for that reason.
+    // moment a button has to mean "move this motor" the page has handed over
+    // to MotorDial above, which owns its input for that reason. Full quarter
+    // turns live THERE too (the diagnostic owner's UP/DOWN — see
+    // calDialLoop()), deliberately behind that SELECT: on a list you are
+    // navigating, a button that turns a motor is an accident waiting for a
+    // wrong row.
     Sensors,
     SensorRaw,
     Motors,
@@ -271,6 +282,7 @@ extern const MenuScreen kScreenCalibration;
 extern const MenuScreen kScreenDiagnostics;
 extern const MenuScreen kScreenModes;
 extern const MenuScreen kScreenPatterns;
+extern const MenuScreen kScreenPatternsMore;
 extern const MenuScreen kScreenServoTune;
 extern const MenuScreen kScreenParams;
 extern const MenuScreen kScreenSensors;
@@ -283,6 +295,7 @@ static void actModeIdle();
 static void actModeDemo();
 static void actModeStep();
 static void actPattern();
+static void actPatternMore();
 static void actJog();
 static void actSensorColors();
 static void actSensorMotors();
@@ -357,6 +370,8 @@ static const char* const kPrevSettings[]    = { "Diagnostics", "Calibration", "P
                                                 "About" };
 static const char* const kPrevModes[]       = { "Scramble", "Idle Mode", "Demo Mode",
                                                 "Step Solve", "Patterns" };
+static const char* const kPrevPatternsMore[] = { "Cube^3", "Anaconda", "Python",
+                                                 "Tetris", "Twister" };
 static const char* const kPrevCalibration[] = { "Status", "Colors", "Motors", "Servos" };
 static const char* const kPrevDiagnostics[] = { "Hardware", "Sensor Test", "Cube State",
                                                 "Fault Log" };
@@ -428,12 +443,16 @@ const MenuScreen kScreenModes = { "Modes", kModesItems, 5, MenuTheme::Red };
 // Item order IS table order: each row's previewNet indexes the kPattern*
 // tables by position, and actPattern() reuses selectedIndex() the same way —
 // reorder one without the other and the machine folds the wrong pattern
-// under the right preview.
+// under the right preview. Nine patterns is four more than a screen holds,
+// hence the split: this screen owns table rows 0-3, More Patterns rows
+// kPatMoreBase up — actPatternMore() adds the offset and everything after
+// the index capture is shared.
 //
-// The per-item themes here are NOT wayfinding — they are four different
-// colors so four rows of preview net do not all sit in the same frame. The
-// branch color is the screen's green, and actPattern() sets that explicitly
-// so a fold's operation screens do not inherit whichever row was picked.
+// The per-item themes here are NOT wayfinding — they are different colors so
+// adjacent rows of preview net do not all sit in the same frame. The branch
+// color is the screen's green, and actPattern() sets that explicitly so a
+// fold's operation screens do not inherit whichever row was picked. The More
+// Patterns row is the one navigation row, and it stays the branch's green.
 static const MenuItem kPatternItems[] = {
     { "Checkerboard", nullptr, actPattern, "U2 D2 R2 L2 F2 B2",
       nullptr, 0, MenuTheme::Blue,   CubeSystem::kPatternNets[0] },
@@ -443,8 +462,28 @@ static const MenuItem kPatternItems[] = {
       nullptr, 0, MenuTheme::Yellow, CubeSystem::kPatternNets[2] },
     { "Superflip",    nullptr, actPattern, "Every edge flipped.",
       nullptr, 0, MenuTheme::Purple, CubeSystem::kPatternNets[3] },
+    { "More Patterns", &kScreenPatternsMore, nullptr, "Five more shapes.",
+      kPrevPatternsMore, 5 },
 };
-const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 4, MenuTheme::Green };
+const MenuScreen kScreenPatterns = { "Patterns", kPatternItems, 5, MenuTheme::Green };
+
+// Where More Patterns' rows start in the kPattern* tables: one screen's worth
+// of patterns in, not five — the More Patterns row itself is not a pattern.
+static const int kPatMoreBase = 4;
+
+static const MenuItem kPatternMoreItems[] = {
+    { "Cube^3",   nullptr, actPatternMore, "Cube in a cube in a cube.",
+      nullptr, 0, MenuTheme::Blue,   CubeSystem::kPatternNets[4] },
+    { "Anaconda", nullptr, actPatternMore, "A snake wound round the cube.",
+      nullptr, 0, MenuTheme::Green,  CubeSystem::kPatternNets[5] },
+    { "Python",   nullptr, actPatternMore, "The other snake.",
+      nullptr, 0, MenuTheme::Yellow, CubeSystem::kPatternNets[6] },
+    { "Tetris",   nullptr, actPatternMore, "L R F B U' D' L' R'",
+      nullptr, 0, MenuTheme::Purple, CubeSystem::kPatternNets[7] },
+    { "Twister",  nullptr, actPatternMore, "Two colors twist on every face.",
+      nullptr, 0, MenuTheme::Red,    CubeSystem::kPatternNets[8] },
+};
+const MenuScreen kScreenPatternsMore = { "More Patterns", kPatternMoreItems, 5, MenuTheme::Green };
 
 // ---- Settings ----
 //
@@ -673,6 +712,12 @@ static void statsCommit() {
     cubeStats.save(statsVals, CubeStats::FieldCount);
 }
 
+// A solve this short is not a record, it is a lucky draw: a nearly-solved
+// cube hands the solver a handful of moves, finishes in seconds, and would
+// stand as "Best" forever. Solves must be LONGER than this to feed Best and
+// Average; everything still counts toward the Solves tally and Last.
+static const int kStatMinMoves = 15;
+
 // Record one completed, machine-paced solve. Three callers, one per ending a
 // solve can have: the shared Unloading completion; Demo's run-completion
 // transition, which keeps the cube clamped between runs and never reaches
@@ -681,12 +726,17 @@ static void statsCommit() {
 // that, not a flag, is what keeps the count honest. Step Solve deliberately
 // does NOT come here: it is human-paced, and a thinking pause must not become
 // the best time.
-static void statsRecordTimedSolve(uint32_t ms) {
+static void statsRecordTimedSolve(uint32_t ms, int moves) {
     statsVals[CubeStats::Solves]++;
     statsVals[CubeStats::LastMs]   = ms;
     statsVals[CubeStats::TotalMs] += ms;
-    if (statsVals[CubeStats::BestMs] == 0 || ms < statsVals[CubeStats::BestMs]) {
-        statsVals[CubeStats::BestMs] = ms;
+    if (moves > kStatMinMoves) {
+        statsVals[CubeStats::QualSolves]++;
+        statsVals[CubeStats::QualMs] += ms;
+        if (statsVals[CubeStats::BestMs] == 0 || ms < statsVals[CubeStats::BestMs]) {
+            statsVals[CubeStats::BestMs]    = ms;
+            statsVals[CubeStats::BestMoves] = (uint32_t)moves;
+        }
     }
     statsCommit();
 }
@@ -2996,7 +3046,7 @@ static void actModeScramble() {
     // Op::Solve: the frame takes Scramble Solve's own red from s_opTheme, and
     // an Op::Error kind would lock it red on every screen this mode draws
     // later.
-    showOp(Op::Solve, "Scramble Solve", "Clamping the cube", "SELECT+LEFT to abort");
+    showOp(Op::Solve, "Scramble Solve", "Starting", "SELECT+LEFT to abort");
     state = AppState::ModeClamp;
 }
 
@@ -3024,7 +3074,7 @@ static void actModeIdle() {
     // The hint is this mode's own, not the stock abort line: SELECT does
     // something quite different from going back here, and the hint bar is
     // the one place that gets said.
-    showOp(Op::Solve, "Idle", "Clamping the cube",
+    showOp(Op::Solve, "Idle", "Starting",
            "wheel sets the gap - SELECT solves");
     state = AppState::ModeClamp;
 }
@@ -3057,7 +3107,7 @@ static void actModeDemo() {
     // differently would say the machine had changed job every few seconds.
     // The hint names the graceful exit instead of the abort chord: ending the
     // demo is the expected gesture here, and the chord still works.
-    showOp(Op::Solve, "Demo", "Clamping the cube", "SELECT or LEFT ends the demo");
+    showOp(Op::Solve, "Demo", "Starting", "SELECT or LEFT ends the demo");
     state = AppState::ModeClamp;
 }
 
@@ -3081,24 +3131,26 @@ static void actModeStep() {
     // Purple from here to the last move, Step Solve's own color. Nothing
     // recolors mid-run any more: the scramble half and the solve half are the
     // same place as far as an operator finding their way is concerned.
-    showOp(Op::Solve, "Step Solve", "Clamping the cube", "SELECT+LEFT to abort");
+    showOp(Op::Solve, "Step Solve", "Starting", "SELECT+LEFT to abort");
     state = AppState::ModeClamp;
 }
 
-// Fold the cube into the selected pattern. One action serves all four items:
-// the row picked tells it which, so a fifth pattern is a table row, not a
-// function.
+// Fold the cube into the selected pattern. One body serves every pattern row:
+// the row picked tells it which, so a new pattern is a table row, not a
+// function. The two entry actions exist only because the table split across
+// two screens — each screen's rows index the kPattern* tables from its own
+// base, and the base is the one thing the actions add.
 //
 // The solved-cube gate is an honest refusal, not a hidden solve. The menu's
 // preview net is a promise, and folding a scrambled cube produces
 // not-the-preview; quietly solving first would run an operation the user
 // never asked for. Requiring Solve keeps the promise and keeps the machine
 // predictable.
-static void actPattern() {
+static void startPatternFold(int tableIdx) {
     // Read the selection FIRST, before any screen changes: the fold states
     // run long after the menu has moved on, and selectedIndex() only means
     // this row while the menu still shows it.
-    patIdx = Menu.selectedIndex();
+    patIdx = tableIdx;
     const MenuItem* it = Menu.selectedItem();
     patName = (it && it->label) ? it->label : "Pattern";
 
@@ -3122,15 +3174,18 @@ static void actPattern() {
     runMode   = RunMode::Pattern;
     s_opTitle = "Patterns";
     // The one action that overrides the color loop() captured for it. The
-    // pattern ROWS are themed per pattern so four preview nets do not all sit
-    // in one frame, and that is a preview device, not a place — the branch is
-    // Patterns, and Patterns is green.
+    // pattern ROWS are themed per pattern so adjacent preview nets do not all
+    // sit in one frame, and that is a preview device, not a place — the branch
+    // is Patterns, and Patterns is green.
     s_opTheme = MenuTheme::Green;
-    showOp(Op::Solve, "Patterns", "Clamping the cube", "SELECT+LEFT to abort");
+    showOp(Op::Solve, "Patterns", "Starting", "SELECT+LEFT to abort");
     cubeDisplay.setStatus(patName);
     Cube.displayUpdate();
     state = AppState::ModeClamp;
 }
+
+static void actPattern()     { startPatternFold(Menu.selectedIndex()); }
+static void actPatternMore() { startPatternFold(kPatMoreBase + Menu.selectedIndex()); }
 
 // ---------------------------------------------------------------------------
 //  Motor Calibration — square the faces by hand, then sweep
@@ -3310,13 +3365,26 @@ static void drawCalList() {
 // the title to Serial, and twenty times a second that is the flood the
 // animated states already learned to avoid.
 static void drawCalDialFrame() {
-    // The title and the hint are all that change with the owner. The layout,
-    // the frame color and the interaction are deliberately identical: this is
-    // one screen opened from two places, not two screens that resemble each
-    // other. Both pages live under Settings, so both frames are yellow anyway.
+    // The title and the hint are all that change with the owner — and, since
+    // full moves arrived, one gesture: the diagnostic's UP/DOWN run real
+    // quarter turns (see dialTurn()), while the CalFlow's stay single detents
+    // for squaring by hand. The layout, the frame color and everything else
+    // are deliberately identical: this is one screen opened from two places,
+    // not two screens that resemble each other. Both pages live under
+    // Settings, so both frames are yellow anyway.
     const bool diag = (dialOwner == DialOwner::Diagnostic);
+    static char hint[40];
+    if (diag) {
+        // Both moves spelled out rather than "UP/DOWN turns": the point of
+        // the buttons is testing one direction against the other, and the
+        // hint is where the operator checks which press is which.
+        snprintf(hint, sizeof(hint), "wheel steps - UP %s  DOWN %s'",
+                 kJogCaps[calSel], kJogCaps[calSel]);
+    } else {
+        snprintf(hint, sizeof(hint), "wheel steps - SELECT accepts");
+    }
     opScreen(Op::Calibrate, diag ? "Motor Sensors" : "Motor Calibration", nullptr,
-             diag ? "wheel steps - LEFT goes back" : "wheel steps - SELECT accepts");
+             hint);
 
     // "You have taken this row and the next detent goes to the machine." A
     // badge rather than a color: every screen that can arm anything lives
@@ -3474,6 +3542,58 @@ static void calJog(int detents) {
     calDelta += d;
 }
 
+// One real quarter turn of the entered motor, from the DIAGNOSTIC dial: +1 is
+// the plain move, -1 the prime — U / U' with the U motor entered. Built for
+// watching one encoder across repeated full moves in EACH direction, with the
+// dial's angle and nearest-mark error on screen the whole time — the shape of
+// a direction-dependent fault, which single detents cannot reproduce.
+//
+// Diagnostic owner ONLY, and deliberately not offered on the Motor Sensors
+// LIST: there UP and DOWN are the cursor, and a button that turns a motor on
+// a page you are navigating fires on whatever row it lands on. Entering the
+// motor first is what says "this one, on purpose". Not in the CalFlow either:
+// its UP/DOWN stay single detents for squaring by hand, and an aligned move
+// there would home a hand-squared face back to the OLD marks — the exact
+// values the flow exists to replace.
+static void dialTurn(int dir) {
+    const char* mv = CubeSystem::kFaceMoves[calSel][dir > 0 ? 0 : 1];
+
+    // calEnterDial(Diagnostic) already wiped the model on the way in, but a
+    // wipe here is cheap insurance against a future entry path that forgets —
+    // the desync argument is jogTurn()'s, and it does not care which page
+    // turned the face.
+    if (Cube.virtualCube.isReady()) {
+        Cube.virtualCube.resetCube();
+        Cube.clearSolution();
+    }
+
+    // The move's name in the headline while it runs: with alignment on, a
+    // turn can take over a second, and a frozen dial says nothing about the
+    // machine having heard the press. calDialTick() repaints over it.
+    cubeDisplay.setMessage(mv);
+    Cube.displayUpdate();
+
+    // align = true, like jogTurn(): a full move here exists to watch whether
+    // the motor lands on its mark and whether the aligner corrects it — the
+    // exact behaviour a solve move has — so let the pass run and report if
+    // it cannot. fail() leaves the dial for the red screen; the caller must
+    // notice the state change.
+    const int e = Cube.executeMove(mv, false, true);
+    if (e) {
+        // No auto-release — direct manipulation means an operator standing
+        // at the machine, and unloading would destroy the state being
+        // diagnosed.
+        fail("Move failed", moveErrorText(e), e, CubeFaultLog::Jog);
+        return;
+    }
+
+    // The aligned move ends ON a mark (that is what align = true promises on
+    // success), so the "+N steps" travel count restarts from a fresh
+    // reference rather than claiming a displacement the aligner just
+    // absorbed.
+    calDelta = 0;
+}
+
 static void actCalMotors() {
     Cube.clearAbort();
     for (int i = 0; i < kCalMotors; ++i) calAligned[i] = false;
@@ -3582,31 +3702,35 @@ static void fmtSolveTime(uint32_t ms, char* out, size_t n) {
 
 // The lifetime solve records, from the statsVals the hooks maintain. Screen
 // shape rehearsed in Test_Menu's Stats demo — change both. Six rows is
-// exactly enough; resist a seventh. No reset gesture yet, deliberately:
-// whether wiping a machine's history deserves a menu item at all is a design
-// question, not a missing feature.
-static void actStats() {
-    static char rows[6][40];
+// exactly enough; resist a seventh.
+static void drawStats(const char* status) {
+    static char rows[6][48];
     char t[16];
 
-    const uint32_t solves  = statsVals[CubeStats::Solves];
-    const uint32_t stepped = statsVals[CubeStats::UntimedSolves];
-    if (stepped > 0) {
-        // Step solves are counted but untimed, so they get their own tally
-        // rather than silently inflating the count the average divides by.
-        snprintf(rows[0], sizeof(rows[0]), "Solves\t%lu (+%lu step)",
-                 (unsigned long)solves, (unsigned long)stepped);
+    // One tally: machine-paced and step solves together. The split still
+    // exists in EEPROM — Step Solve is untimed and must stay out of the
+    // numbers Best and Average are built from — but two numbers on the row
+    // was bookkeeping shown to the operator.
+    snprintf(rows[0], sizeof(rows[0]), "Solves\t%lu",
+             (unsigned long)(statsVals[CubeStats::Solves]
+                           + statsVals[CubeStats::UntimedSolves]));
+
+    // Best carries the length of the solve that set it. A block whose BestMs
+    // predates the BestMoves field reads 0 there — show the bare time rather
+    // than inventing "(0 moves)".
+    fmtSolveTime(statsVals[CubeStats::BestMs], t, sizeof(t));
+    if (statsVals[CubeStats::BestMoves] > 0) {
+        snprintf(rows[1], sizeof(rows[1]), "Best\t%s (%lu moves)", t,
+                 (unsigned long)statsVals[CubeStats::BestMoves]);
     } else {
-        snprintf(rows[0], sizeof(rows[0]), "Solves\t%lu", (unsigned long)solves);
+        snprintf(rows[1], sizeof(rows[1]), "Best\t%s", t);
     }
 
-    fmtSolveTime(statsVals[CubeStats::BestMs], t, sizeof(t));
-    snprintf(rows[1], sizeof(rows[1]), "Best\t%s", t);
-
-    // Division guarded: a fresh block has zero solves. The zero it passes on
-    // comes back from fmtSolveTime as the same "-" the other empty rows show.
-    fmtSolveTime(solves ? statsVals[CubeStats::TotalMs] / solves : 0,
-                 t, sizeof(t));
+    // Average over the qualifying solves only — see kStatMinMoves. Division
+    // guarded: zero qualifying solves passes 0 on, which comes back from
+    // fmtSolveTime as the same "-" the other empty rows show.
+    const uint32_t qn = statsVals[CubeStats::QualSolves];
+    fmtSolveTime(qn ? statsVals[CubeStats::QualMs] / qn : 0, t, sizeof(t));
     snprintf(rows[2], sizeof(rows[2]), "Average\t%s", t);
 
     fmtSolveTime(statsVals[CubeStats::LastMs], t, sizeof(t));
@@ -3634,11 +3758,117 @@ static void actStats() {
     // BEFORE setOpLines(), which reads it to decide where the rows start, and
     // showInfo() has no slot for one.
     opScreen(Op::Info, "Stats", nullptr,
-             "SELECT or LEFT to go back");
-    cubeDisplay.setStatus("Since first use");
+             "LEFT back - hold SEL+RIGHT resets");
+    cubeDisplay.setStatus(status);
     cubeDisplay.setOpLines(lines, 6);
     Cube.displayUpdate();
-    state = AppState::Info;
+}
+
+// The reset gesture's bookkeeping. holdStart is 0 while the chord is not
+// down; swallowPress outlives the chord so letting go of it — fired or
+// abandoned — cannot read as "SELECT: leave".
+static const uint32_t kStatResetHoldMs = 5000;
+static uint32_t statHoldStart    = 0;
+static bool     statFired        = false;
+static bool     statSwallowPress = false;
+
+static void actStats() {
+    statHoldStart    = 0;
+    statFired        = false;
+    statSwallowPress = false;
+    state = AppState::Stats;
+    drawStats("Since first use");
+}
+
+// The Stats page's per-pass handler, fifth of the input-owning kind. Shares
+// the edge-detection state with the other pollers under the same
+// one-poller-per-pass rule. What it exists for: the reset chord, SELECT+RIGHT
+// held for five seconds — pollEvent() folds RIGHT into Select and fires on
+// the press edge, so under it the page would exit the instant the chord began
+// to form. Exits are on the RELEASE here for the same reason: only when a
+// press ends without ever having been the chord is it known to be "leave".
+static void statsLoop() {
+    if (!Cube.encoderInitialized) return;   // no buttons; the page still shows
+
+    const uint32_t now = millis();
+    if (now - lastPoll < 25) return;
+    lastPoll = now;
+
+    const uint8_t b = menuEncoder.readButtons();
+    const bool selDown   = b & RotaryEncoder::BTN_SELECT;
+    const bool leftDown  = b & RotaryEncoder::BTN_LEFT;
+    const bool rightDown = b & RotaryEncoder::BTN_RIGHT;
+
+    const bool leftEdge     = leftDown   && !prevLeft;
+    const bool selRelease   = !selDown   && prevSelect;
+    const bool rightRelease = !rightDown && prevRight;
+
+    prevSelect = selDown;
+    prevLeft   = leftDown;
+    prevRight  = rightDown;
+    prevUp     = b & RotaryEncoder::BTN_UP;
+    prevDown   = b & RotaryEncoder::BTN_DOWN;
+
+    // Consumed unconditionally, exactly as pollEvent() does: the wheel means
+    // nothing here, and rotation banked during the visit would replay as a
+    // phantom scroll on the first menu pass after leaving.
+    prevPos = menuEncoder.getPosition();
+
+    if (leftEdge) { toMenu(); return; }
+
+    if (selDown && rightDown) {
+        // The chord. From here on this press means "reset", never "leave",
+        // however the two buttons come back up.
+        statSwallowPress = true;
+        if (statHoldStart == 0) statHoldStart = now;
+        if (!statFired) {
+            const uint32_t held = now - statHoldStart;
+            if (held >= kStatResetHoldMs) {
+                statFired = true;
+                // Everything goes — solves, times, faults, the run clock.
+                // clear() drops only the block's magic, so a wipe done by
+                // accident is recoverable with a programmer.
+                for (uint8_t f = 0; f < CubeStats::FieldCount; ++f) {
+                    statsVals[f] = 0;
+                }
+                runLastMs = now;    // the run clock restarts at the wipe
+                cubeStats.clear();
+                drawStats("Stats cleared");
+            } else {
+                // Count the hold down on the status line: a five-second hold
+                // with no feedback is indistinguishable from a dead button.
+                char s[24];
+                snprintf(s, sizeof(s), "Resetting in %lu",
+                         (unsigned long)((kStatResetHoldMs - held + 999) / 1000));
+                cubeDisplay.setStatus(s);
+                Cube.displayUpdate();
+            }
+        }
+        return;
+    }
+
+    // The chord is no longer down. Put the status line back if it was
+    // counting, and re-arm for a fresh hold.
+    if (statHoldStart != 0) {
+        statHoldStart = 0;
+        if (!statFired) {
+            cubeDisplay.setStatus("Since first use");
+            Cube.displayUpdate();
+        }
+        statFired = false;
+    }
+
+    if (selRelease || rightRelease) {
+        if (statSwallowPress) {
+            // A chord released one finger at a time must not leave on the
+            // second release — only once both are up is the press over.
+            if (!selDown && !rightDown) statSwallowPress = false;
+        } else {
+            // A plain SELECT (or RIGHT, which pollEvent() treats as SELECT
+            // everywhere else) tap: leave, as the Info screens do.
+            toMenu();
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -4010,6 +4240,7 @@ static void jogLoop() {
     }
 }
 
+
 // The value editor's per-pass handler — the body Test_Menu runs inline in its
 // loop(). It needs the same split pollJog() gives the jog page: the wheel
 // changes a number while the buttons stay buttons, which pollEvent() cannot
@@ -4204,6 +4435,21 @@ static void calDialLoop() {
         // calibration dial.
         calJog(+1);
         calTick = 0;                // re-read at once: the face just moved
+    }
+
+    // UP and DOWN split by owner. On the DIAGNOSTIC dial they are full
+    // quarter turns — the plain move and the prime — because that page
+    // exists for watching one motor across real moves in both directions
+    // (see dialTurn()). On the CalFlow dial they stay single detents: the
+    // flow is squaring a face by hand, and an aligned full move would home
+    // it back to the old marks — the values the flow exists to replace.
+    if (dialOwner == DialOwner::Diagnostic && (in.up || in.down)) {
+        dialTurn(in.up ? +1 : -1);
+        // A failed move left through fail() and the state is no longer this
+        // page's; repainting the dial over the red screen would bury it.
+        if (state != AppState::MotorDial) return;
+        calTick = 0;                // re-read at once: the face just moved
+        return;
     }
 
     // One detent is one step, however fast the wheel is spun — the tuning
@@ -4419,6 +4665,14 @@ void loop() {
     // face there while UP and DOWN turn it. Same one-poller-per-pass rule.
     if (state == AppState::CubeState) {
         cubeStateLoop();
+        return;
+    }
+
+    // Stats, fifth: a static table, but its reset chord (SELECT+RIGHT held)
+    // is invisible to pollEvent(), which folds RIGHT into Select and fires on
+    // the press edge. Same one-poller-per-pass rule.
+    if (state == AppState::Stats) {
+        statsLoop();
         return;
     }
 
@@ -4653,7 +4907,7 @@ void loop() {
             // finally presses SELECT: a solve that happened happened, whether
             // or not anyone acknowledges the screen, and Executing is reached
             // exactly once per solve so it cannot double-count.
-            statsRecordTimedSolve(solveMillis);
+            statsRecordTimedSolve(solveMillis, Cube.solutionLength);
 
             // Let go of everything except the bottom gripper. Deliberately NOT
             // unloadCube(): that retracts the bottom servo too, the cube drops
@@ -4800,7 +5054,7 @@ void loop() {
             statsVals[CubeStats::UntimedSolves]++;
             statsCommit();
         } else {
-            statsRecordTimedSolve(solveMillis);
+            statsRecordTimedSolve(solveMillis, Cube.solutionLength);
         }
 
         char sub[64];
@@ -5031,6 +5285,7 @@ void loop() {
     case AppState::Params:
     case AppState::MotorDial:
     case AppState::CubeState:
+    case AppState::Stats:
         break;      // handled before pollEvent() ever ran; nothing here
                     // consumes a MenuEvent
 
@@ -5228,12 +5483,16 @@ void loop() {
     // ---- Modes ------------------------------------------------------------
 
     case AppState::ModeClamp: {
-        // The shared clamp: bottom, then ring, then top, for the mechanical
-        // reason recorded there. Unconditional, unlike Loading — the modes
-        // have not been given the skip-if-already-clamped treatment;
-        // cubeIsClamped() is all that stands between this and it, if it is
-        // ever wanted.
-        clampCube();
+        // The shared clamp, gated the way Solve gates its own: the modes are
+        // only reachable with a scanned cube already in the grip, so clamping
+        // — and saying "Clamping the cube" — on every entry announced work the
+        // machine was not doing. When the grip really is open the clamp still
+        // runs, and says so; the entry screens themselves no longer claim it.
+        if (!cubeIsClamped()) {
+            cubeDisplay.setMessage("Clamping the cube");
+            Cube.displayUpdate();
+            clampCube();
+        }
 
         // If an abort landed during the clamp, release rather than starting
         // the mode. safeStop() suspends the latch internally so the unload is
@@ -5285,7 +5544,7 @@ void loop() {
             break;
         case RunMode::IdleSolve:
             // Arm the first turn a full gap out, then paint the idle screen
-            // (dial, count, decorative frame) over the clamp message.
+            // (dial, count, decorative frame) over the entry message.
             idleNextAt = millis() + (uint32_t)idleGapS * 1000UL;
             drawIdle();
             state = AppState::Idle;
@@ -5482,7 +5741,7 @@ void loop() {
                 // reaches Unloading this transition is its only recording
                 // point — one commit per completed run, nothing per cycle
                 // beyond that.
-                statsRecordTimedSolve(solveMillis);
+                statsRecordTimedSolve(solveMillis, Cube.solutionLength);
 
                 // Demo's own "Solved!", not the shared Unloading screen: the
                 // cube stays clamped between runs, because releasing and

@@ -53,7 +53,7 @@ public:
     static const uint16_t kMagic = 0x5CA7;
 
     // Upper bound on the field count, so the block's footprint is knowable at
-    // layout time. Five spare slots of room to append before the layout has
+    // layout time. Two spare slots of room to append before the layout has
     // to grow.
     static const uint8_t kMaxFields = 12;
 
@@ -69,6 +69,15 @@ public:
         LastMs,         // the most recent timed solve
         RunSec,         // powered-on seconds, accumulated across boots
         Faults,         // fault screens shown, aborts included
+        // Appended (see the one-sided count check): the qualifying set behind
+        // Best and Average. A short solution — a nearly-solved cube handed to
+        // the solver — finishes in seconds and would stand as "Best" forever,
+        // so only solves LONGER than kStatMinMoves (in the sketch) feed the
+        // records. Solves/TotalMs above stay lifetime counters of everything.
+        QualSolves,     // timed solves long enough to count for Best/Average
+        QualMs,         // sum of their times — the average's numerator
+        BestMoves,      // solution length of the solve BestMs records; 0 on a
+                        // block whose BestMs predates this field
         FieldCount
     };
 

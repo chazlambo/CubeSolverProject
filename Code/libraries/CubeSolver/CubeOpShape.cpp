@@ -72,8 +72,10 @@ const char* const CubeSystem::kFaceMoves[6][3] = {
 // different paint — which is why the completion screen draws the MODEL's net
 // rather than one of these.
 //
-// Row order is Checkerboard, Cube in Cube, Six Spot, Superflip. The menu
-// tables in both sketches index by that order — reorder here and they must
+// Row order is Checkerboard, Cube in Cube, Six Spot, Superflip, then the
+// second screen's five: Cube^3, Anaconda, Python, Tetris, Twister. The menu
+// tables in both sketches index by that order — the first Patterns screen
+// owns rows 0-3, More Patterns rows 4-8 — reorder here and they must
 // reorder with it.
 static const char* const kPatMovesCheckerboard[] = {
     "U2", "D2", "R2", "L2", "F2", "B2",
@@ -88,12 +90,33 @@ static const char* const kPatMovesSuperflip[] = {
     "U", "R2", "F", "B", "R", "B2", "R", "U2", "L", "B2",
     "R", "U'", "D'", "R2", "F", "R'", "L", "B2", "U2", "F2",
 };
+static const char* const kPatMovesCube3[] = {
+    "U'", "L'", "U'", "F'", "R2", "B'", "R", "F", "U",
+    "B2", "U", "B'", "L", "U'", "F", "U", "R", "F'",
+};
+static const char* const kPatMovesAnaconda[] = {
+    "L", "U", "B'", "U'", "R", "L'", "B", "R'", "F", "B'", "D", "R", "D'", "F'",
+};
+static const char* const kPatMovesPython[] = {
+    "F2", "R'", "B'", "U", "R'", "L", "F'", "L", "F'", "B", "D'", "R", "B", "L2",
+};
+static const char* const kPatMovesTetris[] = {
+    "L", "R", "F", "B", "U'", "D'", "L'", "R'",
+};
+static const char* const kPatMovesTwister[] = {
+    "F", "R'", "U", "L", "F'", "L'", "F", "U'", "R", "U", "L'", "U'", "L", "F'",
+};
 
 const char* const* const CubeSystem::kPatternMoves[CubeSystem::kPatternCount] = {
     kPatMovesCheckerboard,
     kPatMovesCubeInCube,
     kPatMovesSixSpot,
     kPatMovesSuperflip,
+    kPatMovesCube3,
+    kPatMovesAnaconda,
+    kPatMovesPython,
+    kPatMovesTetris,
+    kPatMovesTwister,
 };
 
 // Counted by the compiler, not by hand: a count that drifted from its array
@@ -103,6 +126,11 @@ const uint8_t CubeSystem::kPatternMoveCounts[CubeSystem::kPatternCount] = {
     sizeof(kPatMovesCubeInCube)   / sizeof(kPatMovesCubeInCube[0]),
     sizeof(kPatMovesSixSpot)      / sizeof(kPatMovesSixSpot[0]),
     sizeof(kPatMovesSuperflip)    / sizeof(kPatMovesSuperflip[0]),
+    sizeof(kPatMovesCube3)        / sizeof(kPatMovesCube3[0]),
+    sizeof(kPatMovesAnaconda)     / sizeof(kPatMovesAnaconda[0]),
+    sizeof(kPatMovesPython)       / sizeof(kPatMovesPython[0]),
+    sizeof(kPatMovesTetris)       / sizeof(kPatMovesTetris[0]),
+    sizeof(kPatMovesTwister)      / sizeof(kPatMovesTwister[0]),
 };
 
 const char CubeSystem::kPatternNets[CubeSystem::kPatternCount][55] = {
@@ -114,6 +142,16 @@ const char CubeSystem::kPatternNets[CubeSystem::kPatternCount][55] = {
     "RRRRWRRRR" "WWWWBWWWW" "BBBBRBBBB" "OOOOYOOOO" "YYYYGYYYY" "GGGGOGGGG",
     // Superflip: every edge flipped in place; corners and centres untouched.
     "WOWGWBWRW" "BWBRBOBYB" "RWRGRBRYR" "YRYGYBYOY" "GWGOGRGYG" "OWOBOGOYO",
+    // Cube^3: Cube in Cube again with a third, single-sticker cube nested in.
+    "BBBBWWBWR" "WBRBBRRRR" "WRBWRRWWW" "GGGYYGOYG" "OOOGGOYGO" "YYYYOOYOG",
+    // Anaconda: a two-color snake winding over every face.
+    "RWRWWRRRR" "WWWWBBWBW" "BBBRRBBRB" "OYOOYYOOO" "YGYYGGYYY" "GOGOOGGGG",
+    // Python: the other snake — straighter, a stripe through four faces.
+    "YWYYWYYWY" "RRRRBBRBR" "BRBRRBBBB" "WWWYYYWWW" "OOOOGGOGO" "GOGOOGGGG",
+    // Tetris: three colors a face, stacked in tetromino-shaped blocks.
+    "RRORWOROO" "WYYWBYWWY" "BGGBRGBBG" "OOROYRORR" "WYYWGYWWY" "GBBGOBGGB",
+    // Twister: two colors a face, twisted around each other.
+    "BWBBWWBWW" "BBRBBRRBR" "WRRRRRWWW" "GGGYYYYYG" "OOOGGGGGO" "YOYYOOYOO",
 };
 
 // From calibrateColorSensors(): faceColors then topFaces, mapped to chip

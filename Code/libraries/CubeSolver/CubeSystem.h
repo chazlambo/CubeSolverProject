@@ -255,7 +255,7 @@ public:
     // drawn by hand. Row order is order everywhere: the menu tables in both
     // sketches index these by position. Defined in CubeOpShape.cpp, like
     // every shared shape constant.
-    static const int                kPatternCount = 4;
+    static const int                kPatternCount = 9;
     static const char* const* const kPatternMoves[kPatternCount];      // ribbon-ready token arrays
     static const uint8_t            kPatternMoveCounts[kPatternCount];
     static const char               kPatternNets[kPatternCount][55];   // expected result
