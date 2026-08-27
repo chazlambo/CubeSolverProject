@@ -405,5 +405,15 @@ marks binary CAD/fab formats `-text` so git's heuristic can't CRLF-mangle them.
   calls it at the end of boot and on every return to the menu. In mode 1 never
   use `tft->update(internal_fb)` for that: handed its own buffer the driver
   rotates it onto itself.
+- **A white panel heals itself now.** On the same marginal wire, a corrupted
+  byte during a heavy flush can land in the panel's command slot — `RAMWR`
+  (0x2C) and `CASET` (0x2A) are each one flipped bit from `DISPOFF` (0x28) —
+  and a panel that latches `DISPOFF`/`SLPIN`/`SWRESET` shows solid white,
+  which no amount of pixel drawing repairs. `CubeDisplay::panelHealthTick()`
+  (run from every `update()`) re-sends `DISPON`+`SLPOUT` each second and
+  re-runs the full init when the self-diagnostic register reads wrong, so a
+  white-out lasts about a second instead of until power-cycle. It prints
+  `Display: panel lost its init (recovery #N)` on Serial; that count climbing
+  while scrolling is the wire talking.
 - Solve times: Kociemba runs from flash. `set_memory()` would be ~4× faster but
   the 479 KiB buffer doesn't fit alongside the display's ~200 KB of RAM2.

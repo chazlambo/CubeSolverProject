@@ -24,7 +24,8 @@ CubeDisplay::CubeDisplay(int sck, int miso, int mosi, int dc, int cs, int reset,
       mode(Mode::None), opActive(false), opKind(OpKind::Info),
       pendScreen(nullptr), pendDetail(nullptr),
       pendRows(0), pendSel(0), pendDir(1),
-      curRows(0), transitioning(false)
+      curRows(0), transitioning(false),
+      spi_speed(10000000), nextHealthMs(0), panelRecoveries(0)
 {
     for (int i = 0; i < kRows; ++i) {
         barBox[i] = nullptr; img_bar[i] = nullptr; lbl_bar[i] = nullptr;
@@ -438,6 +439,9 @@ void CubeDisplay::setTitleText(const char* title) {
 }
 
 bool CubeDisplay::begin(uint32_t spiSpeed) {
+    // Kept for panelHealthTick(), which may have to run this bring-up again.
+    spi_speed = spiSpeed;
+
     // The driver's mirror framebuffer and diff buffers exist only in the async
     // DMA mode (see CUBE_DISPLAY_ASYNC_DMA in the header). In synchronous mode
     // there is nothing to mirror — every flush goes straight to the glass — and
@@ -2285,7 +2289,92 @@ void CubeDisplay::wheelInDone(lv_anim_t* a) {
 }
 
 void CubeDisplay::update() {
+    panelHealthTick();
     lv_task_handler();
+}
+
+// ---------------------------------------------------------------------------
+//  Panel watchdog.
+// ---------------------------------------------------------------------------
+// The ILI9341 executes whatever arrives in a command slot, and this board's
+// SPI link has already been convicted of corrupting traffic (it is why the
+// async DMA mode is off). The heaviest traffic the firmware generates is a
+// main-menu wheel detent: every item carries a different MenuTheme, so one
+// detent recolors both frame bands — a near-full-frame synchronous burst,
+// ~100 KB of pixel data framed by CASET/PASET/RAMWR command bytes per band.
+// The stakes of one flipped bit are concrete: RAMWR (0x2C) and CASET (0x2A)
+// are each ONE BIT from DISPOFF (0x28), and SLPIN (0x10) / SWRESET (0x01) are
+// near neighbours of other bytes on the wire. A latched DISPOFF or SLPIN is a
+// white panel; a latched SWRESET is a white panel with every register at
+// power-on defaults. Until this watchdog existed nothing ever repaired any of
+// them — tft->begin() ran exactly once at boot, and repaintAll() re-sends
+// pixels, which a controller that is asleep or off does not display. That is
+// how "scroll, corrupt, then completely white, and never recovers" happened.
+//
+// Two-tier repair, every HEALTH_PERIOD_MS, from update():
+//
+// - RDSELFDIAG (via selfDiagStatus(), expected 0xC0) says whether the panel's
+//   registers survived. Wrong or unreadable — SWRESET, hardware reset, brown-
+//   out — and the full boot bring-up is re-run: tft->begin() + rotation +
+//   clear + repaintAll(). Roughly half a second, and the panel comes back by
+//   itself instead of staying white until power-cycle.
+//
+// - When it reads healthy, DISPON+SLPOUT are re-sent anyway (sleep(false)).
+//   DISPOFF and SLPIN — the single-bit-flip latches, so the LIKELIEST ones —
+//   do not disturb the self-diagnostic register and are invisible to the
+//   check above; but both preserve GRAM, so re-enabling the output restores
+//   the picture with no repaint. On a healthy panel both commands are no-ops.
+//   The delay(20) inside sleep(false) is the price: one dropped frame per
+//   period. Residual pixel corruption from before a latch is not repaired
+//   here; it heals on the next natural redraw.
+//
+// Motion is safe from the stall by construction, not by luck: face moves are
+// deliberately unpumped (CubeMotors.cpp), and the ring's pumped loop raises
+// pumpMotionOnly, under which pumpOnce() skips displayUpdate() entirely — so
+// update(), and therefore this, never runs mid-move.
+//
+// Async DMA mode is excluded below: selfDiagStatus() and sleep(false) drop
+// the driver's mirror and force a vsync resync, which in that mode turns
+// every check into a full-frame re-upload. That mode is bench-comparison
+// only; if it ever comes back for real, this needs its own design.
+#ifndef ILI9341_T4_SELFDIAG_OK
+#define ILI9341_T4_SELFDIAG_OK 0xC0   // real driver defines it; the sim shim does not
+#endif
+
+static const uint32_t HEALTH_PERIOD_MS = 1000;
+static const uint32_t HEALTH_RETRY_MS  = 10000;
+
+void CubeDisplay::panelHealthTick() {
+#if !CUBE_DISPLAY_ASYNC_DMA
+    if (!tft) return;
+    const uint32_t now = millis();
+    if ((int32_t)(now - nextHealthMs) < 0) return;
+    nextHealthMs = now + HEALTH_PERIOD_MS;
+
+    if (tft->selfDiagStatus() == ILI9341_T4_SELFDIAG_OK) {
+        tft->sleep(false);
+        return;
+    }
+
+    // Registers are gone or unreadable: the controller reset behind our back.
+    // The count is the bench evidence — read it over Serial or via
+    // panelRecoveryCount(); climbing while scrolling convicts the wire.
+    panelRecoveries++;
+    Serial.print(F("Display: panel lost its init (recovery #"));
+    Serial.print(panelRecoveries);
+    Serial.println(F(") - reinitializing"));
+    if (tft->begin(spi_speed)) {
+        tft->setRotation(1);
+        tft->clear(0x0000);
+        repaintAll();
+    } else {
+        // The panel would not come back — unplugged, or truly dead. Keep the
+        // machine running and retry later rather than spending ~400 ms on a
+        // doomed init every period.
+        Serial.println(F("Display: panel re-init FAILED, will retry"));
+        nextHealthMs = now + HEALTH_RETRY_MS;
+    }
+#endif
 }
 
 // Forget what is on the glass and re-send every pixel on the next update().

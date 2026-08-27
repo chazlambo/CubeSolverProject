@@ -3587,6 +3587,14 @@ static void dialTurn(int dir) {
         return;
     }
 
+    // executeMove() de-energises every driver on its way out — and so does
+    // the alignment pass inside it. The dial's contract is the opposite:
+    // motors energised for the WHOLE visit, so the face holds where the
+    // operator put it (see calEnterDial()). Restore it, or the first full
+    // move turns every later wheel detent into step pulses at de-energised
+    // drivers — a wheel that silently stops working.
+    cubeMotors.enableMotors();
+
     // The aligned move ends ON a mark (that is what align = true promises on
     // success), so the "+N steps" travel count restarts from a fresh
     // reference rather than claiming a displacement the aligner just
@@ -3773,9 +3781,13 @@ static bool     statFired        = false;
 static bool     statSwallowPress = false;
 
 static void actStats() {
-    statHoldStart    = 0;
-    statFired        = false;
-    statSwallowPress = false;
+    statHoldStart = 0;
+    statFired     = false;
+    // Armed, not cleared: pollEvent() fired this action on the press EDGE, so
+    // the SELECT that opened the page is still down right now and its release
+    // will land in statsLoop() — where an unswallowed release means "leave".
+    // Cleared, the page closes the moment the entering click is let go.
+    statSwallowPress = true;
     state = AppState::Stats;
     drawStats("Since first use");
 }

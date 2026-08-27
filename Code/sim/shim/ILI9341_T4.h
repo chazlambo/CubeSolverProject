@@ -40,6 +40,14 @@ public:
     void setVSyncSpacing(int) {}
     void clear(uint16_t) {}
 
+    // The panel watchdog (CubeDisplay::panelHealthTick) reads these. The
+    // simulated panel can neither lose its init nor fall asleep, so it reports
+    // permanently healthy and the reassert is nothing — meaning the watchdog's
+    // repair paths, like everything else this shim fakes, are proven only on
+    // the bench.
+    int selfDiagStatus() { return 0xC0; }
+    void sleep(bool) {}
+
     void updateRegion(bool redrawNow, uint16_t* px, int x1, int x2, int y1, int y2) {
         sim::blit(px, x1, x2, y1, y2);
         if (redrawNow) sim::present();

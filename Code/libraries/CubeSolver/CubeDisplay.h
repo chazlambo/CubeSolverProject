@@ -28,8 +28,13 @@
 //   not cure it and the driver's code gives no reason it should fail, which
 //   points at the wire: this board runs the driver at 10 MHz with a custom
 //   motherboard between Teensy and panel, and the DMA path toggles DC through
-//   the SPI chip-select logic between every chunk. Mode 0 takes all of that
-//   out of the loop. Flip this to 1 only to compare the two on the bench.
+//   the SPI chip-select logic between every chunk. Mode 0 removes the DMA and
+//   the interrupt chain — but NOT the DC-via-chip-select mechanism. DC is on
+//   pin 10, a hardware CS, so the driver rides every command<->data transition
+//   through the LPSPI TCR logic in this mode too; the wire that garbled mode 1
+//   is still the wire mode 0 writes over. What a dropped bit costs here, and
+//   what repairs it, is panelHealthTick() in the .cpp. Flip this to 1 only to
+//   compare the two on the bench.
 #ifndef CUBE_DISPLAY_ASYNC_DMA
 #define CUBE_DISPLAY_ASYNC_DMA 0
 #endif
@@ -300,6 +305,11 @@ public:
     // async DMA mode it also makes the driver forget its mirror of the glass.
     void repaintAll();
 
+    // How many times the panel watchdog has had to bring the controller back
+    // from a lost init (see panelHealthTick() in the .cpp). Zero on a healthy
+    // wire; a count that climbs while scrolling convicts the SPI link.
+    uint16_t panelRecoveryCount() const { return panelRecoveries; }
+
     // Utility methods
     void waitForSelect(const char* msg);
 
@@ -323,6 +333,12 @@ private:
     ILI9341_T4::DiffBuffStatic<8000>* diff2;
     uint16_t* internal_fb;
     lv_color_t* lv_buf;
+
+    // Panel watchdog state — see panelHealthTick() in the .cpp.
+    uint32_t spi_speed;
+    uint32_t nextHealthMs;
+    uint16_t panelRecoveries;
+    void panelHealthTick();
     
     // LVGL objects
     lv_display_t* disp;
